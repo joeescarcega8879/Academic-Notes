@@ -1,0 +1,55 @@
+<div class="modal-backdrop" id="modal-eval">
+  <div class="modal" role="dialog" aria-modal="true">
+    
+    <header class="modal-head">
+      <h3 id="eval-modal-title">Nueva evaluación</h3>
+      <button data-close="modal-eval" aria-label="Cerrar"><i data-icon="x"></i></button>
+    </header>
+
+    <div class="modal-body">
+      <p class="helper">Los cambios se guardan en el período activo. El alumno recibirá una notificación al guardar.</p>
+      <div class="field">
+        <label for="eval-name">Nombre de la evaluación</label>
+        <input id="eval-name" class="input" type="text" placeholder="Ej. Parcial 3" />
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label for="eval-grade">Calificación (0 — 10)</label>
+          <input id="eval-grade" class="input" type="number" min="0" max="10" step="0.1" placeholder="7.5" />
+        </div>
+        <div class="field">
+          <label for="eval-date">Fecha</label>
+          <input id="eval-date" class="input" type="text" placeholder="22 may 2026" />
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-eval">Cancelar</button>
+      <button id="eval-save" class="btn btn-primary">Guardar</button>
+    </footer>
+    
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-confirm">
+  <div class="modal confirm-modal" role="alertdialog" aria-modal="true">
+    <header class="modal-head">
+      <h3>Eliminar evaluación</h3>
+      <button data-close="modal-confirm" aria-label="Cerrar"><i data-icon="x"></i></button>
+    </header>
+
+    <div class="modal-body">
+      <div class="warn-ico">
+        <i data-icon="alert-circle" class="i-lg"></i>
+      </div>
+      <p id="confirm-text" class="my-6">¿Eliminar esta evaluación? Esta acción no se puede deshacer.</p>
+    </div>
+
+    <footer class="modal-foot">
+      <button class="btn btn-ghost" data-close="modal-confirm">Cancelar</button>
+      <button id="confirm-delete" class="btn btn-danger">Eliminar</button>
+    </footer>
+
+  </div>
+</div>

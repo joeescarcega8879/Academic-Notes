@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Perfil — Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Perfil</h1>
+  <span class="sub">· Información personal y preferencias</span>
+  <div class="spacer"></div>
+  <button class="icon-btn" title="Notificaciones">
+    <i data-icon="bell"></i><span class="pip"></span>
+  </button>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero del perfil -->
+<div class="profile-hero">
+  <div class="avatar xl">{{ user.first_name|first }}{{ user.last_name|first }}</div>
+  <div>
+    <h2 class="ph-name">{{ user.get_full_name }}</h2>
+    <div class="ph-meta">{{ user.email }}{% if user.student_profile %} · Matrícula {{ user.student_profile.enrollment_number }}{% endif %}</div>
+    <div class="ph-chips">
+      {% if user.student_profile %}
+        <span class="chip brand"><i data-icon="graduation"></i> {{ user.student_profile.program }}</span>
+        <span class="chip"><i data-icon="calendar"></i> {{ user.student_profile.semester }}º semestre</span>
+      {% endif %}
+      <span class="chip ok"><i data-icon="check-circle"></i> Inscripción activa</span>
+    </div>
+  </div>
+  <div class="ph-actions">
+    <button class="btn btn-ghost"><i data-icon="lock"></i> Cambiar contraseña</button>
+    <button class="btn btn-primary"><i data-icon="edit"></i> Editar perfil</button>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <!-- Grid: info + stats -->
+  <div class="profile-grid">
+    <div>
+
+      <!-- Información personal -->
+      <div class="card mb-12">
+        <h3 class="section-title mb-12">Información personal</h3>
+        <div class="field">
+          <label>Nombre</label>
+          {{ profile_form.first_name }}
+        </div>
+        <div class="field">
+          <label>Apellido</label>
+          {{ profile_form.last_name }}
+        </div>
+        <div class="field">
+          <label>Correo institucional</label>
+          {{ profile_form.email }}
+        </div>
+        <div class="field">
+          <label>Teléfono</label>
+          {{ profile_form.phone }}
+        </div>
+        <div class="field">
+          <label>Fecha de nacimiento</label>
+          {{ profile_form.birth_date }}
+        </div>
+        <div class="field">
+          <label>Documento</label>
+          <input class="input" value="{{ user.dni }}" disabled>
+        </div>
+      </div>
+
+      <!-- Información académica -->
+      <div class="card mb-12">
+        <h3 class="section-title mb-12">Información académica</h3>
+        {% if extra_form %}
+          {{ extra_form.as_p }}
+        {% endif %}
+        {% if user.student_profile.tutor %}
+          <div class="kv-row">
+            <div class="k">Tutor académico</div>
+            <div class="v">{{ user.student_profile.tutor.get_full_name }}</div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Preferencias / notificaciones -->
+      <div class="card">
+        <h3 class="section-title mb-12">Preferencias</h3>
+        <div class="toggle-row">
+          <div>
+            <div class="tlbl">Notificaciones de calificaciones</div>
+            <div class="tsub">Recibir email cuando se publique una calificación.</div>
+          </div>
+          {{ profile_form.notify_grades }}
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="tlbl">Resumen semanal</div>
+            <div class="tsub">Email los lunes con el progreso de cada materia.</div>
+          </div>
+          {{ profile_form.notify_weekly }}
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="tlbl">Mensajes de profesores por SMS</div>
+            <div class="tsub">Solo para conversaciones marcadas como urgentes.</div>
+          </div>
+          {{ profile_form.notify_sms }}
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="tlbl">Mostrar promedio en cards de materia</div>
+            <div class="tsub">Visible solo para ti.</div>
+          </div>
+          {{ profile_form.show_average }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columna derecha -->
+    <div>
+      <div class="card mb-12">
+        <h3 class="section-title mb-12">Promedio del período</h3>
+        <div class="flex-row items-baseline gap-14">
+          <div class="grade-hero-md ok">{{ overall_average|default:"7.8" }}</div>
+          <div class="text-xs text-muted">de 10.0</div>
+        </div>
+        <div class="dist-bars mt-16">
+          <div class="dist-row">
+            <div class="lbl">Aprobadas</div>
+            <div class="track">
+              <div class="fill ok" style="width:75%;"></div>
+            </div>
+            <div class="num">{{ approved_count|default:"9" }}</div>
+          </div>
+          <div class="dist-row">
+            <div class="lbl">En riesgo</div>
+            <div class="track">
+              <div class="fill warn" style="width:17%;"></div>
+            </div>
+            <div class="num">{{ at_risk_count|default:"2" }}</div>
+          </div>
+          <div class="dist-row">
+            <div class="lbl">Reprobadas</div>
+            <div class="track">
+              <div class="fill bad" style="width:8%;"></div>
+            </div>
+            <div class="num">{{ failed_count|default:"1" }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title mb-12">Actividad reciente</h3>
+        <div class="resource-list">
+          <div class="res-item">
+            <div class="res-thumb"><i data-icon="check-circle"></i></div>
+            <div>
+              <div class="name">Calificación publicada</div>
+              <div class="sub">Cálculo II · Parcial 2 · 6.0</div>
+            </div>
+            <span class="text-xxs text-faint">hace 2h</span>
+          </div>
+          <div class="res-item">
+            <div class="res-thumb"><i data-icon="message-square"></i></div>
+            <div>
+              <div class="name">Respuesta de Prof. Méndez</div>
+              <div class="sub">Aclaración Parcial 2</div>
+            </div>
+            <span class="text-xxs text-faint">hace 3h</span>
+          </div>
+          <div class="res-item">
+            <div class="res-thumb"><i data-icon="clipboard"></i></div>
+            <div>
+              <div class="name">Entrega recibida</div>
+              <div class="sub">Bases de Datos · Modelado E-R</div>
+            </div>
+            <span class="text-xxs text-faint">ayer</span>
+          </div>
+          <div class="res-item">
+            <div class="res-thumb"><i data-icon="trending-up"></i></div>
+            <div>
+              <div class="name">Promedio actualizado</div>
+              <div class="sub">+0.2 respecto al mes anterior</div>
+            </div>
+            <span class="text-xxs text-faint">ayer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:right;margin-top:var(--pad-3)">
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      {% block title %}
+        Academic Notes
+      {% endblock %}
+    </title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}" />
+
+  </head>
+  <body data-grade-style="pill">
+    
+    <div class="app">
+      {% include 'partials/sidebar.html' %}
+
+      <main class="main">
+        {% block topbar %}
+
+        {% endblock %}
+        
+        <div class="content">
+          {% block content %}
+          
+          {% endblock %}
+        </div>
+      </main>
+    </div>
+
+    {% include 'partials/modals.html' %}
+
+    <button id="tweaks-fab" class="tweaks-fab" title="Tweaks"><i data-icon="settings"></i></button>
+
+    <aside class="tweaks-panel" id="tweaks-panel">
+      <header class="tweaks-head">
+        <h4>Tweaks</h4>
+        <button id="tweaks-close" aria-label="Cerrar"><i data-icon="x"></i></button>
+      </header>
+      <div class="tweaks-body" id="tweaks-body"></div>
+    </aside>
+
+    <script src="{% static 'js/icons.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+  </body>
+</html>
