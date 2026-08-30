@@ -28,7 +28,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=Role.choices)
     phone = models.CharField(max_length=15, blank=True)
     birth_date = models.DateField(null=True, blank=True)
-    dni = models.CharField(max_length=20, unique=True, blank=True)
+    dni = models.CharField(max_length=20, unique=True, null=True, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True)
 
     # Preferencias (del perfil.html)

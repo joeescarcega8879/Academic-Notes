@@ -1,125 +1,150 @@
 {% load static %}
 <!doctype html>
 <html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Iniciar sesión — Academic Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}" />
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Iniciar sesión — Academic Notes</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/gradelink.css' %}">
-</head>
+  <body data-grade-style="pill">
+    <div class="login-view">
+      <!-- Panel izquierdo: decorativo -->
+      <aside class="login-art">
+        <div class="brand">
+          <div class="brand-mark">G</div>
+          <div class="brand-name">Grade<span class="dot">·</span>Link</div>
+        </div>
+        <div class="shape-grid"></div>
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="pitch">
+          <h2>La conexión directa entre profesores y alumnos.</h2>
+          <p>
+            Gestiona calificaciones, abre canales de aclaración y mantén el
+            seguimiento académico de todo el ciclo en un solo lugar.
+          </p>
+        </div>
+      </aside>
 
-<body data-grade-style="pill">
+      <!-- Panel derecho: formulario -->
+      <div class="login-form">
+        <form method="post" class="login-card">
+          {% csrf_token %}
+          <h1>Iniciar sesión</h1>
+          <p class="sub">
+            Accede con tu cuenta institucional de la Universidad del Plata Sur.
+          </p>
 
-  <div class="login-view">
-
-    <!-- Panel izquierdo: decorativo -->
-    <aside class="login-art">
-      <div class="brand">
-        <div class="brand-mark">G</div>
-        <div class="brand-name">Grade<span class="dot">·</span>Link</div>
-      </div>
-      <div class="shape-grid"></div>
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
-      <div class="pitch">
-        <h2>La conexión directa entre profesores y alumnos.</h2>
-        <p>Gestiona calificaciones, abre canales de aclaración y mantén el seguimiento académico de todo el ciclo en un
-          solo lugar.</p>
-      </div>
-    </aside>
-
-    <!-- Panel derecho: formulario -->
-    <div class="login-form">
-      <form method="post" class="login-card">
-        {% csrf_token %}
-        <h1>Iniciar sesión</h1>
-        <p class="sub">Accede con tu cuenta institucional de la Universidad del Plata Sur.</p>
-
-        {% if error %}
-          <div class="alert alert-error" style="margin-bottom:var(--pad-2);padding:var(--pad-1) var(--pad-2);background:var(--bad);color:#fff;border-radius:var(--radius);font-size:0.9em;">
+          {% if error %}
+          <div
+            class="alert alert-error"
+            style="
+              margin-bottom: var(--pad-2);
+              padding: var(--pad-1) var(--pad-2);
+              background: var(--bad);
+              color: #fff;
+              border-radius: var(--radius);
+              font-size: 0.9em;
+            "
+          >
             {{ error }}
           </div>
-        {% endif %}
+          {% endif %}
 
-        <!-- Selector de rol -->
-        <div class="role-picker">
-          <button type="button" class="role-card is-selected"  data-role="professor">
-            <i data-icon="users"></i>
-            <span class="label">Soy Profesor</span>
-            <span class="desc">Gestiono materias y calificaciones</span>
-          </button>
-          <button type="button" class="role-card" data-role="student">
-            <i data-icon="graduation"></i>
-            <span class="label">Soy Alumno</span>
-            <span class="desc">Consulto mis calificaciones</span>
-          </button>
-        </div>
-        <input type="hidden" name="role" id="role-input" value="">
-
-        <div class="field">
-          <label for="li-user">Usuario o correo</label>
-          <div class="input-wrap">
-            <i data-icon="at-sign"></i>
-            {{ form.username }}
+          <!-- Selector de rol -->
+          <div class="role-picker">
+            <button
+              type="button"
+              class="role-card is-selected"
+              data-role="professor"
+            >
+              <i data-icon="users"></i>
+              <span class="label">Soy Profesor</span>
+              <span class="desc">Gestiono materias y calificaciones</span>
+            </button>
+            <button type="button" class="role-card" data-role="student">
+              <i data-icon="graduation"></i>
+              <span class="label">Soy Alumno</span>
+              <span class="desc">Consulto mis calificaciones</span>
+            </button>
           </div>
-        </div>
+          <input type="hidden" name="role" id="role-input" value="" />
 
-        <div class="field">
-          <label for="li-pass">Contraseña</label>
-          <div class="input-wrap">
-            <i data-icon="lock"></i>
-            {{ form.password }}
+          <div class="field">
+            <label for="li-user">Usuario o correo</label>
+            <div class="input-wrap">
+              <i data-icon="at-sign"></i>
+              {{ form.username }}
+            </div>
           </div>
-        </div>
 
-        <div class="field-row">
-          <label class="checkbox">
-            <input type="checkbox" checked> Mantener sesión iniciada
-          </label>
-          <button type="button" class="btn-link">¿Olvidaste tu contraseña?</button>
-        </div>
+          <div class="field">
+            <label for="li-pass">Contraseña</label>
+            <div class="input-wrap">
+              <i data-icon="lock"></i>
+              {{ form.password }}
+            </div>
+          </div>
 
-        <button id="login-submit" type="submit" class="btn btn-primary btn-block btn-lg">
-          Iniciar sesión
-        </button>
+          <div class="field-row">
+            <label class="checkbox">
+              <input type="checkbox" checked /> Mantener sesión iniciada
+            </label>
+            <button type="button" class="btn-link">
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
 
-        <p class="sub mt-22 text-center">
-          ¿No tienes cuenta? <button type="button" class="btn-link">Solicita acceso</button>
-        </p>
-      </form>
+          <button
+            id="login-submit"
+            type="submit"
+            class="btn btn-primary btn-block btn-lg"
+          >
+            Iniciar sesión
+          </button>
+
+          <p class="sub mt-22 text-center">
+            ¿No tienes cuenta?
+            <button type="button" class="btn-link">Solicita acceso</button>
+          </p>
+        </form>
+      </div>
     </div>
 
-  </div>
+    <button id="tweaks-fab" class="tweaks-fab" title="Tweaks">
+      <i data-icon="settings"></i>
+    </button>
+    <aside class="tweaks-panel" id="tweaks-panel">
+      <header class="tweaks-head">
+        <h4>Tweaks</h4>
+        <button id="tweaks-close" aria-label="Cerrar">
+          <i data-icon="x"></i>
+        </button>
+      </header>
+      <div class="tweaks-body" id="tweaks-body"></div>
+    </aside>
 
-  <button id="tweaks-fab" class="tweaks-fab" title="Tweaks">
-    <i data-icon="settings"></i>
-  </button>
-  <aside class="tweaks-panel" id="tweaks-panel">
-    <header class="tweaks-head">
-      <h4>Tweaks</h4>
-      <button id="tweaks-close" aria-label="Cerrar"><i data-icon="x"></i></button>
-    </header>
-    <div class="tweaks-body" id="tweaks-body"></div>
-  </aside>
-
-  <script src="{% static 'js/icons.js' %}"></script>
-  <script src="{% static 'js/app.js' %}"></script>
-  <script>
-    document.querySelectorAll('.role-card').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.role-card').forEach(function(c) { c.classList.remove('is-selected'); });
-        this.classList.add('is-selected');
-        document.getElementById('role-input').value = this.dataset.role;
+    <script src="{% static 'js/icons.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+    <script>
+      document.querySelectorAll(".role-card").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".role-card").forEach(function (c) {
+            c.classList.remove("is-selected");
+          });
+          this.classList.add("is-selected");
+          document.getElementById("role-input").value = this.dataset.role;
+        });
       });
-    });
-  </script>
-</body>
-
+    </script>
+  </body>
 </html>

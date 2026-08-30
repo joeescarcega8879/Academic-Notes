@@ -1,6 +1,7 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
+from django.urls import NoReverseMatch, reverse
 from django.views import View
 
 from .forms import LoginForm, ProfileForm, StudentProfileForm, ProfessorProfileForm
@@ -31,9 +32,12 @@ class LoginView(View):
         return render(request, self.template_name, {'form': form})
     
     def _dashboard_url(self, user):
-        if user.role == User.Role.PROFESSOR:
-            return '/profesor/dashboard/'
-        return '/alumno/dashboard/'
+        name = 'professor_dashboard' if user.role == User.Role.PROFESSOR else 'student_dashboard'
+        try:
+            return reverse(name)
+        except NoReverseMatch:
+            # Los dashboards llegan en la Fase 3; hasta entonces, al perfil.
+            return reverse('profile')
     
 class LogoutView(View):
     

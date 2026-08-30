@@ -48,12 +48,34 @@
 
 ---
 
+### ✅ Fase 2.1 — Correcciones
+
+**Archivos creados/modificados:**
+
+| Archivo | Acción |
+|---|---|
+| `apps/accounts/models.py` | `User.dni` ahora `null=True` (antes `unique=True, blank=True` → colisión de `''` entre usuarios sin DNI) |
+| `apps/accounts/migrations/0002_alter_user_dni.py` | Migración generada y aplicada |
+| `apps/accounts/views.py` | `LoginView._dashboard_url` usa `reverse('professor_dashboard' / 'student_dashboard')` en vez de rutas hardcodeadas, con fallback a `profile` |
+| `apps/subjects/urls.py` | Placeholders `professor_dashboard` (`/profesor/dashboard/`), `student_dashboard` (`/alumno/dashboard/`) con `TemplateView` |
+| `apps/grades/urls.py` | `app_name = 'grades'` + placeholder `grades:list` (`/calificaciones/`) |
+| `apps/messaging/urls.py` | `app_name = 'messaging'` + placeholder `messaging:list` (`/mensajes/`) |
+| `templates/placeholder.html` | Página "Próximamente" que extiende `base.html` |
+
+**Motivo:** `partials/sidebar.html` ya referenciaba esos nombres de URL, por lo que cualquier página que extendía `base.html` (incl. `/perfil/`) fallaba con `NoReverseMatch`.
+
+**Verificación:** `manage.py check` sin errores; `/perfil/`, dashboards, `/calificaciones/` y `/mensajes/` responden 200 para profesor y alumno.
+
+**Pendiente para Fases 3–5:** reemplazar cada `TemplateView` placeholder por su vista real; los nombres de URL ya quedan fijados.
+
+---
+
 ## Próximas Fases
 
 ### ⬜ Fase 3 — App `subjects` (Materias e Inscripciones)
 
 Modelos: `Subject`, `Enrollment`
-Vistas: ProfessorDashboardView, StudentDashboardView, SubjectDetailView
+Vistas: ProfessorDashboardView, StudentDashboardView, SubjectDetailView (reemplazan los placeholders `professor_dashboard` / `student_dashboard` en `apps/subjects/urls.py`)
 Templates: `dashboard-profesor.html`, `dashboard-alumno.html`, `materia.html`
 
 ### ⬜ Fase 4 — App `grades` (Evaluaciones y Calificaciones)
