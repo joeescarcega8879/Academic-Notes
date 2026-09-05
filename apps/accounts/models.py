@@ -49,9 +49,15 @@ class StudentProfile(models.Model):
     semester = models.IntegerField()
     tutor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tutor_students')
     enrollment_number = models.CharField(max_length=20, unique=True)
+
+    def __str__(self):
+        return f'{self.user.get_full_name()} — {self.program} ({self.semester}º sem)'
     
 class ProfessorProfile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='professor_profile'
     )
     department = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f'{self.user.get_full_name()} — {self.department}'

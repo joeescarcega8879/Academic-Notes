@@ -1,0 +1,28 @@
+# Credenciales de prueba (no subir al repo)
+credenciales-prueba/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Base de datos local
+db.sqlite3
+db.sqlite3-journal
+
+# Variables de entorno
+.env
+
+# Archivos subidos por usuarios (avatares, etc.)
+media/
+
+# Sistema operativo / editores
+.DS_Store
+*.swp
+.idea/
+.vscode/
