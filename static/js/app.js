@@ -141,23 +141,16 @@ function closeModal(id) {
 
 // ---------- Login interactions ----------
 function setupLogin() {
+  // El login en Django es un POST normal: el servidor valida credenciales,
+  // comprueba el rol (input oculto 'role') y redirige por user.role.
+  // El role-picker visual lo gestiona el script inline de login.html.
   const roleCards = document.querySelectorAll('.role-card[data-role]');
   if (!roleCards.length) return;
-  let selected = 'profesor';
   roleCards.forEach(c => {
-    if (c.classList.contains('is-selected')) selected = c.dataset.role;
     c.addEventListener('click', () => {
-      selected = c.dataset.role;
       roleCards.forEach(x => x.classList.toggle('is-selected', x === c));
     });
   });
-  const submit = document.getElementById('login-submit');
-  if (submit) {
-    submit.addEventListener('click', (e) => {
-      e.preventDefault();
-      location.href = selected === 'profesor' ? 'dashboard-profesor.html' : 'dashboard-alumno.html';
-    });
-  }
 }
 
 // ---------- Chat ----------

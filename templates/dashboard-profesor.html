@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Mis Materias · Academic Notes{% endblock  %}
+
+{% block topbar %}
+<header class="topbar">
+    <h1>Mis Materias</h1>
+    <span class="sub"> Panel del profesor</span>
+    <div class="spacer"></div>
+    <button class="icon-btn" title="Notificaciones"><i data-icon="bell"></i><span class="pip"></span></button>
+</header>
+{% endblock  %}
+
+{% block content %}
+<!-- Fila de estadísticas -->
+<div class="stat-grid">
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="book-open"></i></span> Materias activas</div>
+    <div class="stat-value">{{ subjects|length }}</div>
+    <div class="stat-trend">este período</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="users"></i></span> Alumnos inscritos</div>
+    <div class="stat-value">{{ total_students }}</div>
+    <div class="stat-trend up">en tus grupos</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="bookmark"></i></span> Departamento</div>
+    <div class="stat-value">{{ user.professor_profile.department }}</div>
+    <div class="stat-trend">—</div>
+  </div>
+</div>
+
+<!-- Grid de materias -->
+<div class="subject-grid">
+  {% for subject in subjects %}
+    <a class="subject-card" href="{% url 'subject_detail' subject.pk %}"
+       style="border-top: 3px solid {{ subject.color }}">
+      <div class="subject-head">
+        <div>
+          <h3>{{ subject.name }}</h3>
+          <div class="prof">{{ subject.schedule|default:"Horario por asignar" }}</div>
+        </div>
+        <span class="code">{{ subject.code }}</span>
+      </div>
+      <div class="subject-evals">
+        <div class="eval-row">
+          <div>
+            <div class="ev-name">Alumnos inscritos</div>
+            <div class="ev-date">{{ subject.description|truncatewords:12 }}</div>
+          </div>
+          <span class="grade style-pill ok">{{ subject.student_count }}</span>
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="card" style="grid-column: 1 / -1">
+      <h3>No tienes materias todavía</h3>
+      <p>Puedes crearlas desde el panel de administración.</p>
+      <a class="btn btn-primary" href="/admin/subjects/subject/add/">Crear materia</a>
+    </div>
+  {% endfor %}
+</div>
+{% endblock  %}

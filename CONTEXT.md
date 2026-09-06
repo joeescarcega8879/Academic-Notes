@@ -70,13 +70,34 @@
 
 ---
 
+### ✅ Fase 3 — App `subjects` (Materias e Inscripciones)
+
+**Archivos creados/modificados:**
+
+| Archivo | Acción |
+|---|---|
+| `apps/subjects/models.py` | Modelos `Subject` (name, code único, description, schedule, color, professor FK) y `Enrollment` (student, subject, enrolled_at, `unique_together`) |
+| `apps/subjects/migrations/0001_initial.py` | Migración inicial creada y aplicada |
+| `apps/subjects/admin.py` | `SubjectAdmin` y `EnrollmentAdmin` registrados |
+| `apps/subjects/views.py` | `ProfessorDashboardView`, `StudentDashboardView` (con role check) y `SubjectDetailView` (acceso por rol; 404 si no inscrito) |
+| `apps/subjects/urls.py` | Rutas reales: `professor_dashboard`, `student_dashboard`, `subject_detail` (`/materia/<int:pk>/`) — reemplazan los placeholders |
+| `templates/dashboard-profesor.html` | Dashboard profesor: stats (materias, alumnos únicos, departamento) + grid de materias con contador de inscritos |
+| `templates/dashboard-alumno.html` | Dashboard alumno: stats + grid de sus materias inscritas |
+| `templates/materia.html` | Detalle según rol: profesor → tabla de alumnos; alumno → info de su inscripción |
+| `apps/accounts/models.py` | `__str__` en `StudentProfile` y `ProfessorProfile` (admin legible) |
+| `static/js/app.js` | Fix: eliminado el intercept del submit de login del front-end estático (navegaba a `dashboard-*.html` → 404). El login ahora hace POST normal a Django |
+| `.gitignore` | Creado: ignora `__pycache__`, `db.sqlite3`, `credenciales-prueba/`, `media/`, venvs |
+| `credenciales-prueba/` | Scripts `crear_usuarios.py` (20 usuarios demo) y `crear_datos_demo.py` (5 materias + 17 inscripciones). `.txt` con credenciales. **No versionado** |
+
+**Bug encontrado en verificación:** `handle_no_permission` accedía a `user.role` con usuario anónimo (`AnonymousUser` no tiene `role`) → 500. Fix: si no está autenticado → `super().handle_no_permission()` (redirige a `/login/?next=...`).
+
+**Verificación:** smoke test 14/14 con `django.test.Client`: dashboards 200, detalle 200, materia no inscrita 404, cruce de roles 302 al dashboard correcto, anónimos 302 a login, placeholders F4/F5 siguen 200. `manage.py check` sin errores.
+
+**Pendiente Fase 4:** reemplazar el `StudentDashboardView` placeholder de `total_students`/stats con promedios reales cuando exista `grades`.
+
+---
+
 ## Próximas Fases
-
-### ⬜ Fase 3 — App `subjects` (Materias e Inscripciones)
-
-Modelos: `Subject`, `Enrollment`
-Vistas: ProfessorDashboardView, StudentDashboardView, SubjectDetailView (reemplazan los placeholders `professor_dashboard` / `student_dashboard` en `apps/subjects/urls.py`)
-Templates: `dashboard-profesor.html`, `dashboard-alumno.html`, `materia.html`
 
 ### ⬜ Fase 4 — App `grades` (Evaluaciones y Calificaciones)
 

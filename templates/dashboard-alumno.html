@@ -1,0 +1,78 @@
+{% extends "base.html" %} 
+{% block title %}Mis Calificaciones - Academic Notes{%endblock %} 
+{% block top %}
+
+<header class="header">
+  <h1>Mis Calificaciones</h1>
+  <span class="sub">Panel del alumno</span>
+  <div class="spacer"></div>
+  <button class="icon-btn" title="Notificaciones">
+    <i data-icon="bell"></i><span class="pip"></span>
+  </button>
+</header>
+{% endblock %} 
+
+{% block content %}
+<!-- Fila de estadísticas -->
+<div class="stat-grid">
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"><i data-icon="book-open"></i></span> Materias inscritas
+    </div>
+    <div class="stat-value">{{ enrollments|length }}</div>
+    <div class="stat-trend">este período</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"><i data-icon="trending-up"></i></span> Promedio general
+    </div>
+    <div class="stat-value">—</div>
+    <div class="stat-trend">se muestra con calificaciones</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"><i data-icon="graduation"></i></span> Semestre
+    </div>
+    <div class="stat-value">{{ user.student_profile.semester }}º</div>
+    <div class="stat-trend">{{ user.student_profile.program }}</div>
+  </div>
+</div>
+
+<!-- Grid de materias inscritas -->
+<div class="subject-grid">
+  {% for enrollment in enrollments %}
+  <a
+    class="subject-card"
+    href="{% url 'subject_detail' enrollment.subject.pk %}"
+    style="border-top: 3px solid {{ enrollment.subject.color }}">
+
+    <div class="subject-head">
+      <div>
+        <h3>{{ enrollment.subject.name }}</h3>
+        <div class="prof">{{ enrollment.subject.professor.get_full_name }}</div>
+      </div>
+      <span class="code">{{ enrollment.subject.code }}</span>
+    </div>
+    <div class="subject-evals">
+      <div class="eval-row">
+        <div>
+          <div class="ev-name">Horario</div>
+          <div class="ev-date">
+            {{ enrollment.subject.schedule|default:"Por definir" }}
+          </div>
+        </div>
+        <span class="grade style-pill ok">—</span>
+      </div>
+    </div>
+  </a>
+  {% empty %}
+  <div class="card" style="grid-column: 1 / -1">
+    <h3>Aún no estás inscrito en ninguna materia</h3>
+    <p>
+      Cuando un profesor te inscriba, verás aquí tus materias y calificaciones.
+    </p>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

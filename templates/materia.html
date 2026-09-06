@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ subject.name }} - Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{{ subject.name }}</h1>
+  <span class="sub">· {{ subject.code }}</span>
+  <div class="spacer"></div>
+  <button class="icon-btn" title="Notificaciones"><i data-icon="bell"></i><span class="pip"></span></button>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<!-- Presentación de la materia -->
+<div class="card mb-12" style="border-top: 3px solid {{ subject.color }}">
+  <div class="flex-row items-baseline gap-14">
+    <h2 style="margin: 0">{{ subject.name }}</h2>
+    <span class="text-xs text-muted">{{ subject.code }}</span>
+  </div>
+  <div class="text-sm text-muted" style="margin-top: 6px">
+    {{ subject.schedule|default:"Horario por definir" }} · {{ subject.professor.get_full_name }}
+  </div>
+  {% if subject.description %}
+    <p class="text-sm text-muted" style="margin-bottom: 0">{{ subject.description }}</p>
+  {% endif %}
+</div>
+
+{% if user.role == 'professor' %}
+  <!-- Vista PROFESOR: lista de alumnos inscritos -->
+  <div class="table-wrap">
+    <div class="table-head">
+      <h3>Alumnos inscritos</h3>
+      <span class="grade style-pill ok">{{ enrollments|length }}</span>
+      <div class="spacer"></div>
+      <a class="btn btn-ghost" href="/admin/subjects/enrollment/add/">Inscribir alumno</a>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th>Matrícula</th>
+          <th>Email</th>
+          <th>Inscrito el</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for enrollment in enrollments %}
+          <tr>
+            <td>{{ enrollment.student.get_full_name|default:enrollment.student.email }}</td>
+            <td>{{ enrollment.student.student_profile.enrollment_number }}</td>
+            <td>{{ enrollment.student.email }}</td>
+            <td>{{ enrollment.enrolled_at|date:"d/m/Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="text-muted">Sin alumnos inscritos todavía.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+  <!-- Vista ALUMNO: información de su inscripción -->
+  <div class="card">
+    <h3 class="section-title mb-12">Información de la materia</h3>
+    <div class="kv-row">
+      <div class="k">Profesor</div>
+      <div class="v">{{ subject.professor.get_full_name }}</div>
+    </div>
+    <div class="kv-row">
+      <div class="k">Horario</div>
+      <div class="v">{{ subject.schedule|default:"Por definir" }}</div>
+    </div>
+    <div class="kv-row">
+      <div class="k">Inscrito el</div>
+      <div class="v">{{ my_enrollment.enrolled_at|date:"d/m/Y" }}</div>
+    </div>
+    <div class="kv-row">
+      <div class="k">Código</div>
+      <div class="v">{{ subject.code }}</div>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

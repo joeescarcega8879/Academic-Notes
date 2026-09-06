@@ -14,6 +14,8 @@ class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
     def handle_no_permission(self):
         user = self.request.user
+        if not user.is_authenticated:
+            return super().handle_no_permission()
         if user.role == 'student':
             return redirect('student_dashboard')
         return redirect('profile')
@@ -41,6 +43,8 @@ class StudentDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
 
     def handle_no_permission(self):
         user = self.request.user
+        if not user.is_authenticated:
+            return super().handle_no_permission()
         if user.role == 'professor':
             return redirect('professor_dashboard')
         return redirect('profile')
@@ -69,4 +73,5 @@ class SubjectDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['enrollments'] = self.object.enrollments.select_related('student')
+        context['my_enrollment'] = self.object.enrollments.filter(student=self.request.user).first()
         return context
