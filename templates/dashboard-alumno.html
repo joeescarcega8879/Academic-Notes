@@ -1,8 +1,8 @@
 {% extends "base.html" %} 
 {% block title %}Mis Calificaciones - Academic Notes{%endblock %} 
-{% block top %}
+{% block topbar %}
 
-<header class="header">
+<header class="topbar">
   <h1>Mis Calificaciones</h1>
   <span class="sub">Panel del alumno</span>
   <div class="spacer"></div>
@@ -26,8 +26,8 @@
     <div class="stat-label">
       <span class="i"><i data-icon="trending-up"></i></span> Promedio general
     </div>
-    <div class="stat-value">—</div>
-    <div class="stat-trend">se muestra con calificaciones</div>
+    <div class="stat-value">{{ average|floatformat:2 }}</div>
+    <div class="stat-trend">promedio ponderado</div>
   </div>
   <div class="stat">
     <div class="stat-label">
@@ -61,7 +61,13 @@
             {{ enrollment.subject.schedule|default:"Por definir" }}
           </div>
         </div>
-        <span class="grade style-pill ok">—</span>
+      </div>
+      <div class="eval-row">
+        <div>
+          <div class="ev-name">Promedio de la materia</div>
+          <div class="ev-date">según calificaciones registradas</div>
+        </div>
+        <span class="grade style-pill ok">{{ enrollment.subject_average|floatformat:2|default:"—" }}</span>
       </div>
     </div>
   </a>

@@ -87,23 +87,66 @@
 | `apps/accounts/models.py` | `__str__` en `StudentProfile` y `ProfessorProfile` (admin legible) |
 | `static/js/app.js` | Fix: eliminado el intercept del submit de login del front-end estático (navegaba a `dashboard-*.html` → 404). El login ahora hace POST normal a Django |
 | `.gitignore` | Creado: ignora `__pycache__`, `db.sqlite3`, `credenciales-prueba/`, `media/`, venvs |
-| `credenciales-prueba/` | Scripts `crear_usuarios.py` (20 usuarios demo) y `crear_datos_demo.py` (5 materias + 17 inscripciones). `.txt` con credenciales. **No versionado** |
+| `credenciales-prueba/` | Scripts `crear_usuarios.py` (10 profesores + 10 estudiantes demo) y `crear_datos_demo.py` (8 materias + 40 inscripciones). `.txt` con credenciales. **No versionado** |
 
 **Bug encontrado en verificación:** `handle_no_permission` accedía a `user.role` con usuario anónimo (`AnonymousUser` no tiene `role`) → 500. Fix: si no está autenticado → `super().handle_no_permission()` (redirige a `/login/?next=...`).
 
 **Verificación:** smoke test 14/14 con `django.test.Client`: dashboards 200, detalle 200, materia no inscrita 404, cruce de roles 302 al dashboard correcto, anónimos 302 a login, placeholders F4/F5 siguen 200. `manage.py check` sin errores.
 
-**Pendiente Fase 4:** reemplazar el `StudentDashboardView` placeholder de `total_students`/stats con promedios reales cuando exista `grades`.
+**Pendiente Fase 4:** reemplazar el `StudentDashboardView` placeholder de `total_students`/stats con promedios reales cuando exista `grades`. → **Resuelto en Fase 4.**
+
+---
+
+### ✅ Fase 4 — App `grades` (Evaluaciones y Calificaciones)
+
+**Archivos creados/modificados:**
+
+| Archivo | Acción |
+|---|---|
+| `apps/grades/models.py` | Modelos `Evaluation` (subject FK, title, description, type, max_score, weight, date) y `Grade` (evaluation FK, student FK, score, feedback, graded_at, `unique_together`) |
+| `apps/grades/migrations/0001_initial.py` | Migración inicial creada y aplicada |
+| `apps/grades/admin.py` | `EvaluationAdmin` y `GradeAdmin` registrados |
+| `apps/grades/forms.py` | `GradeForm` con querysets filtrados por rol (solo evaluaciones y alumnos de las materias del profesor) + validación en `clean()`: alumno inscrito en la materia y nota ≤ `max_score` |
+| `apps/grades/views.py` | `GradeAccessMixin` / `ProfessorRequiredMixin`; `GradeListView` (filtra por rol), `GradeCreateView`, `GradeUpdateView`, `GradeDeleteView` (solo profesor) |
+| `apps/grades/urls.py` | Rutas reales: `grades:list`, `grades:create`, `grades:update`, `grades:delete` — reemplazan el placeholder |
+| `templates/calificaciones.html` | Listado según rol: profesor con acciones y botón "Nueva calificación"; alumno en solo lectura |
+| `templates/calificacion_form.html` | Formulario crear/editar calificación |
+| `templates/calificacion_confirm_delete.html` | Confirmación de borrado |
+| `apps/subjects/views.py` | `StudentDashboardView` calcula el **promedio ponderado real** (`Sum(score*weight)/Sum(weight)`) |
+| `templates/dashboard-alumno.html` | Muestra `{{ average }}` en vez del placeholder `—`; encabezado con `{% block topbar %}` |
+| `credenciales-prueba/crear_usuarios.py` | Script idempotente: 10 profesores + 10 estudiantes demo (`@academicnotes.test`, contraseñas `Profesor123!` / `Alumno123!`) y `credenciales.txt`. **No versionado** |
+
+**Bug encontrado en verificación:** un formateador (Prettier) partió dos etiquetas Django en varias líneas dentro de `calificaciones.html` (un `{% endif %}` y un `{% else %}` cortados por un salto de línea). Django **no reconoce** etiquetas `{% %}` que cruzan un salto de línea → `TemplateSyntaxError` (500 en `/calificaciones/`). Fix: unir cada etiqueta en una sola línea. **Recomendación:** no ejecutar formateadores HTML sobre `templates/` (añadir `.prettierignore`).
+
+**Corrección adicional:** `calificaciones.html`, `calificacion_form.html` y `dashboard-alumno.html` usaban `{% block top %}` y/o `<header class="header">`, que no existen ni en `base.html` (el bloque es `topbar`) ni en el CSS (la clase es `.topbar`). El encabezado no se renderizaba, perdiendo el botón "Nueva calificación". Fix: `top` → `topbar` y `header` → `topbar`.
+
+**Verificación:** los 12 templates parsean; `/calificaciones/` y `/calificaciones/nueva/` → 200 con CSRF válido (profesor); `/calificaciones/` → 200 (alumno); POST crear con CSRF → 200; `manage.py check` sin errores; 0 etiquetas partidas en `templates/`.
+
+---
+
+### ✅ Fase 4.1 — Correcciones y pulido (rol alumno)
+
+**Motivo:** al probar la Fase 4 se detectó que el alumno no podía ver sus calificaciones: el sidebar no enlazaba a la lista completa y el detalle de materia no mostraba ninguna nota.
+
+**Archivos creados/modificados:**
+
+| Archivo | Acción |
+|---|---|
+| `apps/grades/forms.py` | `GradeForm`: asigna `class="select"` / `class="input"` a cada widget (los campos no tomaban los estilos del front-end). Añade `label_from_instance`: alumno → nombre completo (o email), evaluación → solo el título |
+| `templates/calificacion_form.html` | Wrapper `form-field` → `field` (la clase real del CSS). Mensajes de error con estilos inline, porque `alert alert-error` y `text-error` no existen en el CSS |
+| `templates/partials/sidebar.html` | Alumno: enlace **Mis Materias** (dashboard) + **Mis Calificaciones** (`grades:list`, antes inexistente). Fix de `is-active`: comparaba `url_name == 'grades:list'` (que es `'list'`); ahora usa `view_name`. **Perfil** deja de estar siempre activo |
+| `apps/subjects/views.py` | `StudentDashboardView`: promedio ponderado **por materia** en cada enrollment. `SubjectDetailView`: para alumno, `evaluation_rows` (evaluación + su calificación) y `subject_average` |
+| `templates/materia.html` | Vista alumno: tabla de evaluaciones y calificaciones + promedio de la materia |
+| `templates/dashboard-alumno.html` | Cada card muestra el **promedio de la materia** (antes `—` fijo) |
+| `apps/grades/models.py` | Etiquetas de `Evaluation.Type` traducidas: `Examen`, `Tarea`, `Proyecto` (estaban en inglés). `__str__` con separador `·` |
+| `apps/grades/migrations/0002_alter_evaluation_type.py` | Migración por cambio de `choices` (generada y aplicada) |
+| `credenciales-prueba/crear_datos_demo.py` | Script idempotente: 8 materias (asignadas a 8 profesores demo) + 40 inscripciones (cada alumno en 4 materias). **No versionado** |
+
+**Verificación:** los 12 templates parsean; sidebar alumno con enlace a `/calificaciones/` y `is-active` correcto; `materia.html` muestra evaluaciones, nota y promedio de la materia; dashboard muestra el promedio por materia; lista completa en `/calificaciones/`; regresión profesor 200; `manage.py check` sin errores. Pruebas con datos temporales (creados y borrados).
 
 ---
 
 ## Próximas Fases
-
-### ⬜ Fase 4 — App `grades` (Evaluaciones y Calificaciones)
-
-Modelos: `Evaluation`, `Grade`
-Vistas: GradeListView, GradeCreateView, GradeUpdateView, GradeDeleteView
-Templates: `calificaciones.html`
 
 ### ⬜ Fase 5 — App `messaging` (Mensajería)
 

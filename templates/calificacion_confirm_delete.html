@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Eliminar calificación · Academic Notes{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 520px">
+  <h3 class="section-title">¿Eliminar esta calificación?</h3>
+  <p>
+    Vas a eliminar la calificación de
+    <strong>{{ object.student.get_full_name|default:object.student.email }}</strong>
+    en <strong>{{ object.evaluation.title }}</strong>
+    (<strong>{{ object.score|floatformat:2 }}</strong>).
+    Esta acción no se puede deshacer.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex-row gap-14">
+      <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+      <a class="btn btn-ghost" href="{% url 'grades:list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

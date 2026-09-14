@@ -1,0 +1,120 @@
+{% extends "base.html" %} 
+{% block title %}Calificaciones · Academic Notes{%endblock %} 
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Calificaciones</h1>
+  <span class="sub"
+    >{% if user.role == 'professor' %}Panel del profesor{% else %}Mis
+    calificaciones{% endif %}</span
+  >
+  <div class="spacer"></div>
+  {% if user.role == 'professor' %}
+  <a class="btn btn-primary" href="{% url 'grades:create' %}"
+    ><i data-icon="plus"></i> Nueva calificación</a>
+  {% endif %}
+  <button class="icon-btn" title="Notificaciones">
+    <i data-icon="bell"></i><span class="pip"></span>
+  </button>
+</header>
+{% endblock %} 
+
+{% block content %}
+<!-- Fila de estadísticas -->
+<div class="stat-grid">
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"
+        ><i
+          data-icon="{% if user.role == 'professor' %}book-open{% else %}clipboard{% endif %}"
+        ></i
+      ></span>
+      {% if user.role == 'professor' %}Materias activas{% else %}Materias
+      inscritas{% endif %}
+    </div>
+    <div class="stat-value">{{ subjects|length }}</div>
+    <div class="stat-trend">este período</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"><i data-icon="trending-up"></i></span>
+      Promedio {% if user.role == 'professor' %}del grupo{% else %}general{% endif %}
+    </div>
+    <div class="stat-value">{{ average|floatformat:2|default:"—" }}</div>
+    <div class="stat-trend">según calificaciones</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">
+      <span class="i"><i data-icon="clipboard"></i></span> Calificaciones
+    </div>
+    <div class="stat-value">{{ grades|length }}</div>
+    <div class="stat-trend">registradas</div>
+  </div>
+</div>
+
+<!-- Tabla de calificaciones -->
+<div class="table-wrap">
+  <div class="table-head">
+    <h3>
+      {% if user.role == 'professor' %}Calificaciones de tus materias{% else %}Tus calificaciones{% endif %}
+    </h3>
+    <span class="grade style-pill ok">{{ grades|length }}</span>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        {% if user.role == 'professor' %}
+        <th>Alumno</th>
+        {% endif %}
+        <th>Materia</th>
+        <th>Evaluación</th>
+        <th>Calificación</th>
+        <th>Comentario</th>
+        {% if user.role == 'professor' %}
+        <th>Acciones</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for grade in grades %}
+      <tr>
+        {% if user.role == 'professor' %}
+        <td>{{ grade.student.get_full_name|default:grade.student.email }}</td>
+        {% endif %}
+        <td>{{ grade.evaluation.subject.name }}</td>
+        <td>{{ grade.evaluation.title }}</td>
+        <td>
+          <span class="grade style-pill ok"
+            >{{ grade.score|floatformat:2 }}</span
+          >
+        </td>
+        <td class="text-muted">
+          {{ grade.feedback|default:"—"|truncatewords:10 }}
+        </td>
+        {% if user.role == 'professor' %}
+        <td>
+          <a class="btn btn-ghost" href="{% url 'grades:update' grade.pk %}"
+            >Editar</a
+          >
+          <a class="btn btn-ghost" href="{% url 'grades:delete' grade.pk %}"
+            >Eliminar</a
+          >
+        </td>
+        {% endif %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td
+          colspan="{% if user.role == 'professor' %}6{% else %}4{% endif %}"
+          class="text-muted"
+        >
+          {% if user.role == 'professor' %} Aún no has registrado
+          calificaciones. Pulsa "Nueva calificación". {% else %} Todavía no
+          tienes calificaciones publicadas. {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

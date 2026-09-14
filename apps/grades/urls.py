@@ -1,9 +1,11 @@
 from django.urls import path
-from django.views.generic import TemplateView
+from . import views
 
 app_name = 'grades'
 
-# Placeholder hasta la Fase 4.
 urlpatterns = [
-    path('calificaciones/', TemplateView.as_view(template_name='placeholder.html'), name='list'),
+    path('calificaciones/', views.GradeListView.as_view(), name='list'),
+    path('calificaciones/nueva/', views.GradeCreateView.as_view(), name='create'),
+    path('calificaciones/<int:pk>/editar/', views.GradeUpdateView.as_view(), name='update'),
+    path('calificaciones/<int:pk>/eliminar/', views.GradeDeleteView.as_view(), name='delete'),
 ]

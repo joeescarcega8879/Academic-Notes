@@ -82,6 +82,49 @@
       <div class="v">{{ subject.code }}</div>
     </div>
   </div>
+
+  <!-- Vista ALUMNO: evaluaciones y calificaciones de la materia -->
+  <div class="table-wrap" style="margin-top: 14px">
+    <div class="table-head">
+      <h3>Evaluaciones y calificaciones</h3>
+      <span class="grade style-pill ok">Promedio: {{ subject_average|floatformat:2|default:"—" }}</span>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Evaluación</th>
+          <th>Tipo</th>
+          <th>Fecha</th>
+          <th>Peso</th>
+          <th>Calificación</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in evaluation_rows %}
+          <tr>
+            <td>{{ row.evaluation.title }}</td>
+            <td>{{ row.evaluation.get_type_display }}</td>
+            <td>{{ row.evaluation.date|date:"d/m/Y"|default:"—" }}</td>
+            <td>{{ row.evaluation.weight }}</td>
+            <td>
+              {% if row.grade %}
+                <span class="grade style-pill ok">{{ row.grade.score|floatformat:2 }}</span>
+                <span class="text-xs text-muted">/ {{ row.evaluation.max_score|floatformat:0 }}</span>
+              {% else %}
+                <span class="text-muted">Sin calificar</span>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ row.grade.feedback|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-muted">Aún no hay evaluaciones registradas en esta materia.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endif %}
 
 {% endblock %}

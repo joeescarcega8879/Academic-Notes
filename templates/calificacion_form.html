@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} calificación · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{% if object %}Editar calificación{% else %}Nueva calificación{% endif %}</h1>
+  <span class="sub">Calificar a un alumno</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div style="margin-bottom: var(--pad-2); padding: var(--pad-1) var(--pad-2); background: var(--bad); color: #fff; border-radius: var(--radius); font-size: 0.9em;">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+        {% for error in field.errors %}<div style="color: var(--bad); font-size: 12px;">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a class="btn btn-ghost" href="{% url 'grades:list' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
