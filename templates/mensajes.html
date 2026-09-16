@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Mensajes · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Mensajes</h1>
+  <span class="sub">{% if user.role == 'professor' %}Conversaciones con tus alumnos{% else %}Conversaciones con tus profesores{% endif %}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="msg-layout{% if active_conversation %} has-active{% endif %}">
+  <aside class="conv-list">
+    <div class="conv-search">
+      <input class="input" type="search" placeholder="Buscar conversación…" />
+    </div>
+    <div class="conv-items">
+      {% for c in conversations %}
+      <a class="conv-item {% if active_conversation and c.pk == active_conversation.pk %}is-active{% endif %}" href="{% url 'messaging:detail' c.pk %}">
+        <div class="avatar">{{ c.other.first_name|first }}{{ c.other.last_name|first }}</div>
+        <div>
+          <div class="who">{{ c.other.get_full_name|default:c.other.email }}</div>
+          <div class="last">{{ c.subject.name }}</div>
+        </div>
+        <div class="meta">
+          <span class="time">{{ c.last_message_at|date:"d M" }}</span>
+          {% if c.unread %}<span class="unread">{{ c.unread }}</span>{% endif %}
+        </div>
+      </a>
+      {% empty %}
+      <div class="conv-item"><div class="last">Aún no tienes conversaciones.</div></div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <section class="chat">
+    {% if active_conversation %}
+    <header class="chat-head">
+      <a class="chat-back" href="{% url 'messaging:list' %}" title="Volver a la lista"><i data-icon="chevron-left"></i></a>
+      <div>
+        <div class="who">{{ active_conversation.subject.professor.get_full_name }}</div>
+        <div class="sub">{{ active_conversation.student.get_full_name }}</div>
+      </div>
+      <span class="chat-ref"><i data-icon="book-open"></i> {{ active_conversation.subject.name }}</span>
+    </header>
+
+    <div class="chat-body">
+      {% for group in message_groups %}
+      <div class="chat-day">{{ group.day|date:"d M Y" }}</div>
+      {% for m in group.messages %}
+      <div class="bubble {% if m.sender_id == user.id %}out{% else %}in{% endif %}">
+        {{ m.body|linebreaksbr }}
+        <span class="time">{{ m.created_at|date:"H:i" }}</span>
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+
+    <form class="chat-input" method="post" action="{% url 'messaging:send' active_conversation.pk %}">
+      {% csrf_token %}
+      {{ form.body }}
+      <button class="btn-ico-lg" type="submit" title="Enviar"><i data-icon="send"></i></button>
+    </form>
+    {% else %}
+    <div class="chat-body">
+      <div class="chat-day">Selecciona una conversación</div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

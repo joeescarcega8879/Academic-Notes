@@ -1,0 +1,25 @@
+<div class="notif" data-notif>
+  <button class="icon-btn" type="button" data-notif-toggle title="Notificaciones" aria-label="Notificaciones">
+    <i data-icon="bell"></i>{% if notifications_count %}<span class="pip"></span>{% endif %}
+  </button>
+  <div class="notif-panel" data-notif-panel>
+    <div class="notif-head">
+      <span>Notificaciones</span>
+      {% if notifications_count %}<span class="nav-badge">{{ notifications_count }}</span>{% endif %}
+    </div>
+    <div class="notif-body">
+      {% for n in notifications %}
+      <a class="notif-item" href="{{ n.url }}">
+        <span class="notif-ico"><i data-icon="{{ n.icon }}"></i></span>
+        <span class="notif-txt">
+          <span class="notif-title">{{ n.title }}</span>
+          <span class="notif-detail">{{ n.detail }}</span>
+        </span>
+        <span class="notif-time">{{ n.date|date:"d M" }}</span>
+      </a>
+      {% empty %}
+      <div class="notif-empty">Sin notificaciones nuevas.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

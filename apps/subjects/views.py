@@ -5,6 +5,9 @@ from django.views.generic import TemplateView, DetailView
 
 from .models import Subject, Enrollment
 
+# Un alumno aprueba al alcanzar el 60% del puntaje máximo de la evaluación.
+PASS_RATIO = 0.6
+
 class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     template_name = "dashboard-profesor.html"
@@ -22,12 +25,55 @@ class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['subjects'] = (
-            self.request.user.subjects.annotate(student_count=Count('enrollments')))
+        from apps.grades.models import Evaluation, Grade
+
+        user = self.request.user
+        subjects = list(user.subjects.annotate(student_count=Count('enrollments')))
+        grades = (
+            Grade.objects
+            .filter(evaluation__subject__professor=user)
+            .select_related('evaluation')
+        )
+
+        # Estadísticas por materia: promedio ponderado y tasa de aprobación
+        per_subject = {}
+        for grade in grades:
+            stats = per_subject.setdefault(
+                grade.evaluation.subject_id,
+                {'weight': 0.0, 'weighted': 0.0, 'count': 0, 'passed': 0},
+            )
+            stats['weight'] += grade.evaluation.weight
+            stats['weighted'] += grade.score * grade.evaluation.weight
+            stats['count'] += 1
+            if grade.score >= grade.evaluation.max_score * PASS_RATIO:
+                stats['passed'] += 1
+
+        total_weight = 0.0
+        total_weighted = 0.0
+        total_count = 0
+        total_passed = 0
+        for subject in subjects:
+            stats = per_subject.get(subject.pk)
+            if stats and stats['weight']:
+                subject.average = round(stats['weighted'] / stats['weight'], 2)
+                total_weight += stats['weight']
+                total_weighted += stats['weighted']
+            else:
+                subject.average = None
+            subject.pass_rate = round(stats['passed'] * 100 / stats['count']) if stats and stats['count'] else None
+            if stats:
+                total_count += stats['count']
+                total_passed += stats['passed']
+
+        context['subjects'] = subjects
+        context['total_evaluations'] = Evaluation.objects.filter(subject__professor=user).count()
+        context['graded_count'] = total_count
+        context['group_average'] = round(total_weighted / total_weight, 2) if total_weight else None
+        context['pass_rate'] = round(total_passed * 100 / total_count) if total_count else None
         
         context['total_students'] = (
             Enrollment.objects
-            .filter(subject__professor=self.request.user)
+            .filter(subject__professor=user)
             .values('student')
             .distinct()
             .count()

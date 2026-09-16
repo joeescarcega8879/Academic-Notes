@@ -1,8 +1,13 @@
+import csv
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, F
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from .models import Grade
@@ -91,6 +96,68 @@ class GradeUpdateView(ProfessorRequiredMixin, UpdateView):
     def get_queryset(self):
         # solo calificaciones de sus materias
         return Grade.objects.filter(evaluation__subject__professor=self.request.user)
+
+class GradeExportView(GradeAccessMixin, View):
+    """Exporta a CSV las calificaciones que el usuario puede ver."""
+
+    def get(self, request):
+        user = request.user
+        grades = Grade.objects.select_related('student', 'evaluation__subject')
+
+        if user.role == 'student':
+            grades = grades.filter(student=user)
+        else:
+            grades = grades.filter(evaluation__subject__professor=user)
+
+        subject_id = request.GET.get('materia')
+        if subject_id:
+            grades = grades.filter(evaluation__subject_id=subject_id)
+
+        desde = request.GET.get('desde')
+        hasta = request.GET.get('hasta')
+        if desde:
+            grades = grades.filter(graded_at__date__gte=desde)
+        if hasta:
+            grades = grades.filter(graded_at__date__lte=hasta)
+
+        grades = grades.order_by(
+            'evaluation__subject__name', 'student__last_name', 'evaluation__date',
+        )
+
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = (
+            'attachment; filename="calificaciones-%s.csv"' % timezone.localdate().isoformat()
+        )
+        response.write('\ufeff')  # BOM para que Excel respete los acentos
+
+        writer = csv.writer(response)
+        show_student = user.role == 'professor'
+        header = ['Materia', 'Evaluación', 'Tipo', 'Fecha', 'Peso', 'Calificación', 'Máximo', 'Comentario']
+        if show_student:
+            header = ['Alumno', 'Email'] + header
+        writer.writerow(header)
+
+        for grade in grades:
+            evaluation = grade.evaluation
+            row = [
+                evaluation.subject.name,
+                evaluation.title,
+                evaluation.get_type_display(),
+                evaluation.date.isoformat() if evaluation.date else '',
+                evaluation.weight,
+                grade.score,
+                evaluation.max_score,
+                grade.feedback,
+            ]
+            if show_student:
+                row = [
+                    grade.student.get_full_name() or grade.student.username,
+                    grade.student.email,
+                ] + row
+            writer.writerow(row)
+
+        return response
+
 
 class GradeDeleteView(ProfessorRequiredMixin, DeleteView):
     model = Grade

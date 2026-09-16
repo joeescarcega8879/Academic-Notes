@@ -11,7 +11,7 @@
       <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
       <div class="role">
         {% if user.role == 'professor' %}
-          Profesora{% if user.professor_profile.department %}
+          Profesor(a){% if user.professor_profile.department %}
             · {{ user.professor_profile.department }}
           {% endif %}
         {% else %}
@@ -24,7 +24,7 @@
     {% if user.role == 'professor' %}
       <a href="{% url 'professor_dashboard' %}" class="{% if request.resolver_match.url_name == 'professor_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis Materias</a>
       <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i> Calificaciones</a>
-      <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.view_name == 'messaging:list' %}is-active{% endif %}">
+      <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.app_name == 'messaging' %}is-active{% endif %}">
         <i data-icon="message-square"></i> Mensajes{% if unread_count %}
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}
@@ -33,7 +33,7 @@
     {% else %}
       <a href="{% url 'student_dashboard' %}" class="{% if request.resolver_match.view_name == 'student_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis Materias</a>
       <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i> Mis Calificaciones</a>
-      <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.view_name == 'messaging:list' %}is-active{% endif %}">
+      <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.app_name == 'messaging' %}is-active{% endif %}">
         <i data-icon="message-square"></i> Mensajes{% if unread_count %}
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}

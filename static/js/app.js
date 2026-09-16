@@ -32,19 +32,35 @@ function tintBg(hex) {
 
 const tweaks = { ...TWEAK_DEFAULTS };
 
+let resolvedVars = {};
+
+// El tema y el color viven en localStorage para sobrevivir a las recargas.
+function loadTweaks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('gl-tweaks') || 'null');
+    if (saved) Object.assign(tweaks, saved);
+  } catch (_) { }
+}
+
 function applyTweaks() {
-  document.body.classList.toggle('theme-dark', tweaks.theme === 'dark');
+  document.documentElement.classList.toggle('theme-dark', tweaks.theme === 'dark');
   document.body.classList.remove('density-compact', 'density-spacious');
   if (tweaks.density === 'compact') document.body.classList.add('density-compact');
   if (tweaks.density === 'spacious') document.body.classList.add('density-spacious');
   document.body.setAttribute('data-grade-style', tweaks.gradeStyle);
   const p = tweaks.primary;
-  document.documentElement.style.setProperty('--brand-primary', p);
-  document.documentElement.style.setProperty('--brand-primary-700', shade(p, -20));
-  document.documentElement.style.setProperty('--brand-primary-50', tweaks.theme === 'dark' ? shade(p, -40) : tintBg(p));
+  resolvedVars = {
+    '--brand-primary': p,
+    '--brand-primary-700': shade(p, -20),
+    '--brand-primary-50': tweaks.theme === 'dark' ? shade(p, -40) : tintBg(p),
+  };
+  Object.keys(resolvedVars).forEach(k => document.documentElement.style.setProperty(k, resolvedVars[k]));
 }
 
 function persistTweaks() {
+  try {
+    localStorage.setItem('gl-tweaks', JSON.stringify({ ...tweaks, resolved: resolvedVars }));
+  } catch (_) { }
   try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { ...tweaks } }, '*'); } catch (_) { }
 }
 
@@ -153,32 +169,6 @@ function setupLogin() {
   });
 }
 
-// ---------- Chat ----------
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-function setupChat() {
-  const form = document.getElementById('chat-form');
-  if (!form) return;
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const inp = document.getElementById('chat-input');
-    const v = inp.value.trim();
-    if (!v) return;
-    const body = document.getElementById('chat-body');
-    const bub = document.createElement('div');
-    bub.className = 'bubble out';
-    const now = new Date();
-    const hh = now.getHours().toString().padStart(2, '0');
-    const mm = now.getMinutes().toString().padStart(2, '0');
-    bub.innerHTML = `${escapeHtml(v)}<span class="time">${hh}:${mm}</span>`;
-    body.appendChild(bub);
-    body.scrollTop = body.scrollHeight;
-    inp.value = '';
-  });
-}
-
 // ---------- Eval table ----------
 let editingRow = null;
 let pendingDeleteRow = null;
@@ -269,24 +259,6 @@ function setupEvalTable() {
   }
 }
 
-// ---------- Conversations ----------
-function setupConversations() {
-  document.querySelectorAll('.conv-item').forEach(it => {
-    it.addEventListener('click', () => {
-      document.querySelectorAll('.conv-item').forEach(x => x.classList.remove('is-active'));
-      it.classList.add('is-active');
-      const who = it.dataset.who;
-      const sub = it.dataset.sub;
-      const ref = it.dataset.ref;
-      if (who) document.getElementById('chat-who').textContent = who;
-      if (sub) document.getElementById('chat-sub').textContent = sub;
-      if (ref) document.getElementById('chat-ref-text').textContent = ref;
-      const badge = it.querySelector('.unread');
-      if (badge) badge.remove();
-    });
-  });
-}
-
 // ---------- Modal close ----------
 function setupModalClose() {
   document.querySelectorAll('.modal-backdrop').forEach(b => {
@@ -317,39 +289,61 @@ function setupTabs() {
   });
 }
 
-// ---------- "Solicitar aclaración" -> jump to messages with ref ----------
-function setupClarify() {
-  document.querySelectorAll('.ask[data-clarify]').forEach(b => {
-    b.addEventListener('click', () => {
-      const ref = b.dataset.clarify;
-      location.href = 'mensajes.html?ref=' + encodeURIComponent(ref);
+// ---------- Utilidades ----------
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- Notificaciones (campana del topbar) ----------
+function setupNotifications() {
+  const roots = document.querySelectorAll('[data-notif]');
+  if (!roots.length) return;
+  const closeAll = () => roots.forEach(r => r.classList.remove('is-open'));
+
+  roots.forEach(root => {
+    const btn = root.querySelector('[data-notif-toggle]');
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = root.classList.contains('is-open');
+      closeAll();
+      if (!wasOpen) root.classList.add('is-open');
     });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-notif]')) closeAll();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeAll();
   });
 }
 
-// ---------- On mensajes.html: read ?ref= and preselect matching conversation ----------
-function applyRefFromUrl() {
-  const params = new URLSearchParams(location.search);
-  const ref = params.get('ref');
-  if (!ref) return;
-  const refText = document.getElementById('chat-ref-text');
-  if (refText) refText.textContent = ref;
-  const target = document.querySelector(`.conv-item[data-ref="${CSS.escape(ref)}"]`);
-  if (target) target.click();
+// ---------- Navegacion movil (cajon lateral) ----------
+function setupNavToggle() {
+  const btn = document.getElementById('nav-toggle');
+  if (!btn) return;
+  const scrim = document.getElementById('nav-scrim');
+  const close = () => document.body.classList.remove('nav-open');
+
+  btn.addEventListener('click', () => document.body.classList.toggle('nav-open'));
+  if (scrim) scrim.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
 }
 
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
   hydrateIcons();
+  loadTweaks();
   applyTweaks();
   renderTweaksPanel();
   setupTweaksPanelProtocol();
   setupLogin();
-  setupChat();
   setupEvalTable();
-  setupConversations();
   setupModalClose();
-  setupClarify();
   setupTabs();
-  applyRefFromUrl();
+  setupNotifications();
+  setupNavToggle();
 });

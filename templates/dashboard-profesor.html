@@ -6,7 +6,7 @@
     <h1>Mis Materias</h1>
     <span class="sub"> Panel del profesor</span>
     <div class="spacer"></div>
-    <button class="icon-btn" title="Notificaciones"><i data-icon="bell"></i><span class="pip"></span></button>
+    {% include 'partials/notifications.html' %}
 </header>
 {% endblock  %}
 
@@ -22,6 +22,21 @@
     <div class="stat-label"><span class="i"><i data-icon="users"></i></span> Alumnos inscritos</div>
     <div class="stat-value">{{ total_students }}</div>
     <div class="stat-trend up">en tus grupos</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="clipboard"></i></span> Evaluaciones</div>
+    <div class="stat-value">{{ total_evaluations }}</div>
+    <div class="stat-trend">{{ graded_count }} calificadas</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="trending-up"></i></span> Promedio del grupo</div>
+    <div class="stat-value">{{ group_average|floatformat:2|default:"—" }}</div>
+    <div class="stat-trend">promedio ponderado</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label"><span class="i"><i data-icon="check-circle"></i></span> Tasa de aprobación</div>
+    <div class="stat-value">{% if pass_rate is not None %}{{ pass_rate }}%{% else %}—{% endif %}</div>
+    <div class="stat-trend">60% del puntaje máximo</div>
   </div>
   <div class="stat">
     <div class="stat-label"><span class="i"><i data-icon="bookmark"></i></span> Departamento</div>
@@ -49,6 +64,20 @@
             <div class="ev-date">{{ subject.description|truncatewords:12 }}</div>
           </div>
           <span class="grade style-pill ok">{{ subject.student_count }}</span>
+        </div>
+        <div class="eval-row">
+          <div>
+            <div class="ev-name">Promedio del grupo</div>
+            <div class="ev-date">según calificaciones registradas</div>
+          </div>
+          <span class="grade style-pill ok">{{ subject.average|floatformat:2|default:"—" }}</span>
+        </div>
+        <div class="eval-row">
+          <div>
+            <div class="ev-name">Tasa de aprobación</div>
+            <div class="ev-date">60% del puntaje máximo</div>
+          </div>
+          <span class="grade style-pill ok">{% if subject.pass_rate is not None %}{{ subject.pass_rate }}%{% else %}—{% endif %}</span>
         </div>
       </div>
     </a>

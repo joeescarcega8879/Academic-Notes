@@ -146,14 +146,82 @@
 
 ---
 
-## Próximas Fases
+### ✅ Fase 5 — App `messaging` (Mensajería)
 
-### ⬜ Fase 5 — App `messaging` (Mensajería)
+**Archivos creados/modificados:**
 
-Modelos: `Conversation`, `Message`
-Vistas: ConversationListView, ConversationDetailView, MessageCreateView
-Templates: `mensajes.html`
+| Archivo | Acción |
+|---|---|
+| `apps/messaging/models.py` | Modelos `Conversation` (subject FK, student FK, `unique_together`) y `Message` (conversation FK, sender FK, body, `read_at`), con índices sobre `(conversation, created_at)` y `(conversation, read_at)` |
+| `apps/messaging/signals.py` | `post_save`/`post_delete` sobre `subjects.Enrollment`: crea/elimina la `Conversation` al inscribirse/desinscribirse |
+| `apps/messaging/apps.py` | `ready()` importa `signals` |
+| `apps/messaging/context_processors.py` | `unread_messages(request)` → `unread_count` para el badge del sidebar |
+| `core/settings.py` | Registrado `apps.messaging.context_processors.unread_messages` en `TEMPLATES` |
+| `apps/messaging/forms.py` | `MessageForm` (solo `body`, clase `input`, `clean_body` rechaza vacío) |
+| `apps/messaging/views.py` | `MessagingAccessMixin`, `ConversationQuerysetMixin` (`base_queryset`, `conversations_for`, `group_by_day`, `with_other`), `ConversationListView`, `ConversationDetailView` (marca leídos al abrir), `MessageCreateView` |
+| `apps/messaging/urls.py` | Rutas reales `messaging:list`, `messaging:detail`, `messaging:send` — reemplazan el `TemplateView` placeholder |
+| `apps/messaging/admin.py` | `ConversationAdmin` con `MessageInline`, `MessageAdmin` |
+| `apps/messaging/migrations/0001_initial.py` | Migración inicial (generada y aplicada) |
+| `apps/messaging/migrations/0002_backfill_conversations.py` | Migración de datos: crea la conversación de cada `Enrollment` preexistente |
+| `templates/mensajes.html` | Split-pane `.msg-layout`: lista de conversaciones + chat con burbujas in/out agrupadas por día y formulario de envío |
+| `templates/partials/sidebar.html` | `is-active` de Mensajes por `resolver_match.app_name == 'messaging'` |
 
-### ⬜ Fase 6 — Integración y Pulido
+**Bugs encontrados en verificación (corregidos):**
 
-Dashboard stats reales, notificaciones, exportar periodo, responsive, dark mode
+1. **Faltaba la migración de datos.** El signal solo cubre inscripciones nuevas: la base tenía 40 `Enrollment` y **0 `Conversation`**, así que el buzón salía vacío para todos y no había forma de crear hilos desde la UI. Se añadió `0002_backfill_conversations` → 40 conversaciones.
+2. **`{{ c.counterpart|default:c.student }}` no funcionaba.** `Conversation.counterpart(user)` requiere un argumento; el resolver de templates la llama sin argumentos, lanza `TypeError`, se atrapa en silencio y devuelve `string_if_invalid` (`''`) → el filtro `default` caía siempre a `c.student`. El **alumno veía su propio nombre/email** como título de la conversación. Fix: `with_other()` en el mixin resuelve `conversation.other` y el template usa `c.other`.
+3. **`context_processors.py` con clave inconsistente:** las salidas tempranas devolvían `unread_messages_count` y la rama buena `unread_count`. Unificado a `unread_count`.
+4. **`is-active` del sidebar** comparaba solo `messaging:list`, por lo que no se iluminaba en `/mensajes/<pk>/`.
+5. **`MessageInline.fields`** omitía `body` (no se veía el texto del mensaje en el admin).
+6. Nits: comentario obsoleto en `urls.py`, `from .import views`, docstrings y comentarios en inglés fuera del estilo del repo.
+
+**Verificación:** `manage.py check` sin errores; `makemigrations --check --dry-run` → `No changes detected`; migraciones `0001` y `0002` aplicadas; base real con 8 materias · 40 inscripciones · **40 conversaciones** · 0 inscripciones sin conversación; **15/15 pruebas** con `django.test.Client` (lista 200 profesor/alumno, detalle participante 200, **detalle ajeno 404**, anónimo 302 a `/login/?next=`, POST crea mensaje con `sender` correcto, body vacío no crea, `unread_count` en contexto, badge del sidebar, marcar leído al abrir, contraparte correcta para ambos roles, `is-active` en detalle); los **13 templates** compilan y **0 etiquetas `{% %}` partidas**. Prueba manual end-to-end con las cuentas demo (`carlos.ramirez@academicnotes.test` / `ana.garcia@academicnotes.test`, ambos en *Estructuras de Datos*).
+
+**Pruebas:** `apps/messaging/tests.py` contiene 15 pruebas permanentes (acceso por rol, envío, no leídos, contraparte, sidebar y signal de inscripción).
+
+---
+
+### ✅ Fase 6 — Integración y Pulido
+
+**Archivos creados/modificados:**
+
+| Archivo | Acción |
+|---|---|
+| `apps/grades/views.py` | `GradeExportView`: CSV con BOM para Excel, filtros `materia` / `desde` / `hasta`, columnas según rol (el profesor incluye Alumno/Email) |
+| `apps/grades/urls.py` | Ruta `grades:export` (`/calificaciones/exportar/`) |
+| `apps/subjects/views.py` | `ProfessorDashboardView` con stats reales: promedio del grupo, tasa de aprobación, evaluaciones, calificadas, y promedio/tasa por materia |
+| `templates/dashboard-profesor.html` | 6 stats reales + promedio y tasa de aprobación en cada tarjeta de materia |
+| `apps/accounts/context_processors.py` | **Nuevo.** `notifications(request)` → `notifications` + `notifications_count` |
+| `core/settings.py` | Registrado el context processor; `LANGUAGE_CODE='es-mx'`; `TIME_ZONE='America/Mexico_City'` |
+| `templates/partials/notifications.html` | **Nuevo.** Campana con badge y panel desplegable |
+| `templates/{dashboard-profesor,dashboard-alumno,materia,calificaciones,mensajes}.html` | Campana real (antes `.pip` fijo) vía `{% include %}` |
+| `templates/calificaciones.html` | Barra de exportación: select de materia + rango de fechas + botón CSV |
+| `templates/mensajes.html` | Clase `has-active` en `.msg-layout` y botón `.chat-back` para móvil |
+| `static/css/gradelink.css` | Cajón lateral móvil, chat alternado lista/detalle, tablas con scroll horizontal, panel de notificaciones, `.chat-back`, `.export-bar` |
+| `static/js/app.js` | Tema persistido en `localStorage`, aplicado en `<html>`; `setupNotifications()` y `setupNavToggle()`; **eliminadas las funciones muertas del prototipo** (`escapeHtml` se conservó porque `setupEvalTable` la usa) |
+| `templates/base.html` | Script de pre-carga del tema (sin parpadeo) + botón de menú y scrim móvil |
+| `.prettierignore` | **Nuevo.** Excluye `templates/` (evita el bug de Fase 4 con etiquetas `{% %}` partidas) |
+| `apps/messaging/tests.py` | 15 pruebas permanentes (antes vacío) |
+
+**Decisiones y alcance:**
+
+- **Tasa de aprobación** = 60% del puntaje máximo de la evaluación (`PASS_RATIO = 0.6` en `apps/subjects/views.py`).
+- **Notificaciones**: mensajes sin leer para ambos roles; calificaciones de los últimos 7 días solo para alumnos y solo si `notify_grades` está activo.
+- **`notify_weekly` / `notify_sms` quedan sin efecto**: son canales externos (email/SMS) que requieren SMTP o un gateway; no se implementaron. Siguen guardándose como preferencia del perfil.
+- **Código muerto eliminado**: `setupChat()`, `setupConversations()`, `setupClarify()` y `applyRefFromUrl()` apuntaban al prototipo estático (`#chat-form`, `data-who`, `mensajes.html?ref=`). `setupConversations()` enganchaba un listener en cada `.conv-item`; no rompía la navegación (no hacía `preventDefault` y sus `dataset` eran `undefined`), pero era una trampa latente.
+
+**Incidente durante la implementación:** al añadir CSS se usó una lectura truncada a ~4500 caracteres y se sobrescribió `static/css/gradelink.css` (47713 → 7151 bytes). Se detectó de inmediato, se restauró desde git y se reaplicaron los cambios con un script que lee y escribe el archivo completo. **Lección: nunca reescribir un archivo a partir de una lectura truncada.**
+
+**Verificación:** `manage.py check` sin errores; `makemigrations --check --dry-run` → `No changes detected`; **28/28 pruebas** (15 de messaging + 13 de Fase 6: export CSV con BOM y filtros, stats del profesor con valores exactos, notificaciones por rol y preferencia, y layout móvil de mensajería); los **14 templates** compilan con 0 etiquetas partidas; `node --check static/js/app.js` → sintaxis válida; locale confirmado `es-mx` / `America/Mexico_City`; smoke test con datos reales: 10/10 rutas 200 para profesor y alumno, barra de exportación y panel de notificaciones presentes, CSV con cabecera correcta.
+
+---
+
+## Estado del Roadmap
+
+Las 6 fases planificadas están completas. Queda trabajo opcional:
+
+- **Mixin de acceso compartido**: `GradeAccessMixin` / `ProfessorRequiredMixin` y `MessagingAccessMixin` están duplicados en 3 apps; candidato a `apps/accounts/mixins.py`.
+- **Adjuntos en mensajería**: el CSS tiene el ícono `paperclip` pero no hay modelo de archivos.
+- **Crear conversaciones manualmente** y búsqueda server-side en el buzón.
+- **Canales de notificación reales** (`notify_weekly`, `notify_sms`).
+- **Persistir las pruebas de Fase 6** (hoy son temporales, viven fuera del repo).

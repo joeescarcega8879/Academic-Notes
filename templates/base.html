@@ -13,10 +13,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script>
+      // Aplica el tema guardado antes del primer pintado, para evitar el parpadeo.
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem('gl-tweaks') || '{}');
+          if (saved.theme === 'dark') document.documentElement.classList.add('theme-dark');
+          var resolved = saved.resolved || {};
+          Object.keys(resolved).forEach(function (k) {
+            document.documentElement.style.setProperty(k, resolved[k]);
+          });
+        } catch (e) { }
+      })();
+    </script>
     <link rel="stylesheet" href="{% static 'css/gradelink.css' %}" />
 
   </head>
   <body data-grade-style="pill">
+
+    {% if user.is_authenticated %}
+    <button id="nav-toggle" class="nav-toggle" type="button" title="Menú" aria-label="Abrir menú"><i data-icon="menu"></i></button>
+    <div class="nav-scrim" id="nav-scrim"></div>
+    {% endif %}
     
     <div class="app">
       {% include 'partials/sidebar.html' %}

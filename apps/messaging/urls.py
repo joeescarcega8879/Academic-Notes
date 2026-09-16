@@ -1,9 +1,10 @@
 from django.urls import path
-from django.views.generic import TemplateView
+from . import views
 
 app_name = 'messaging'
 
-# Placeholder hasta la Fase 5.
 urlpatterns = [
-    path('mensajes/', TemplateView.as_view(template_name='placeholder.html'), name='list'),
+    path('mensajes/', views.ConversationListView.as_view(), name='list'),
+    path('mensajes/<int:pk>/', views.ConversationDetailView.as_view(), name='detail'),
+    path('mensajes/<int:pk>/enviar/', views.MessageCreateView.as_view(), name='send'),
 ]
