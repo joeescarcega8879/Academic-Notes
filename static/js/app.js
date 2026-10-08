@@ -319,6 +319,13 @@ function setupNotifications() {
   });
 }
 
+// ---------- Chat: abrir en el ultimo mensaje ----------
+function setupChatScroll() {
+  const body = document.querySelector('.chat-body');
+  if (!body) return;
+  body.scrollTop = body.scrollHeight;
+}
+
 // ---------- Navegacion movil (cajon lateral) ----------
 function setupNavToggle() {
   const btn = document.getElementById('nav-toggle');
@@ -346,4 +353,5 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupNotifications();
   setupNavToggle();
+  setupChatScroll();
 });

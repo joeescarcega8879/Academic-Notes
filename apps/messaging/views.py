@@ -78,12 +78,13 @@ class ConversationListView(MessagingAccessMixin, ConversationQuerysetMixin, List
         return context
 
     def pick_active(self, conversations):
+        """Devuelve la conversacion indicada en ?c=; sin parametro no preselecciona ninguna."""
         pk = self.request.GET.get('c')
         if pk:
             for conversation in conversations:
                 if str(conversation.pk) == pk:
                     return conversation
-        return conversations[0] if conversations else None
+        return None
 
 
 class ConversationDetailView(MessagingAccessMixin, ConversationQuerysetMixin, DetailView):

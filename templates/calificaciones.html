@@ -13,19 +13,6 @@
   <a class="btn btn-primary" href="{% url 'grades:create' %}"
     ><i data-icon="plus"></i> Nueva calificación</a>
   {% endif %}
-  <form class="export-bar" method="get" action="{% url 'grades:export' %}">
-    {% if user.role == 'professor' %}
-    <select class="select" name="materia" title="Materia">
-      <option value="">Todas las materias</option>
-      {% for s in subjects %}
-      <option value="{{ s.pk }}">{{ s.name }}</option>
-      {% endfor %}
-    </select>
-    {% endif %}
-    <input class="input" type="date" name="desde" title="Desde" />
-    <input class="input" type="date" name="hasta" title="Hasta" />
-    <button class="btn btn-ghost" type="submit"><i data-icon="clipboard"></i> Exportar CSV</button>
-  </form>
   {% include 'partials/notifications.html' %}
 </header>
 {% endblock %} 
@@ -70,6 +57,20 @@
       {% if user.role == 'professor' %}Calificaciones de tus materias{% else %}Tus calificaciones{% endif %}
     </h3>
     <span class="grade style-pill ok">{{ grades|length }}</span>
+    <div class="spacer"></div>
+    <form class="export-bar" method="get" action="{% url 'grades:export' %}">
+      {% if user.role == 'professor' %}
+      <select class="select" name="materia" title="Materia">
+        <option value="">Todas las materias</option>
+        {% for s in subjects %}
+        <option value="{{ s.pk }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <input class="input" type="date" name="desde" title="Desde" />
+      <input class="input" type="date" name="hasta" title="Hasta" />
+      <button class="btn btn-ghost" type="submit"><i data-icon="clipboard"></i> Exportar CSV</button>
+    </form>
   </div>
   <table class="tbl">
     <thead>

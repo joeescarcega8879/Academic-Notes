@@ -47,10 +47,13 @@ def notifications(request):
 
     grades_count = 0
     if user.role == 'student' and user.notify_grades:
+        # Ventana de 7 dias, o desde que el usuario marco sus notificaciones como leidas.
         cutoff = timezone.now() - timedelta(days=7)
+        if user.notifications_read_at and user.notifications_read_at > cutoff:
+            cutoff = user.notifications_read_at
         recent_grades = (
             Grade.objects
-            .filter(student=user, graded_at__gte=cutoff)
+            .filter(student=user, graded_at__gt=cutoff)
             .select_related('evaluation__subject')
             .order_by('-graded_at')
         )

@@ -37,6 +37,9 @@ class User(AbstractUser):
     notify_sms = models.BooleanField(default=False)
     show_average = models.BooleanField(default=True)
 
+    # Marca de tiempo de la ultima vez que el usuario leyo sus notificaciones.
+    notifications_read_at = models.DateTimeField(null=True, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'

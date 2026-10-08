@@ -786,6 +786,9 @@ body:not([data-grade-style]) .grade.bad { background: var(--bad-bg); color: var(
 .msg-layout {
   display: grid;
   grid-template-columns: 320px 1fr;
+  /* La fila debe ser definida: si es 'auto' crece con los mensajes y empuja
+     el input fuera de la vista (el contenedor tiene altura fija). */
+  grid-template-rows: minmax(0, 1fr);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -823,7 +826,7 @@ body:not([data-grade-style]) .grade.bad { background: var(--bad-bg); color: var(
   text-align: center;
 }
 
-.chat { display: flex; flex-direction: column; min-width: 0; }
+.chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .chat-head {
   padding: 14px 18px;
   border-bottom: 1px solid var(--border);
@@ -845,6 +848,7 @@ body:not([data-grade-style]) .grade.bad { background: var(--bad-bg); color: var(
 
 .chat-body {
   flex: 1;
+  min-height: 0;
   padding: 20px 22px;
   overflow-y: auto;
   display: flex; flex-direction: column; gap: 10px;
@@ -1535,8 +1539,6 @@ body.splash-view { display: grid; place-items: center; background: #f7f8fb; }
   .materia-hero { grid-template-columns: 1fr; }
   .export-bar { width: 100%; flex-wrap: wrap; }
   .export-bar .select, .export-bar .input { flex: 1 1 120px; min-width: 0; }
-  .nav-toggle { display: grid; }
-  .chat-back { display: inline-grid; }
 }
 
 /* ===========================================================
@@ -1568,10 +1570,12 @@ body.splash-view { display: grid; place-items: center; background: #f7f8fb; }
 }
 .chat-back:hover { background: var(--surface-2); color: var(--text); }
 
-.export-bar { display: flex; align-items: center; gap: 8px; }
-.export-bar .select, .export-bar .input { height: 38px; }
+.table-head { flex-wrap: wrap; }
+.export-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.export-bar .select, .export-bar .input { height: 34px; font-size: 13px; }
+.export-bar .btn { height: 34px; padding: 0 12px; font-size: 13px; }
 
-.notif { position: relative; }
+.notif { position: relative; display: flex; flex: 0 0 auto; }
 .notif-panel {
   display: none;
   position: absolute;
@@ -1593,7 +1597,23 @@ body.splash-view { display: grid; place-items: center; background: #f7f8fb; }
   border-bottom: 1px solid var(--border);
   font-size: 14px; font-weight: 500;
 }
-.notif-head .nav-badge { margin-left: auto; }
+.notif-mark { margin-left: auto; }
+.notif-mark .btn-link { font-size: 12px; font-weight: 500; }
+.notif-count {
+  position: absolute;
+  top: -6px; right: -6px;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--brand-accent);
+  color: #07331e;
+  border: 2px solid var(--surface);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
 .notif-body { max-height: 320px; overflow-y: auto; }
 .notif-item {
   display: flex; align-items: flex-start; gap: 10px;
@@ -1615,3 +1635,10 @@ body.splash-view { display: grid; place-items: center; background: #f7f8fb; }
 .notif-detail { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-time { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
 .notif-empty { padding: 22px 14px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+/* Las reglas moviles van despues de su definicion base a proposito:
+   misma especificidad, gana la ultima del archivo. */
+@media (max-width: 980px) {
+  .nav-toggle { display: grid; }
+  .chat-back { display: inline-grid; }
+}

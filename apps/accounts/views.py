@@ -2,6 +2,8 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.urls import NoReverseMatch, reverse
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 
 from .forms import LoginForm, ProfileForm, StudentProfileForm, ProfessorProfileForm
@@ -45,6 +47,34 @@ class LogoutView(View):
         logout(request)
         return redirect('login')
     
+class NotificationsReadView(LoginRequiredMixin, View):
+    """Marca como leidas las notificaciones del usuario."""
+
+    def post(self, request):
+        from apps.messaging.models import Message
+
+        now = timezone.now()
+
+        unread = Message.objects.filter(read_at__isnull=True).exclude(sender=request.user)
+        if request.user.role == 'student':
+            unread = unread.filter(conversation__student=request.user)
+        elif request.user.role == 'professor':
+            unread = unread.filter(conversation__subject__professor=request.user)
+        else:
+            unread = unread.none()
+        unread.update(read_at=now)
+
+        request.user.notifications_read_at = now
+        request.user.save(update_fields=['notifications_read_at'])
+
+        siguiente = request.POST.get('next', '')
+        if not url_has_allowed_host_and_scheme(
+            siguiente, allowed_hosts={request.get_host()}, require_https=request.is_secure(),
+        ):
+            siguiente = reverse('profile')
+        return redirect(siguiente)
+
+
 class ProfileView(LoginRequiredMixin, View):
     template_name = 'perfil.html'
     login_url = '/login/'
