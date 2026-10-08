@@ -1,0 +1,23 @@
+# ── Ruff: linting ─────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = [".git", ".venv", "venv", "__pycache__", "**/migrations/*", "static", "media"]
+
+[tool.ruff.lint]
+# Arrancamos con las reglas que detectan errores reales (imports rotos, nombres
+# indefinidos, variables sin usar). En el bloque de limpieza subimos a E/F/I/UP/B/DJ.
+select = ["E4", "E7", "E9", "F"]
+ignore = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "core"]
+
+# ── pytest + pytest-django ────────────────────────────────────────────
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "core.settings.test"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_classes = ["Test*", "*Tests"]
+python_functions = ["test_*"]
+testpaths = ["apps", "core"]
+addopts = "-ra --strict-markers"

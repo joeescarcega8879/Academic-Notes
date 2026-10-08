@@ -1,0 +1,74 @@
+# Entorno de desarrollo completo: web + PostgreSQL + Redis + worker de Celery.
+# Uso:  docker compose up --build
+
+x-app-environment: &app-environment
+  DJANGO_SETTINGS_MODULE: core.settings.local
+  DJANGO_DEBUG: "True"
+  DJANGO_SECRET_KEY: django-insecure-docker-local
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,0.0.0.0,web
+  DATABASE_URL: postgres://gradelink:gradelink@db:5432/gradelink
+  REDIS_URL: redis://redis:6379/1
+  CELERY_BROKER_URL: redis://redis:6379/0
+  CELERY_RESULT_BACKEND: redis://redis:6379/2
+  # Con Redis disponible, el worker sí procesa de verdad.
+  CELERY_TASK_ALWAYS_EAGER: "False"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gradelink}
+      POSTGRES_USER: ${POSTGRES_USER:-gradelink}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gradelink}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gradelink}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      <<: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build: .
+    command: celery -A core worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      <<: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:

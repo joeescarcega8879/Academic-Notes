@@ -1,0 +1,12 @@
+# ── Núcleo ────────────────────────────────────────────────────────────
+Django>=5.2.8,<5.3
+django-environ>=0.11,<0.13
+Pillow>=11.0
+
+# ── Base de datos ─────────────────────────────────────────────────────
+# PostgreSQL para Docker/CI/producción. En local sin Docker seguimos con SQLite.
+psycopg[binary]>=3.2
+
+# ── Tareas asíncronas (infraestructura de la Fase 0; se usan desde Fase 1) ──
+celery>=5.4
+redis>=5.2
