@@ -1,9 +1,10 @@
 import csv
+from datetime import date
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Sum, F
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -109,16 +110,21 @@ class GradeExportView(GradeAccessMixin, View):
         else:
             grades = grades.filter(evaluation__subject__professor=user)
 
-        subject_id = request.GET.get('materia')
+        subject_id = request.GET.get('materia', '').strip()
         if subject_id:
-            grades = grades.filter(evaluation__subject_id=subject_id)
+            if not subject_id.isdigit():
+                return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
+            grades = grades.filter(evaluation__subject_id=int(subject_id))
 
-        desde = request.GET.get('desde')
-        hasta = request.GET.get('hasta')
-        if desde:
-            grades = grades.filter(graded_at__date__gte=desde)
-        if hasta:
-            grades = grades.filter(graded_at__date__lte=hasta)
+        for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
+            raw = request.GET.get(param, '').strip()
+            if not raw:
+                continue
+            try:
+                day = date.fromisoformat(raw)
+            except ValueError:
+                return HttpResponseBadRequest('El parámetro "%s" debe tener el formato AAAA-MM-DD.' % param)
+            grades = grades.filter(**{lookup: day})
 
         grades = grades.order_by(
             'evaluation__subject__name', 'student__last_name', 'evaluation__date',

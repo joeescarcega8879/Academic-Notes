@@ -1,5 +1,6 @@
-from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator
+from django.db import models
 
 class Evaluation(models.Model):
     class Type(models.TextChoices):
@@ -12,8 +13,8 @@ class Evaluation(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.QUIZ)
-    max_score = models.FloatField(default=10.0)
-    weight = models.FloatField(default=1.0)
+    max_score = models.FloatField(default=10.0, validators=[MinValueValidator(0.01)])
+    weight = models.FloatField(default=1.0, validators=[MinValueValidator(0)])
     date = models.DateField(null=True, blank=True)
 
     class Meta:
@@ -31,7 +32,7 @@ class Grade(models.Model):
         related_name='grades',
         limit_choices_to={'role': 'student'},
     )
-    score = models.FloatField()
+    score = models.FloatField(validators=[MinValueValidator(0)])
     feedback = models.TextField(blank=True)
     graded_at = models.DateTimeField(auto_now_add=True)
 
