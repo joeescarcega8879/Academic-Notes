@@ -1,4 +1,4 @@
-# Academic Notes · GradeLink
+# Academic Notes
 
 Sistema web académico construido con **Django** para la gestión de materias,
 calificaciones y comunicación entre **profesores** y **alumnos**
