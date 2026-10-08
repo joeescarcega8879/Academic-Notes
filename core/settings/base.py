@@ -54,11 +54,11 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "apps.organizations",
     "apps.accounts",
     "apps.subjects",
     "apps.grades",
     "apps.messaging",
-    # Bloque 2 de la Fase 0: "apps.organizations".
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -73,7 +73,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Bloque 4 de la Fase 0: "apps.organizations.middleware.OrganizationMiddleware".
+    "apps.organizations.middleware.OrganizationMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"

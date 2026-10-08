@@ -2,7 +2,11 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
-class Evaluation(models.Model):
+from apps.organizations.models import TenantModel
+
+class Evaluation(TenantModel):
+    organization_source = 'subject'
+
     class Type(models.TextChoices):
         QUIZ = 'quiz', 'Quiz'
         EXAM = 'exam', 'Examen'
@@ -24,7 +28,9 @@ class Evaluation(models.Model):
         return f"{self.title} · {self.subject.name}"
 
     
-class Grade(models.Model):
+class Grade(TenantModel):
+    organization_source = 'evaluation'
+
     evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='grades')
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,

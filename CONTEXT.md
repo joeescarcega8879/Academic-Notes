@@ -227,9 +227,20 @@ Rama `feature/fase-0-cimientos`. Las 6 fases originales quedaron atrás; el plan
 - Validadores: `Grade.score >= 0`, `Evaluation.max_score > 0`, `Evaluation.weight >= 0` (`grades/0003`). El export CSV responde 400 con filtros inválidos.
 - **`apps/grades/services/grading.py`**: única fuente de promedios. Cada nota se normaliza contra `max_score` y se pondera; el resultado va en escala 0–10 (`DISPLAY_SCALE`). Aprobación: `PASS_RATIO = 0.6`. Lo usan los dashboards, el detalle de materia y la lista de calificaciones. Corrige el bug que mezclaba evaluaciones sobre 100 y sobre 10.
 - **`apps/messaging/services.py`**: `unread_messages_for`, `unread_count_for_request` (una consulta por petición) y `mark_all_read`. Lo usan ambos context processors y `NotificationsReadView`.
-- Pruebas: 114 con pytest-django + factory_boy (`apps/*/factories.py`, `conftest.py`).
+- Pruebas: 152 con pytest-django + factory_boy (`apps/*/factories.py`, `conftest.py`).
+- **App `apps/organizations`** (multi-tenant por fila):
+  - `Organization` (tipo individual/institución, plan, activa) y `Membership` (usuario, organización, rol: owner/admin/coordinator/teacher/student/parent; un rol por usuario y organización).
+  - `TenantModel` (abstracta): FK `organization` no nula y `editable=False`, manager `for_organization(org)` (con `None` devuelve vacío) y derivación en cada `save()` desde el padre (`organization_source`). La usan `Subject` (elige su organización), `Enrollment`, `Evaluation`, `Grade`, `Conversation` y `Message` (la heredan de su materia/evaluación/conversación). Los hijos nunca pueden discrepar de su padre.
+  - Decisión de backfill: cada profesor tiene una **organización individual** (`Membership` owner); las materias y todo lo que cuelga de ellas pasan a la de su profesor; cada alumno es miembro (student) de las organizaciones donde está inscrito. Un alumno sin inscripciones no tiene organización. Con los datos demo: 11 organizaciones, 40 membresías de alumno.
+  - Altas nuevas: un profesor creado recibe su organización individual (signal); inscribirse a una materia hace al alumno miembro de su organización.
+  - `OrganizationMiddleware` expone `request.organization` / `request.membership` (la guardada en sesión `organization_id` si sigue siendo miembro; si no, la primera membresía activa).
+  - Migraciones en 5 pasos por modelo: columna nullable → backfill (`organizations/0002`) → no nula.
 
-**Pendiente de la Fase 0:** app `organizations` (`Organization`, `Membership`), reemplazo de `User.role`, FK a `Organization` en `subjects`/`grades`/`messaging`, managers `for_organization`, middleware `request.organization`, prueba de aislamiento y ramas `develop`.
+**Pendiente de la Fase 0:**
+
+- Las **vistas aún no filtran por `request.organization`**: hoy aíslan por profesor/alumno (suficiente mientras cada profesor tiene su organización). Hay que cambiarlas a `for_organization` junto con el selector de organización activa (un alumno pertenece a varias).
+- Reemplazar `User.role` por `Membership.role` (~40 usos en vistas, mixins, forms, templates y `limit_choices_to`); el signal de profesor nuevo y los admin siguen leyendo `User.role`.
+- Ramas `develop`.
 
 **Deuda conocida:** logout por GET; `next` ignorado en el login; `/` devuelve 404; `perfil.html` muestra un promedio fijo `7.8` (`overall_average` nunca se envía); `accounts` depende de `grades` y `messaging`; `Subject.code`, `User.dni` y `StudentProfile.enrollment_number` son únicos globales (deben ser por organización); `Grade.graded_at` no se actualiza al editar y no hay `GradeHistory`.
 
