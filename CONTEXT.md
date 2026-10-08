@@ -216,6 +216,25 @@
 
 ---
 
+## Plan GradeLink (`New_Phases.md`) — Fase 0 en curso
+
+Rama `feature/fase-0-cimientos`. Las 6 fases originales quedaron atrás; el plan vigente es `New_Phases.md`.
+
+**Hecho:**
+
+- Infraestructura: Docker Compose (web, PostgreSQL 16, Redis, worker Celery), settings por entorno en `core/settings/{base,local,test,production}.py` (django-environ), `requirements/`, CI en GitHub Actions (ruff, migraciones, check, pytest), `pyproject.toml`. Se eliminó `core/settings.py`.
+- Entorno local: miniconda `DjangoEnvironment` (Python 3.14). Django ≥ 5.2.8 (soporte 3.14). Docker y CI usan 3.13.
+- Validadores: `Grade.score >= 0`, `Evaluation.max_score > 0`, `Evaluation.weight >= 0` (`grades/0003`). El export CSV responde 400 con filtros inválidos.
+- **`apps/grades/services/grading.py`**: única fuente de promedios. Cada nota se normaliza contra `max_score` y se pondera; el resultado va en escala 0–10 (`DISPLAY_SCALE`). Aprobación: `PASS_RATIO = 0.6`. Lo usan los dashboards, el detalle de materia y la lista de calificaciones. Corrige el bug que mezclaba evaluaciones sobre 100 y sobre 10.
+- **`apps/messaging/services.py`**: `unread_messages_for`, `unread_count_for_request` (una consulta por petición) y `mark_all_read`. Lo usan ambos context processors y `NotificationsReadView`.
+- Pruebas: 114 con pytest-django + factory_boy (`apps/*/factories.py`, `conftest.py`).
+
+**Pendiente de la Fase 0:** app `organizations` (`Organization`, `Membership`), reemplazo de `User.role`, FK a `Organization` en `subjects`/`grades`/`messaging`, managers `for_organization`, middleware `request.organization`, prueba de aislamiento y ramas `develop`.
+
+**Deuda conocida:** logout por GET; `next` ignorado en el login; `/` devuelve 404; `perfil.html` muestra un promedio fijo `7.8` (`overall_average` nunca se envía); `accounts` depende de `grades` y `messaging`; `Subject.code`, `User.dni` y `StudentProfile.enrollment_number` son únicos globales (deben ser por organización); `Grade.graded_at` no se actualiza al editar y no hay `GradeHistory`.
+
+---
+
 ## Estado del Roadmap
 
 Las 6 fases planificadas están completas. Queda trabajo opcional:

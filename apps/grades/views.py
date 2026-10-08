@@ -2,8 +2,6 @@ import csv
 from datetime import date
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Sum, F
-from django.db.models.functions import Coalesce
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -13,6 +11,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from .models import Grade
 from .forms import GradeForm
+from .services.grading import weighted_average
 
 class GradeAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
 
@@ -58,13 +57,8 @@ class GradeListView(GradeAccessMixin, ListView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # Promedio ponderado (peso = weight de la evaluación)
-        agg = self.get_queryset().aggregate(
-            total_weight=Coalesce(Sum('evaluation__weight'), 0.0),
-            weighted=Coalesce(Sum(F('score') * F('evaluation__weight')), 0.0),
-        )
-        average = agg['weighted'] / agg['total_weight'] if agg['total_weight'] else None
-        context['average'] = round(average, 2) if average is not None else None
+        # Promedio ponderado sobre las mismas calificaciones que ya se listan
+        context['average'] = weighted_average(context['grades'])
 
         if user.role == 'professor':
             context['subjects'] = user.subjects.prefetch_related('evaluations')

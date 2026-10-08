@@ -51,18 +51,10 @@ class NotificationsReadView(LoginRequiredMixin, View):
     """Marca como leidas las notificaciones del usuario."""
 
     def post(self, request):
-        from apps.messaging.models import Message
+        from apps.messaging.services import mark_all_read
 
         now = timezone.now()
-
-        unread = Message.objects.filter(read_at__isnull=True).exclude(sender=request.user)
-        if request.user.role == 'student':
-            unread = unread.filter(conversation__student=request.user)
-        elif request.user.role == 'professor':
-            unread = unread.filter(conversation__subject__professor=request.user)
-        else:
-            unread = unread.none()
-        unread.update(read_at=now)
+        mark_all_read(request.user, now)
 
         request.user.notifications_read_at = now
         request.user.save(update_fields=['notifications_read_at'])

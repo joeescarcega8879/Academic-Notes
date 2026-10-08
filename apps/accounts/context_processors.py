@@ -13,7 +13,7 @@ def notifications(request):
       y no afectan a este panel.
     """
     from apps.grades.models import Grade
-    from apps.messaging.models import Message
+    from apps.messaging.services import unread_count_for_request, unread_messages_for
 
     user = getattr(request, 'user', None)
     if user is None or not user.is_authenticated:
@@ -21,17 +21,9 @@ def notifications(request):
 
     items = []
 
-    unread = Message.objects.filter(read_at__isnull=True).exclude(sender=user)
-    if user.role == 'student':
-        unread = unread.filter(conversation__student=user)
-    elif user.role == 'professor':
-        unread = unread.filter(conversation__subject__professor=user)
-    else:
-        unread = unread.none()
-
-    unread_count = unread.count()
+    unread_count = unread_count_for_request(request)
     recent_messages = (
-        unread
+        unread_messages_for(user)
         .select_related('conversation__subject', 'sender')
         .order_by('-created_at')[:5]
     )

@@ -196,17 +196,31 @@ class TestExportacionCsv:
         assert client.get(reverse(self.url)).status_code == 302
 
 
-# ── Promedio ponderado ────────────────────────────────────────────────
+# ── Promedio con escalas distintas (las cuatro vistas usan el mismo servicio) ──
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bug conocido: el promedio mezcla puntos crudos sin normalizar por max_score. "
-    "Se arregla con services/grading.py (Sprint 2); al corregirlo hay que quitar este xfail.",
-)
-def test_promedio_normaliza_escalas_distintas(student_client, student, subject, enrollment):
-    sobre_100 = EvaluationFactory(subject=subject, max_score=100, weight=1)
-    sobre_10 = EvaluationFactory(subject=subject, max_score=10, weight=1)
-    GradeFactory(evaluation=sobre_100, student=student, score=80)  # 80 %
-    GradeFactory(evaluation=sobre_10, student=student, score=8)  # 80 %
-    response = student_client.get(reverse("student_dashboard"))
-    assert response.context["average"] == 80
+class TestPromedioNormalizado:
+    """Dos notas al 80 %, una sobre 100 y otra sobre 10, deben promediar 8.0 (escala 0–10)."""
+
+    @pytest.fixture
+    def escenario(self, student, subject, enrollment):
+        sobre_100 = EvaluationFactory(subject=subject, max_score=100, weight=1)
+        sobre_10 = EvaluationFactory(subject=subject, max_score=10, weight=1)
+        GradeFactory(evaluation=sobre_100, student=student, score=80)
+        GradeFactory(evaluation=sobre_10, student=student, score=8)
+
+    def test_dashboard_del_alumno(self, student_client, escenario, subject):
+        context = student_client.get(reverse("student_dashboard")).context
+        assert context["average"] == 8.0
+        assert context["enrollments"][0].subject_average == 8.0
+
+    def test_lista_de_calificaciones(self, student_client, escenario):
+        assert student_client.get(reverse("grades:list")).context["average"] == 8.0
+
+    def test_detalle_de_materia(self, student_client, escenario, subject):
+        response = student_client.get(reverse("subject_detail", args=[subject.pk]))
+        assert response.context["subject_average"] == 8.0
+
+    def test_dashboard_del_profesor(self, professor_client, escenario):
+        context = professor_client.get(reverse("professor_dashboard")).context
+        assert context["group_average"] == 8.0
+        assert context["subjects"][0].average == 8.0
