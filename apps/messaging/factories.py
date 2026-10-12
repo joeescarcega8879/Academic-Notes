@@ -1,7 +1,7 @@
 import factory
 
 from apps.accounts.factories import StudentFactory
-from apps.subjects.factories import SubjectFactory
+from apps.courses.factories import CourseFactory
 
 from .models import Conversation, Message
 
@@ -9,9 +9,9 @@ from .models import Conversation, Message
 class ConversationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Conversation
-        django_get_or_create = ("subject", "student")
+        django_get_or_create = ("course", "student")
 
-    subject = factory.SubFactory(SubjectFactory)
+    course = factory.SubFactory(CourseFactory)
     student = factory.SubFactory(StudentFactory)
 
 

@@ -3,14 +3,14 @@ from .models import Evaluation, Grade
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):
-    list_display = ('title', 'subject', 'type', 'max_score', 'weight', 'date')
-    list_filter = ('type', 'subject')
-    search_fields = ('title', 'subject__name')
-    autocomplete_fields = ('subject',)
+    list_display = ('title', 'course', 'type', 'max_score', 'weight', 'date')
+    list_filter = ('type', 'course')
+    search_fields = ('title', 'course__name')
+    autocomplete_fields = ('course',)
 
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
     list_display = ('student', 'evaluation', 'score', 'graded_at')
-    list_filter = ('evaluation__subject',)
+    list_filter = ('evaluation__course',)
     search_fields = ('student__username', 'student__email', 'evaluation__title')
     autocomplete_fields = ('student', 'evaluation')

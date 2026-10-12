@@ -10,10 +10,10 @@ class MessageInline(admin.TabularInline):
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'student', 'created_at')
-    list_filter = ('subject',)
-    search_fields = ('subject__name', 'student__username', 'student__email')
-    autocomplete_fields = ('subject', 'student')
+    list_display = ('course', 'student', 'created_at')
+    list_filter = ('course',)
+    search_fields = ('course__name', 'student__username', 'student__email')
+    autocomplete_fields = ('course', 'student')
     inlines = [MessageInline]
 
 @admin.register(Message)

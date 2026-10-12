@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 
 from apps.accounts.factories import StudentFactory
-from apps.subjects.factories import EnrollmentFactory, SubjectFactory
+from apps.courses.factories import EnrollmentFactory, CourseFactory
 
 from .factories import EvaluationFactory, GradeFactory
 from .models import Grade
@@ -33,8 +33,8 @@ class TestValidacionDeRangos:
             grade.full_clean()
         assert "score" in exc.value.message_dict
 
-    def test_peso_negativo_y_maximo_cero_no_pasan(self, subject):
-        evaluation = EvaluationFactory.build(subject=subject, weight=-1, max_score=0)
+    def test_peso_negativo_y_maximo_cero_no_pasan(self, course):
+        evaluation = EvaluationFactory.build(course=course, weight=-1, max_score=0)
         with pytest.raises(ValidationError) as exc:
             evaluation.full_clean()
         assert {"weight", "max_score"} <= set(exc.value.message_dict)
@@ -79,7 +79,7 @@ class TestPermisos:
 
     def test_profesor_no_puede_calificar_evaluacion_ajena(self, professor_client):
         ajena = EvaluationFactory()
-        alumno = EnrollmentFactory(subject=ajena.subject).student
+        alumno = EnrollmentFactory(course=ajena.course).student
         response = professor_client.post(
             reverse("grades:create"),
             {"evaluation": ajena.pk, "student": alumno.pk, "score": 9, "feedback": ""},
@@ -105,7 +105,7 @@ class TestPermisos:
 
     def test_alumno_solo_ve_las_suyas(self, student_client, student, evaluation, enrollment):
         propia = GradeFactory(evaluation=evaluation, student=student)
-        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(subject=evaluation.subject).student)
+        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
         response = student_client.get(reverse("grades:list"))
         assert list(response.context["grades"]) == [propia]
 
@@ -151,23 +151,23 @@ class TestExportacionCsv:
 
     def test_alumno_no_ve_columnas_de_alumno_ni_ajenas(self, student_client, student, evaluation, enrollment):
         GradeFactory(evaluation=evaluation, student=student)
-        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(subject=evaluation.subject).student)
+        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
         rows = parse_csv(student_client.get(reverse(self.url)))
         assert rows[0][0] == "Materia"
         assert "Alumno" not in rows[0]
         assert len(rows) == 2  # cabecera + su única calificación
 
     def test_filtra_por_materia(self, professor_client, professor):
-        a = EvaluationFactory(subject=SubjectFactory(professor=professor, name="Álgebra"))
-        b = EvaluationFactory(subject=SubjectFactory(professor=professor, name="Cálculo"))
-        GradeFactory(evaluation=a, student=EnrollmentFactory(subject=a.subject).student)
-        GradeFactory(evaluation=b, student=EnrollmentFactory(subject=b.subject).student)
-        rows = parse_csv(professor_client.get(reverse(self.url), {"materia": a.subject_id}))
+        a = EvaluationFactory(course=CourseFactory(professor=professor, name="Álgebra"))
+        b = EvaluationFactory(course=CourseFactory(professor=professor, name="Cálculo"))
+        GradeFactory(evaluation=a, student=EnrollmentFactory(course=a.course).student)
+        GradeFactory(evaluation=b, student=EnrollmentFactory(course=b.course).student)
+        rows = parse_csv(professor_client.get(reverse(self.url), {"materia": a.course_id}))
         assert [r[2] for r in rows[1:]] == ["Álgebra"]
 
     def test_filtra_por_rango_de_fechas(self, professor_client, evaluation):
-        viejo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(subject=evaluation.subject).student)
-        nuevo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(subject=evaluation.subject).student)
+        viejo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
+        nuevo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
         Grade.objects.filter(pk=viejo.pk).update(graded_at=datetime(2026, 1, 10, 18, tzinfo=dt_timezone.utc))
         Grade.objects.filter(pk=nuevo.pk).update(graded_at=datetime(2026, 3, 10, 18, tzinfo=dt_timezone.utc))
 
@@ -202,25 +202,25 @@ class TestPromedioNormalizado:
     """Dos notas al 80 %, una sobre 100 y otra sobre 10, deben promediar 8.0 (escala 0–10)."""
 
     @pytest.fixture
-    def escenario(self, student, subject, enrollment):
-        sobre_100 = EvaluationFactory(subject=subject, max_score=100, weight=1)
-        sobre_10 = EvaluationFactory(subject=subject, max_score=10, weight=1)
+    def escenario(self, student, course, enrollment):
+        sobre_100 = EvaluationFactory(course=course, max_score=100, weight=1)
+        sobre_10 = EvaluationFactory(course=course, max_score=10, weight=1)
         GradeFactory(evaluation=sobre_100, student=student, score=80)
         GradeFactory(evaluation=sobre_10, student=student, score=8)
 
-    def test_dashboard_del_alumno(self, student_client, escenario, subject):
+    def test_dashboard_del_alumno(self, student_client, escenario, course):
         context = student_client.get(reverse("student_dashboard")).context
         assert context["average"] == 8.0
-        assert context["enrollments"][0].subject_average == 8.0
+        assert context["enrollments"][0].course_average == 8.0
 
     def test_lista_de_calificaciones(self, student_client, escenario):
         assert student_client.get(reverse("grades:list")).context["average"] == 8.0
 
-    def test_detalle_de_materia(self, student_client, escenario, subject):
-        response = student_client.get(reverse("subject_detail", args=[subject.pk]))
-        assert response.context["subject_average"] == 8.0
+    def test_detalle_de_materia(self, student_client, escenario, course):
+        response = student_client.get(reverse("course_detail", args=[course.pk]))
+        assert response.context["course_average"] == 8.0
 
     def test_dashboard_del_profesor(self, professor_client, escenario):
         context = professor_client.get(reverse("professor_dashboard")).context
         assert context["group_average"] == 8.0
-        assert context["subjects"][0].average == 8.0
+        assert context["courses"][0].average == 8.0

@@ -65,9 +65,9 @@ def grade_stats(grades):
     return GradeStats(average=average, count=count, passed=passed)
 
 
-def stats_by_subject(grades):
-    """``{subject_id: GradeStats}`` para un iterable de ``Grade``."""
+def stats_by_course(grades):
+    """``{course_id: GradeStats}`` para un iterable de ``Grade``."""
     buckets = defaultdict(list)
     for grade in grades:
-        buckets[grade.evaluation.subject_id].append(grade)
-    return {subject_id: grade_stats(items) for subject_id, items in buckets.items()}
+        buckets[grade.evaluation.course_id].append(grade)
+    return {course_id: grade_stats(items) for course_id, items in buckets.items()}

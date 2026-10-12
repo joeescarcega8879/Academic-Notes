@@ -2,7 +2,7 @@ from django.db import migrations
 
 
 def create_conversations(apps, schema_editor):
-    Enrollment = apps.get_model('subjects', 'Enrollment')
+    Enrollment = apps.get_model('courses', 'Enrollment')
     Conversation = apps.get_model('messaging', 'Conversation')
     for enrollment in Enrollment.objects.all().iterator():
         Conversation.objects.get_or_create(
@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('messaging', '0001_initial'),
-        ('subjects', '0001_initial'),
+        ('courses', '0001_initial'),
     ]
 
     operations = [

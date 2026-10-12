@@ -24,7 +24,7 @@ def notifications(request):
     unread_count = unread_count_for_request(request)
     recent_messages = (
         unread_messages_for(user, request.membership)
-        .select_related('conversation__subject', 'sender')
+        .select_related('conversation__course', 'sender')
         .order_by('-created_at')[:5]
     )
     for message in recent_messages:
@@ -32,7 +32,7 @@ def notifications(request):
             'type': 'message',
             'icon': 'message-square',
             'title': message.sender.get_full_name() or message.sender.username,
-            'detail': 'Te escribió en %s' % message.conversation.subject.name,
+            'detail': 'Te escribió en %s' % message.conversation.course.name,
             'url': reverse('messaging:detail', args=[message.conversation_id]),
             'date': message.created_at,
         })
@@ -48,7 +48,7 @@ def notifications(request):
             Grade.objects
             .for_organization(request.organization)
             .filter(student=user, graded_at__gt=cutoff)
-            .select_related('evaluation__subject')
+            .select_related('evaluation__course')
             .order_by('-graded_at')
         )
         grades_count = recent_grades.count()
@@ -57,8 +57,8 @@ def notifications(request):
                 'type': 'grade',
                 'icon': 'clipboard',
                 'title': grade.evaluation.title,
-                'detail': '%s · %s' % (grade.evaluation.subject.name, grade.score),
-                'url': reverse('subject_detail', args=[grade.evaluation.subject_id]),
+                'detail': '%s · %s' % (grade.evaluation.course.name, grade.score),
+                'url': reverse('course_detail', args=[grade.evaluation.course_id]),
                 'date': grade.graded_at,
             })
 

@@ -8,7 +8,7 @@ from apps.grades.services.grading import (
     PASS_RATIO,
     grade_stats,
     is_passing,
-    stats_by_subject,
+    stats_by_course,
     weighted_average,
 )
 
@@ -81,8 +81,8 @@ class TestAprobacion:
 
 def test_agrupa_por_materia():
     a1, a2, b1 = grade(10), grade(6), grade(8)
-    a2.evaluation.subject = a1.evaluation.subject
-    por_materia = stats_by_subject([a1, a2, b1])
-    assert set(por_materia) == {a1.evaluation.subject_id, b1.evaluation.subject_id}
-    assert por_materia[a1.evaluation.subject_id].average == 8.0
-    assert por_materia[b1.evaluation.subject_id].average == 8.0
+    a2.evaluation.course = a1.evaluation.course
+    por_materia = stats_by_course([a1, a2, b1])
+    assert set(por_materia) == {a1.evaluation.course_id, b1.evaluation.course_id}
+    assert por_materia[a1.evaluation.course_id].average == 8.0
+    assert por_materia[b1.evaluation.course_id].average == 8.0

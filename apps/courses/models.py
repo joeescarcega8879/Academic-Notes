@@ -5,7 +5,7 @@ from apps.organizations.models import Organization, TenantModel
 from apps.organizations.services import ensure_individual_organization, ensure_student_membership
 
 
-class Subject(TenantModel):
+class Course(TenantModel):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
@@ -15,7 +15,7 @@ class Subject(TenantModel):
     # A diferencia de sus hijos, la materia sí elige su organización (en el admin).
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
 
-    professor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subjects', limit_choices_to={'role': 'professor'})
+    professor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='courses', limit_choices_to={'role': 'professor'})
 
     class Meta:
         ordering = ['name']
@@ -31,20 +31,20 @@ class Subject(TenantModel):
 
 
 class Enrollment(TenantModel):
-    organization_source = 'subject'
+    organization_source = 'course'
 
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='enrollments', limit_choices_to={'role': 'student'})
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='enrollments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
     enrolled_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('student', 'subject')
+        unique_together = ('student', 'course')
         ordering = ['-enrolled_at']
 
     def __str__(self):
-        return f"{self.student.username} enrolled in {self.subject.name}"
+        return f"{self.student.username} enrolled in {self.course.name}"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Inscribirse a una materia hace al alumno miembro de su organización.
-        ensure_student_membership(self.student, self.subject.organization)
+        ensure_student_membership(self.student, self.course.organization)

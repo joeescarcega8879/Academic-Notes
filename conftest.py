@@ -5,7 +5,7 @@ from django.test import Client
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import EvaluationFactory
-from apps.subjects.factories import EnrollmentFactory, SubjectFactory
+from apps.courses.factories import EnrollmentFactory, CourseFactory
 
 
 @pytest.fixture
@@ -19,18 +19,18 @@ def student(db):
 
 
 @pytest.fixture
-def subject(professor):
-    return SubjectFactory(professor=professor)
+def course(professor):
+    return CourseFactory(professor=professor)
 
 
 @pytest.fixture
-def enrollment(subject, student):
-    return EnrollmentFactory(subject=subject, student=student)
+def enrollment(course, student):
+    return EnrollmentFactory(course=course, student=student)
 
 
 @pytest.fixture
-def evaluation(subject):
-    return EvaluationFactory(subject=subject)
+def evaluation(course):
+    return EvaluationFactory(course=course)
 
 
 def _client_for(user):

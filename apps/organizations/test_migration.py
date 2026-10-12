@@ -10,7 +10,7 @@ from django.db.migrations.executor import MigrationExecutor
 
 ANTES = [
     ('organizations', '0001_initial'),
-    ('subjects', '0002_agregar_organizacion'),
+    ('courses', '0002_agregar_organizacion'),
     ('grades', '0004_agregar_organizacion'),
     ('messaging', '0003_agregar_organizacion'),
 ]
@@ -35,8 +35,8 @@ def estado_previo(transactional_db):
 def test_backfill_asigna_organizacion_a_todo(estado_previo):
     old = estado_previo
     User = old.get_model('accounts', 'User')
-    Subject = old.get_model('subjects', 'Subject')
-    Enrollment = old.get_model('subjects', 'Enrollment')
+    Subject = old.get_model('courses', 'Subject')
+    Enrollment = old.get_model('courses', 'Enrollment')
     Evaluation = old.get_model('grades', 'Evaluation')
     Grade = old.get_model('grades', 'Grade')
     Conversation = old.get_model('messaging', 'Conversation')
@@ -74,15 +74,15 @@ def test_backfill_asigna_organizacion_a_todo(estado_previo):
     org_beto = Membership.objects.get(user_id=beto.pk).organization_id
     assert org_ana != org_beto
     modelos = {
-        'subjects': ('Subject', 'Enrollment'),
+        'courses': ('Subject', 'Enrollment'),
         'grades': ('Evaluation', 'Grade'),
         'messaging': ('Conversation', 'Message'),
     }
     for app, nombres in modelos.items():
         for nombre in nombres:
             assert nuevo.get_model(app, nombre).objects.filter(organization__isnull=True).count() == 0, nombre
-    assert nuevo.get_model('subjects', 'Subject').objects.get(code='ALG').organization_id == org_ana
-    assert nuevo.get_model('subjects', 'Subject').objects.get(code='FIS').organization_id == org_beto
+    assert nuevo.get_model('courses', 'Subject').objects.get(code='ALG').organization_id == org_ana
+    assert nuevo.get_model('courses', 'Subject').objects.get(code='FIS').organization_id == org_beto
     assert nuevo.get_model('grades', 'Grade').objects.get().organization_id == org_ana
     assert nuevo.get_model('messaging', 'Message').objects.get().organization_id == org_ana
     assert nuevo.get_model('messaging', 'Conversation').objects.get(subject__code='FIS').organization_id == org_beto

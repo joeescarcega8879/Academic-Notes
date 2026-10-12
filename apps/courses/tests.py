@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.accounts.factories import ProfessorFactory
 from apps.grades.factories import EvaluationFactory, GradeFactory
 
-from .factories import EnrollmentFactory, SubjectFactory
+from .factories import EnrollmentFactory, CourseFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -37,15 +37,15 @@ class TestDashboardProfesor:
     @pytest.fixture
     def escenario(self, professor):
         """2 alumnos, 2 evaluaciones (peso 1 y 3) y 3 notas: 10 y 6 de s1, 4 de s2."""
-        subject = SubjectFactory(professor=professor)
-        s1 = EnrollmentFactory(subject=subject).student
-        s2 = EnrollmentFactory(subject=subject).student
-        e1 = EvaluationFactory(subject=subject, max_score=10, weight=1)
-        e2 = EvaluationFactory(subject=subject, max_score=10, weight=3)
+        course = CourseFactory(professor=professor)
+        s1 = EnrollmentFactory(course=course).student
+        s2 = EnrollmentFactory(course=course).student
+        e1 = EvaluationFactory(course=course, max_score=10, weight=1)
+        e2 = EvaluationFactory(course=course, max_score=10, weight=3)
         GradeFactory(evaluation=e1, student=s1, score=10)
         GradeFactory(evaluation=e2, student=s1, score=6)
         GradeFactory(evaluation=e1, student=s2, score=4)
-        return subject
+        return course
 
     def test_estadisticas_exactas(self, professor_client, escenario):
         context = professor_client.get(reverse("professor_dashboard")).context
@@ -58,11 +58,11 @@ class TestDashboardProfesor:
         assert context["graded_count"] == 3
 
     def test_estadisticas_por_materia(self, professor_client, escenario):
-        subject = professor_client.get(reverse("professor_dashboard")).context["subjects"][0]
-        assert (subject.student_count, subject.average, subject.pass_rate) == (2, 6.4, 67)
+        course = professor_client.get(reverse("professor_dashboard")).context["courses"][0]
+        assert (course.student_count, course.average, course.pass_rate) == (2, 6.4, 67)
 
     def test_sin_datos_no_inventa_cifras(self, professor_client, professor):
-        SubjectFactory(professor=professor)
+        CourseFactory(professor=professor)
         context = professor_client.get(reverse("professor_dashboard")).context
         assert context["group_average"] is None
         assert context["pass_rate"] is None
@@ -79,56 +79,56 @@ class TestDashboardProfesor:
 class TestDashboardAlumno:
     def test_promedio_general_y_por_materia(self, student_client, student):
         profesor = ProfessorFactory()
-        a = EnrollmentFactory(student=student, subject=SubjectFactory(professor=profesor)).subject
-        b = EnrollmentFactory(student=student, subject=SubjectFactory(professor=profesor)).subject
-        GradeFactory(evaluation=EvaluationFactory(subject=a, weight=1), student=student, score=10)
-        GradeFactory(evaluation=EvaluationFactory(subject=a, weight=3), student=student, score=6)
-        GradeFactory(evaluation=EvaluationFactory(subject=b, weight=1), student=student, score=8)
+        a = EnrollmentFactory(student=student, course=CourseFactory(professor=profesor)).course
+        b = EnrollmentFactory(student=student, course=CourseFactory(professor=profesor)).course
+        GradeFactory(evaluation=EvaluationFactory(course=a, weight=1), student=student, score=10)
+        GradeFactory(evaluation=EvaluationFactory(course=a, weight=3), student=student, score=6)
+        GradeFactory(evaluation=EvaluationFactory(course=b, weight=1), student=student, score=8)
 
         context = student_client.get(reverse("student_dashboard")).context
-        por_materia = {e.subject_id: e.subject_average for e in context["enrollments"]}
+        por_materia = {e.course_id: e.course_average for e in context["enrollments"]}
         assert por_materia == {a.pk: 7.0, b.pk: 8.0}  # (10+18)/4 y 8/1
         assert context["average"] == 7.2  # (10 + 18 + 8) / 5
 
     def test_sin_notas_el_promedio_es_none(self, student_client, enrollment):
         context = student_client.get(reverse("student_dashboard")).context
         assert context["average"] is None
-        assert context["enrollments"][0].subject_average is None
+        assert context["enrollments"][0].course_average is None
 
     def test_solo_muestra_sus_materias(self, student_client, enrollment):
         EnrollmentFactory()  # otro alumno
         context = student_client.get(reverse("student_dashboard")).context
-        assert [e.subject for e in context["enrollments"]] == [enrollment.subject]
+        assert [e.course for e in context["enrollments"]] == [enrollment.course]
 
 
 # ── Detalle de materia ────────────────────────────────────────────────
 
 class TestDetalleDeMateria:
-    def test_profesor_titular_ve_su_materia(self, professor_client, subject):
-        assert professor_client.get(reverse("subject_detail", args=[subject.pk])).status_code == 200
+    def test_profesor_titular_ve_su_materia(self, professor_client, course):
+        assert professor_client.get(reverse("course_detail", args=[course.pk])).status_code == 200
 
-    def test_otro_profesor_recibe_404(self, subject):
+    def test_otro_profesor_recibe_404(self, course):
         client = Client()
         client.force_login(ProfessorFactory())
-        assert client.get(reverse("subject_detail", args=[subject.pk])).status_code == 404
+        assert client.get(reverse("course_detail", args=[course.pk])).status_code == 404
 
-    def test_alumno_inscrito_ve_evaluaciones_y_promedio(self, student_client, student, subject, enrollment):
-        e1 = EvaluationFactory(subject=subject, weight=1)
-        EvaluationFactory(subject=subject, weight=1)  # aún sin nota
+    def test_alumno_inscrito_ve_evaluaciones_y_promedio(self, student_client, student, course, enrollment):
+        e1 = EvaluationFactory(course=course, weight=1)
+        EvaluationFactory(course=course, weight=1)  # aún sin nota
         GradeFactory(evaluation=e1, student=student, score=9)
-        response = student_client.get(reverse("subject_detail", args=[subject.pk]))
+        response = student_client.get(reverse("course_detail", args=[course.pk]))
         assert response.status_code == 200
-        assert response.context["subject_average"] == 9.0
+        assert response.context["course_average"] == 9.0
         rows = response.context["evaluation_rows"]
         assert len(rows) == 2
         assert sorted(r["grade"] is None for r in rows) == [False, True]
 
-    def test_alumno_no_inscrito_recibe_404(self, student_client, subject, enrollment):
-        otra = SubjectFactory(professor=subject.professor)  # misma organización, sin inscripción
-        assert student_client.get(reverse("subject_detail", args=[otra.pk])).status_code == 404
+    def test_alumno_no_inscrito_recibe_404(self, student_client, course, enrollment):
+        otra = CourseFactory(professor=course.professor)  # misma organización, sin inscripción
+        assert student_client.get(reverse("course_detail", args=[otra.pk])).status_code == 404
 
-    def test_anonimo_va_al_login(self, client, subject):
-        assert client.get(reverse("subject_detail", args=[subject.pk])).status_code == 302
+    def test_anonimo_va_al_login(self, client, course):
+        assert client.get(reverse("course_detail", args=[course.pk])).status_code == 302
 
 
 # ── Inscripciones ─────────────────────────────────────────────────────
@@ -136,4 +136,4 @@ class TestDetalleDeMateria:
 def test_no_se_puede_inscribir_dos_veces(db):
     enrollment = EnrollmentFactory()
     with pytest.raises(IntegrityError), transaction.atomic():
-        EnrollmentFactory(student=enrollment.student, subject=enrollment.subject)
+        EnrollmentFactory(student=enrollment.student, course=enrollment.course)

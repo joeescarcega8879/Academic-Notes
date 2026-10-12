@@ -2,12 +2,12 @@ import factory
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 
-from .models import Enrollment, Subject
+from .models import Enrollment, Course
 
 
-class SubjectFactory(factory.django.DjangoModelFactory):
+class CourseFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = Subject
+        model = Course
 
     name = factory.Sequence(lambda n: f"Materia {n}")
     code = factory.Sequence(lambda n: f"MAT{n:03d}")
@@ -19,4 +19,4 @@ class EnrollmentFactory(factory.django.DjangoModelFactory):
         model = Enrollment
 
     student = factory.SubFactory(StudentFactory)
-    subject = factory.SubFactory(SubjectFactory)
+    course = factory.SubFactory(CourseFactory)

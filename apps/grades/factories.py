@@ -1,7 +1,7 @@
 import factory
 
 from apps.accounts.factories import StudentFactory
-from apps.subjects.factories import SubjectFactory
+from apps.courses.factories import CourseFactory
 
 from .models import Evaluation, Grade
 
@@ -10,7 +10,7 @@ class EvaluationFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Evaluation
 
-    subject = factory.SubFactory(SubjectFactory)
+    course = factory.SubFactory(CourseFactory)
     title = factory.Sequence(lambda n: f"Evaluación {n}")
     type = Evaluation.Type.EXAM
     max_score = 10.0

@@ -8,5 +8,5 @@ placeholder = TemplateView.as_view(template_name='placeholder.html')
 urlpatterns = [
     path('profesor/dashboard/', views.ProfessorDashboardView.as_view(), name='professor_dashboard'),
     path('alumno/dashboard/', views.StudentDashboardView.as_view(), name='student_dashboard'),
-    path('materia/<int:pk>/', views.SubjectDetailView.as_view(), name='subject_detail'),
+    path('materia/<int:pk>/', views.CourseDetailView.as_view(), name='course_detail'),
 ]

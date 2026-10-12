@@ -5,7 +5,7 @@ from django.db import models
 from apps.organizations.models import TenantModel
 
 class Evaluation(TenantModel):
-    organization_source = 'subject'
+    organization_source = 'course'
 
     class Type(models.TextChoices):
         QUIZ = 'quiz', 'Quiz'
@@ -13,7 +13,7 @@ class Evaluation(TenantModel):
         HOMEWORK = 'homework', 'Tarea'
         PROJECT = 'project', 'Proyecto'
 
-    subject = models.ForeignKey("subjects.Subject", on_delete=models.CASCADE, related_name="evaluations")
+    course = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="evaluations")
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.QUIZ)
@@ -25,7 +25,7 @@ class Evaluation(TenantModel):
         ordering = ['-date', 'title']
 
     def __str__(self):
-        return f"{self.title} · {self.subject.name}"
+        return f"{self.title} · {self.course.name}"
 
     
 class Grade(TenantModel):

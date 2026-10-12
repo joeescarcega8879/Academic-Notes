@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.accounts.factories import ProfessorFactory
 from apps.organizations.factories import MembershipFactory
 from apps.organizations.models import Membership
-from apps.subjects.factories import EnrollmentFactory
+from apps.courses.factories import EnrollmentFactory
 
 from .factories import ConversationFactory, MessageFactory
 from .services import mark_all_read, unread_messages_for
@@ -17,8 +17,8 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def hilo(professor, student, subject, enrollment):
-    return ConversationFactory(subject=subject, student=student)
+def hilo(professor, student, course, enrollment):
+    return ConversationFactory(course=course, student=student)
 
 
 def rol_en(user, hilo):

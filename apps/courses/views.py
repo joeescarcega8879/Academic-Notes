@@ -2,9 +2,9 @@ from django.db.models import Count
 from django.views.generic import TemplateView, DetailView
 
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
-from apps.grades.services.grading import grade_stats, stats_by_subject
+from apps.grades.services.grading import grade_stats, stats_by_course
 
-from .models import Subject, Enrollment
+from .models import Course, Enrollment
 
 class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
@@ -16,8 +16,8 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
         user = self.request.user
         organization = self.request.organization
-        subjects = list(
-            Subject.objects
+        courses = list(
+            Course.objects
             .for_organization(organization)
             .filter(professor=user)
             .annotate(student_count=Count('enrollments'))
@@ -25,20 +25,20 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
         grades = list(
             Grade.objects
             .for_organization(organization)
-            .filter(evaluation__subject__professor=user)
+            .filter(evaluation__course__professor=user)
             .select_related('evaluation')
         )
 
-        per_subject = stats_by_subject(grades)
-        for subject in subjects:
-            stats = per_subject.get(subject.pk)
-            subject.average = stats.average if stats else None
-            subject.pass_rate = stats.pass_rate if stats else None
+        per_course = stats_by_course(grades)
+        for course in courses:
+            stats = per_course.get(course.pk)
+            course.average = stats.average if stats else None
+            course.pass_rate = stats.pass_rate if stats else None
 
         overall = grade_stats(grades)
-        context['subjects'] = subjects
+        context['courses'] = courses
         context['total_evaluations'] = (
-            Evaluation.objects.for_organization(organization).filter(subject__professor=user).count()
+            Evaluation.objects.for_organization(organization).filter(course__professor=user).count()
         )
         context['graded_count'] = overall.count
         context['group_average'] = overall.average
@@ -47,7 +47,7 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
         context['total_students'] = (
             Enrollment.objects
             .for_organization(organization)
-            .filter(subject__professor=user)
+            .filter(course__professor=user)
             .values('student')
             .distinct()
             .count()
@@ -68,7 +68,7 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
             Enrollment.objects
             .for_organization(organization)
             .filter(student=user)
-            .select_related('subject', 'subject__professor')
+            .select_related('course', 'course__professor')
         )
 
         # Promedio ponderado del alumno (general y por materia)
@@ -76,23 +76,23 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
             Grade.objects.for_organization(organization).filter(student=user).select_related('evaluation')
         )
 
-        per_subject = stats_by_subject(grades)
+        per_course = stats_by_course(grades)
         for e in enrollments:
-            stats = per_subject.get(e.subject_id)
-            e.subject_average = stats.average if stats else None
+            stats = per_course.get(e.course_id)
+            e.course_average = stats.average if stats else None
 
         context['enrollments'] = enrollments
         context['average'] = grade_stats(grades).average
         return context
 
-class SubjectDetailView(OrganizationMemberMixin, DetailView):
+class CourseDetailView(OrganizationMemberMixin, DetailView):
 
-    model = Subject
+    model = Course
     template_name = 'materia.html'
-    context_object_name = 'subject'
+    context_object_name = 'course'
 
     def get_queryset(self):
-        qs = Subject.objects.for_organization(self.request.organization)
+        qs = Course.objects.for_organization(self.request.organization)
         user = self.request.user
         if self.request.membership.is_teacher:
             return qs.filter(professor=user)
@@ -110,7 +110,7 @@ class SubjectDetailView(OrganizationMemberMixin, DetailView):
 
             my_grades = {
                 g.evaluation_id: g
-                for g in Grade.objects.filter(student=user, evaluation__subject=self.object).select_related('evaluation')
+                for g in Grade.objects.filter(student=user, evaluation__course=self.object).select_related('evaluation')
             }
             rows = [
                 {'evaluation': evaluation, 'grade': my_grades.get(evaluation.id)}
@@ -118,5 +118,5 @@ class SubjectDetailView(OrganizationMemberMixin, DetailView):
             ]
 
             context['evaluation_rows'] = rows
-            context['subject_average'] = grade_stats(my_grades.values()).average
+            context['course_average'] = grade_stats(my_grades.values()).average
         return context

@@ -38,7 +38,7 @@ Academic-Notes/
 ├── core/                  # Settings y urls del proyecto
 ├── apps/
 │   ├── accounts/          # User custom, perfiles, login, backends
-│   ├── subjects/          # Subject, Enrollment, dashboards
+│   ├── courses/           # Course, Enrollment, dashboards
 │   ├── grades/            # (Fase 4) Evaluaciones y calificaciones
 │   └── messaging/         # (Fase 5) Mensajería
 ├── templates/             # HTML: base, login, perfil, dashboards, materia…
@@ -108,6 +108,8 @@ python credenciales-prueba/crear_datos_demo.py    # 5 materias + 17 inscripcione
 
 - `db.sqlite3` y `credenciales-prueba/` están en `.gitignore`: cada quien genera
   su base local con `migrate` + scripts demo.
+- Si tu `db.sqlite3` es anterior al renombrado de la app `subjects` a `courses`, ejecuta una vez,
+  **antes** de `migrate`: `python manage.py renombrar_app_subjects`. En una base nueva no hace falta.
 - Las credenciales de prueba son únicamente para desarrollo local.
 - Para el registro técnico por fases (qué se creó, por qué y cómo se verificó),
   consulta **[CONTEXT.md](CONTEXT.md)**.
