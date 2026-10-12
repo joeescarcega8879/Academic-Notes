@@ -12,7 +12,7 @@ from apps.courses.models import Enrollment, Course
 
 from .models import Grade
 from .forms import GradeForm
-from .services.grading import weighted_average
+from .services.grading import overall_average
 
 def visible_grades(request):
     """Calificaciones que el usuario puede ver en la organización activa.
@@ -38,7 +38,7 @@ class GradeListView(OrganizationMemberMixin, ListView):
         user = self.request.user
 
         # Promedio ponderado sobre las mismas calificaciones que ya se listan
-        context['average'] = weighted_average(context['grades'])
+        context['average'] = overall_average(context['grades'])
 
         organization = self.request.organization
         if self.request.membership.is_teacher:

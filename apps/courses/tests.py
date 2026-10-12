@@ -49,17 +49,17 @@ class TestDashboardProfesor:
 
     def test_estadisticas_exactas(self, professor_client, escenario):
         context = professor_client.get(reverse("professor_dashboard")).context
-        # (10·1 + 6·3 + 4·1) / (1 + 3 + 1) = 6.4
-        assert context["group_average"] == 6.4
-        # Aprueba con >= 60 % del máximo: 10 y 6 sí, 4 no -> 2 de 3
-        assert context["pass_rate"] == 67
+        # El promedio es el de los finales de cada alumno: s1 = (10·1 + 6·3)/4 = 7.0 y s2 = 4.0 -> 5.5
+        assert context["group_average"] == 5.5
+        # Aprueba el alumno cuyo final alcanza el mínimo (6): s1 sí, s2 no -> 1 de 2
+        assert context["pass_rate"] == 50
         assert context["total_students"] == 2
         assert context["total_evaluations"] == 2
         assert context["graded_count"] == 3
 
     def test_estadisticas_por_materia(self, professor_client, escenario):
         course = professor_client.get(reverse("professor_dashboard")).context["courses"][0]
-        assert (course.student_count, course.average, course.pass_rate) == (2, 6.4, 67)
+        assert (course.student_count, course.average, course.pass_rate) == (2, 5.5, 50)
 
     def test_sin_datos_no_inventa_cifras(self, professor_client, professor):
         CourseFactory(professor=professor)
@@ -88,7 +88,7 @@ class TestDashboardAlumno:
         context = student_client.get(reverse("student_dashboard")).context
         por_materia = {e.course_id: e.course_average for e in context["enrollments"]}
         assert por_materia == {a.pk: 7.0, b.pk: 8.0}  # (10+18)/4 y 8/1
-        assert context["average"] == 7.2  # (10 + 18 + 8) / 5
+        assert context["average"] == 7.5  # media de los finales de cada materia: (7.0 + 8.0) / 2
 
     def test_sin_notas_el_promedio_es_none(self, student_client, enrollment):
         context = student_client.get(reverse("student_dashboard")).context
