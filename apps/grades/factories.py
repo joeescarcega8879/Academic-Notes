@@ -14,7 +14,9 @@ class ActivityFactory(factory.django.DjangoModelFactory):
     type = Activity.Type.EXAM
     max_score = 10.0
     weight = 1.0
-    published = True  # las pruebas tratan a las actividades como normales; el borrador se pide explícitamente
+    # Las pruebas tratan a las actividades como normales; el borrador se pide explícitamente. Un quiz nace en
+    # borrador porque no se puede publicar sin preguntas.
+    published = factory.LazyAttribute(lambda o: o.type != Activity.Type.QUIZ)
 
 
 class GradeFactory(factory.django.DjangoModelFactory):

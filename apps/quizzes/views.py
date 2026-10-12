@@ -10,8 +10,11 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 
+from apps.grades.models import Activity
+
 from .forms import BankFilterForm, QuestionForm, TrueFalseForm, choice_formset
-from .models import Question
+from .models import Question, QuizConfig
+from .services import builder
 from .services.bank import TRUE_FALSE_LABELS, can_edit_question, duplicate_question, save_question
 
 PAGE_SIZE = 20
@@ -91,8 +94,28 @@ class QuestionFormMixin(BankMixin):
                 form.add_error(None, error)
             else:
                 messages.success(request, 'Se guardó la pregunta.')
+                if question is None:
+                    target = self.quiz_to_add_to(request)
+                    if target is not None:
+                        try:
+                            builder.add_questions(target, [saved])
+                        except ValidationError as error:
+                            messages.error(request, ' '.join(error.messages))
+                        else:
+                            messages.success(request, 'La pregunta también quedó en el quiz.')
+                        return redirect('quizzes:builder', pk=target.activity_id)
                 return redirect('quizzes:question_detail', pk=saved.pk)
         return self.render_page(request, kind, form, formset, question)
+
+    def quiz_to_add_to(self, request):
+        """El quiz (propio y de un grupo activo) al que se agrega la pregunta nueva, si se llegó desde su constructor."""
+        raw = request.GET.get('add_to', '')
+        if not raw.isdigit():
+            return None
+        return QuizConfig.objects.filter(
+            activity_id=int(raw), activity__course__professor=request.user, organization=request.organization,
+            activity__course__status='active',
+        ).first()
 
 
 class QuestionCreateView(QuestionFormMixin, View):

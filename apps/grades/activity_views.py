@@ -83,7 +83,11 @@ class ActivityPublishView(OwnActiveCourseMixin, View):
     def post(self, request, pk):
         activity = get_object_or_404(self.activities(), pk=pk)
         activity.published = not activity.published
-        activity.save()
+        try:
+            activity.save()
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return redirect(activity)
         if activity.published:
             messages.success(request, f'"{activity.title}" ya la ven los alumnos y cuenta para las calificaciones.')
         else:

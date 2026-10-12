@@ -9,6 +9,8 @@ from django.db import models
 
 from apps.organizations.models import TenantModel
 
+from .hooks import activity_publishing
+
 
 class EvaluationScheme(TenantModel):
     """Cómo se calcula la calificación final de un grupo: escala, mínimo aprobatorio y redondeo.
@@ -152,6 +154,9 @@ class Activity(TenantModel):
             raise ValidationError({'criterion': 'El criterio debe ser del esquema de este grupo.'})
         if self.opens_at and self.due_at and self.due_at < self.opens_at:
             raise ValidationError({'due_at': 'La fecha límite no puede ser anterior a la apertura.'})
+        if self.published:
+            # Otras apps pueden vetar la publicación (un quiz sin preguntas, por ejemplo).
+            activity_publishing.send(sender=Activity, activity=self)
 
     def save(self, *args, **kwargs):
         from .services.schemes import default_criterion

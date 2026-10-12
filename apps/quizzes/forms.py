@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Question
+from .models import Question, QuizConfig
 from .services.bank import MAX_CHOICES, validate_choices
 
 
@@ -66,6 +66,18 @@ def choice_formset(data=None, *, question=None):
     if data is None:
         return ChoiceFormSet(initial=[{}] * 4, prefix='choices')
     return ChoiceFormSet(data, prefix='choices')
+
+
+class QuizConfigForm(forms.ModelForm):
+    class Meta:
+        model = QuizConfig
+        fields = [
+            'attempts_allowed', 'time_limit_minutes', 'shuffle_questions', 'shuffle_choices', 'feedback_mode', 'attempt_policy',
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style(self)
 
 
 class BankFilterForm(forms.Form):

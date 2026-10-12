@@ -11,8 +11,8 @@ from django.utils import timezone
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, GradeHistory, Submission
-from apps.quizzes.factories import QuestionFactory
-from apps.quizzes.models import Choice, Question
+from apps.quizzes.factories import QuestionFactory, QuizAttemptFactory, answer, make_quiz
+from apps.quizzes.models import Answer, Choice, Question, QuizAttempt, QuizChoice, QuizConfig, QuizQuestion
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
@@ -28,7 +28,8 @@ pytestmark = pytest.mark.django_db
 
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
-    Activity, Submission, Grade, GradeHistory, Question, Choice, Conversation, Message,
+    Activity, Submission, Grade, GradeHistory, Question, Choice, QuizConfig, QuizQuestion, QuizChoice, QuizAttempt,
+    Answer, Conversation, Message,
 ]
 
 
@@ -216,6 +217,9 @@ def dos_organizaciones():
         evaluacion = ActivityFactory(course=materia)
         GradeFactory(activity=evaluacion, student=alumno)
         QuestionFactory(author=profesor)
+        quiz = make_quiz(materia, questions=1)
+        intento = QuizAttemptFactory(quiz=quiz, student=materia.enrollments.get().student)
+        answer(intento, quiz.questions.get())
         Submission.objects.create(
             activity=evaluacion, student=materia.enrollments.get().student, text="Mi entrega", submitted_at=timezone.now(),
         )
