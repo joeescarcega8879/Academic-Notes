@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Historial · {{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Historial de calificaciones</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrap">
+  <div class="table-head"><h3>Cambios</h3><span class="grade style-pill ok">{{ history|length }}</span></div>
+  <table class="tbl">
+    <thead>
+      <tr><th>Cuándo</th><th>Quién</th><th>Alumno</th><th>Qué pasó</th><th>Calificación</th><th>Comentario</th></tr>
+    </thead>
+    <tbody>
+      {% for item in history %}
+        <tr>
+          <td>{{ item.changed_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ item.changed_by.get_full_name|default:item.changed_by.email|default:"Sistema" }}</td>
+          <td>{{ item.student_name }}</td>
+          <td>{{ item.get_action_display }}</td>
+          <td>
+            {% if item.old_score is not None %}{{ item.old_score|floatformat:"-2" }}{% else %}—{% endif %}
+            →
+            {% if item.new_score is not None %}{{ item.new_score|floatformat:"-2" }}{% else %}—{% endif %}
+            {% if item.late_penalty %}<div class="text-xs text-muted">penalización {{ item.late_penalty|floatformat:"-2" }} %</div>{% endif %}
+          </td>
+          <td class="text-muted">
+            {% if item.old_feedback != item.new_feedback %}{{ item.old_feedback|default:"—" }} → {{ item.new_feedback|default:"—" }}{% else %}{{ item.new_feedback|default:"—" }}{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">Todavía no hay cambios registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

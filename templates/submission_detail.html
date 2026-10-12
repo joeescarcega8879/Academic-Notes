@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Entrega de {{ submission.student }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Entrega de {{ submission.student }}</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% if not course.is_archived %}<a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>{% endif %}
+  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px">
+  <p class="text-sm" style="margin-top: 0">
+    Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
+    {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% else %}<span class="chip ok">A tiempo</span>{% endif %}
+    {% if activity.due_at %}<span class="text-muted"> · fecha límite {{ activity.due_at|date:"d/m/Y H:i" }}</span>{% endif %}
+  </p>
+
+  {% if submission.text %}
+    <h3 class="section-title">Respuesta</h3>
+    <p style="white-space: pre-line">{{ submission.text }}</p>
+  {% endif %}
+  {% if submission.link %}
+    <h3 class="section-title">Enlace</h3>
+    <p><a href="{{ submission.link }}" target="_blank" rel="noopener noreferrer nofollow">{{ submission.link }}</a></p>
+  {% endif %}
+  {% if submission.file %}
+    <h3 class="section-title">Archivo</h3>
+    <p><a class="btn btn-ghost" href="{% url 'grades:submission_file' submission.pk %}">Descargar {{ submission.original_name|default:"archivo" }}</a></p>
+  {% endif %}
+</div>
+{% endblock %}

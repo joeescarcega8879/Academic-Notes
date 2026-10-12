@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
-from apps.grades.factories import EvaluationFactory
+from apps.grades.factories import ActivityFactory
 from apps.courses.factories import EnrollmentFactory, CourseFactory
 
 
@@ -29,8 +29,19 @@ def enrollment(course, student):
 
 
 @pytest.fixture
-def evaluation(course):
-    return EvaluationFactory(course=course)
+def activity(course):
+    return ActivityFactory(course=course)
+
+
+@pytest.fixture(scope='session', autouse=True)
+def limpiar_archivos_de_prueba():
+    """Las entregas de las pruebas van a un directorio temporal que se borra al terminar la sesión."""
+    yield
+    import shutil
+    import tempfile
+    from pathlib import Path
+
+    shutil.rmtree(Path(tempfile.gettempdir()) / 'gradelink-test-submissions', ignore_errors=True)
 
 
 def _client_for(user):

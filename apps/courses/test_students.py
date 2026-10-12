@@ -73,9 +73,9 @@ class TestAlumnoSinCuenta:
     def sin_cuenta(self, course):
         return StudentRecordFactory(organization=course.organization, user=None, first_name="Luis", last_name="Mora")
 
-    def test_se_puede_inscribir_y_calificar(self, course, evaluation, sin_cuenta):
+    def test_se_puede_inscribir_y_calificar(self, course, activity, sin_cuenta):
         EnrollmentFactory(course=course, student=sin_cuenta)
-        GradeFactory(evaluation=evaluation, student=sin_cuenta, score=9)
+        GradeFactory(activity=activity, student=sin_cuenta, score=9)
         assert Grade.objects.get(student=sin_cuenta).score == 9
 
     def test_no_tiene_membresia_ni_conversaciones(self, course, sin_cuenta):
@@ -84,20 +84,20 @@ class TestAlumnoSinCuenta:
         assert not Conversation.objects.exists()
 
     def test_aparece_en_el_dashboard_el_detalle_y_el_csv_del_profesor(
-        self, professor_client, course, evaluation, sin_cuenta,
+        self, professor_client, course, activity, sin_cuenta,
     ):
         EnrollmentFactory(course=course, student=sin_cuenta)
-        GradeFactory(evaluation=evaluation, student=sin_cuenta, score=7)
+        GradeFactory(activity=activity, student=sin_cuenta, score=7)
 
         assert professor_client.get(reverse("professor_dashboard")).context["total_students"] == 1
         detalle = professor_client.get(reverse("course_detail", args=[course.pk]))
         assert "Luis Mora" in detalle.content.decode()
         assert "Luis Mora" in professor_client.get(reverse("grades:export")).content.decode("utf-8-sig")
 
-    def test_el_profesor_puede_calificarlo_desde_el_formulario(self, professor_client, course, evaluation, sin_cuenta):
+    def test_el_profesor_puede_calificarlo_desde_el_formulario(self, professor_client, course, activity, sin_cuenta):
         EnrollmentFactory(course=course, student=sin_cuenta)
         response = professor_client.post(
-            reverse("grades:create"), {"evaluation": evaluation.pk, "student": sin_cuenta.pk, "score": 8},
+            reverse("grades:create"), {"activity": activity.pk, "student": sin_cuenta.pk, "score": 8},
         )
         assert response.status_code == 302
         assert Grade.objects.get(student=sin_cuenta).score == 8
@@ -111,9 +111,9 @@ class TestAlumnoSinCuenta:
         assert Membership.objects.get(user=cuenta).organization == course.organization
         assert Conversation.objects.filter(course=course, student=cuenta).count() == 1
 
-    def test_ya_enlazado_ve_sus_materias_y_notas(self, course, evaluation, sin_cuenta, client):
+    def test_ya_enlazado_ve_sus_materias_y_notas(self, course, activity, sin_cuenta, client):
         EnrollmentFactory(course=course, student=sin_cuenta)
-        GradeFactory(evaluation=evaluation, student=sin_cuenta, score=9)
+        GradeFactory(activity=activity, student=sin_cuenta, score=9)
         cuenta = StudentFactory()
         sin_cuenta.user = cuenta
         sin_cuenta.save()
@@ -123,10 +123,10 @@ class TestAlumnoSinCuenta:
         assert [e.course for e in context["enrollments"]] == [course]
         assert context["average"] == 9.0
 
-    def test_borrar_la_cuenta_conserva_al_alumno_y_sus_notas(self, course, evaluation):
+    def test_borrar_la_cuenta_conserva_al_alumno_y_sus_notas(self, course, activity):
         cuenta = StudentFactory()
         ficha = student_for_user(cuenta, course.organization)
-        GradeFactory(evaluation=evaluation, student=ficha, score=6)
+        GradeFactory(activity=activity, student=ficha, score=6)
         cuenta.delete()
 
         ficha.refresh_from_db()
@@ -142,12 +142,12 @@ class TestMismaOrganizacion:
         with pytest.raises(ValidationError):
             Enrollment.objects.create(student=ajeno, course=course)
 
-    def test_no_se_califica_a_un_alumno_de_otra_organizacion(self, evaluation):
+    def test_no_se_califica_a_un_alumno_de_otra_organizacion(self, activity):
         ajeno = StudentRecordFactory()
         with pytest.raises(ValidationError):
-            Grade.objects.create(student=ajeno, evaluation=evaluation, score=5)
+            Grade.objects.create(student=ajeno, activity=activity, score=5)
 
-    def test_el_formulario_no_ofrece_alumnos_de_otra_organizacion(self, professor_client, course, evaluation):
+    def test_el_formulario_no_ofrece_alumnos_de_otra_organizacion(self, professor_client, course, activity):
         propio = EnrollmentFactory(course=course).student
         ajeno = EnrollmentFactory().student
         form = professor_client.get(reverse("grades:create")).context["form"]

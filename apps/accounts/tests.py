@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from apps.grades.factories import EvaluationFactory, GradeFactory
+from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.courses.factories import EnrollmentFactory
 
@@ -155,7 +155,7 @@ class TestNotificaciones:
         assert context["notifications_count"] == 1
 
     def test_calificacion_reciente_notifica_al_alumno(self, student_client, student, course, inscrito):
-        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
+        GradeFactory(activity=ActivityFactory(course=course), student=student)
         context = self.context(student_client)
         assert context["notifications_count"] == 1
         assert context["notifications"][0]["type"] == "grade"
@@ -163,7 +163,7 @@ class TestNotificaciones:
     def test_respeta_la_preferencia_notify_grades(self, student_client, student, course, inscrito):
         student.notify_grades = False
         student.save()
-        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
+        GradeFactory(activity=ActivityFactory(course=course), student=student)
         assert self.context(student_client)["notifications_count"] == 0
 
     def test_anonimo_no_tiene_notificaciones(self, client, db):
@@ -175,7 +175,7 @@ class TestMarcarLeidas:
     def test_marca_mensajes_y_calificaciones_como_leidos(self, student_client, student, course, professor):
         EnrollmentFactory(student=student, course=course)
         MessageFactory(conversation=ConversationFactory(course=course, student=student), sender=professor)
-        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
+        GradeFactory(activity=ActivityFactory(course=course), student=student)
 
         response = student_client.post(reverse("notifications_read"), {"next": reverse("student_dashboard")})
         assert response.status_code == 302

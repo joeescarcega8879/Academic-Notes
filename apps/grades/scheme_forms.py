@@ -3,7 +3,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
+from .models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
 
 
 def _style(form):
@@ -37,7 +37,7 @@ class PeriodForm(forms.ModelForm):
 class CriterionForm(forms.ModelForm):
     default_type = forms.ChoiceField(
         label='Evaluaciones nuevas de tipo', required=False,
-        choices=[('', '— ninguno —')] + list(Evaluation.Type.choices),
+        choices=[('', '— ninguno —')] + list(Activity.Type.choices),
     )
 
     class Meta:
@@ -51,11 +51,11 @@ class CriterionForm(forms.ModelForm):
         _style(self)
 
 
-class EvaluationAssignForm(forms.ModelForm):
+class ActivityAssignForm(forms.ModelForm):
     """Cambia solo el criterio de una evaluación."""
 
     class Meta:
-        model = Evaluation
+        model = Activity
         fields = ['criterion']
 
     def __init__(self, *args, scheme, **kwargs):
@@ -104,6 +104,6 @@ def criterion_formset(*, scheme, data=None):
 
 
 def assignment_formset(*, scheme, data=None):
-    factory = forms.modelformset_factory(Evaluation, form=EvaluationAssignForm, extra=0)
-    queryset = scheme.course.evaluations.select_related('criterion__period').order_by('title', 'id')
+    factory = forms.modelformset_factory(Activity, form=ActivityAssignForm, extra=0)
+    queryset = scheme.course.activities.select_related('criterion__period').order_by('title', 'id')
     return factory(data, queryset=queryset, prefix='evals', form_kwargs={'scheme': scheme})

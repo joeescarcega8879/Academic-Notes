@@ -12,7 +12,7 @@ from django.urls import reverse
 from apps.accounts.factories import StudentFactory
 from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
-from .factories import EvaluationFactory, GradeFactory
+from .factories import ActivityFactory, GradeFactory
 from .models import Grade
 
 pytestmark = pytest.mark.django_db
@@ -27,39 +27,39 @@ def parse_csv(response):
 # ── Validación de rangos ──────────────────────────────────────────────
 
 class TestValidacionDeRangos:
-    def test_nota_negativa_no_pasa_full_clean(self, evaluation, enrollment):
-        grade = Grade(evaluation=evaluation, student=enrollment.student, score=-5)
+    def test_nota_negativa_no_pasa_full_clean(self, activity, enrollment):
+        grade = Grade(activity=activity, student=enrollment.student, score=-5)
         with pytest.raises(ValidationError) as exc:
             grade.full_clean()
         assert "score" in exc.value.message_dict
 
     def test_peso_negativo_y_maximo_cero_no_pasan(self, course):
-        evaluation = EvaluationFactory.build(course=course, weight=-1, max_score=0)
+        activity = ActivityFactory.build(course=course, weight=-1, max_score=0)
         with pytest.raises(ValidationError) as exc:
-            evaluation.full_clean()
+            activity.full_clean()
         assert {"weight", "max_score"} <= set(exc.value.message_dict)
 
-    def test_formulario_rechaza_nota_negativa(self, professor_client, evaluation, enrollment):
+    def test_formulario_rechaza_nota_negativa(self, professor_client, activity, enrollment):
         response = professor_client.post(
             reverse("grades:create"),
-            {"evaluation": evaluation.pk, "student": enrollment.student.pk, "score": -5, "feedback": ""},
+            {"activity": activity.pk, "student": enrollment.student.pk, "score": -5, "feedback": ""},
         )
         assert response.status_code == 200
         assert Grade.objects.count() == 0
 
-    def test_formulario_rechaza_nota_sobre_el_maximo(self, professor_client, evaluation, enrollment):
+    def test_formulario_rechaza_nota_sobre_el_maximo(self, professor_client, activity, enrollment):
         response = professor_client.post(
             reverse("grades:create"),
-            {"evaluation": evaluation.pk, "student": enrollment.student.pk, "score": 11, "feedback": ""},
+            {"activity": activity.pk, "student": enrollment.student.pk, "score": 11, "feedback": ""},
         )
         assert response.status_code == 200
         assert Grade.objects.count() == 0
 
-    def test_formulario_rechaza_alumno_no_inscrito(self, professor_client, evaluation):
+    def test_formulario_rechaza_alumno_no_inscrito(self, professor_client, activity):
         intruso = StudentFactory()
         response = professor_client.post(
             reverse("grades:create"),
-            {"evaluation": evaluation.pk, "student": intruso.pk, "score": 8, "feedback": ""},
+            {"activity": activity.pk, "student": intruso.pk, "score": 8, "feedback": ""},
         )
         assert response.status_code == 200
         assert Grade.objects.count() == 0
@@ -68,21 +68,21 @@ class TestValidacionDeRangos:
 # ── Permisos y alcance por rol ────────────────────────────────────────
 
 class TestPermisos:
-    def test_profesor_crea_calificacion(self, professor_client, evaluation, enrollment):
+    def test_profesor_crea_calificacion(self, professor_client, activity, enrollment):
         response = professor_client.post(
             reverse("grades:create"),
-            {"evaluation": evaluation.pk, "student": enrollment.student.pk, "score": 9, "feedback": "Bien"},
+            {"activity": activity.pk, "student": enrollment.student.pk, "score": 9, "feedback": "Bien"},
         )
         assert response.status_code == 302
         grade = Grade.objects.get()
         assert (grade.score, grade.feedback) == (9, "Bien")
 
     def test_profesor_no_puede_calificar_evaluacion_ajena(self, professor_client):
-        ajena = EvaluationFactory()
+        ajena = ActivityFactory()
         alumno = EnrollmentFactory(course=ajena.course).student
         response = professor_client.post(
             reverse("grades:create"),
-            {"evaluation": ajena.pk, "student": alumno.pk, "score": 9, "feedback": ""},
+            {"activity": ajena.pk, "student": alumno.pk, "score": 9, "feedback": ""},
         )
         assert response.status_code == 200
         assert Grade.objects.count() == 0
@@ -97,23 +97,23 @@ class TestPermisos:
         assert response.status_code == 302
         assert response.url.startswith("/login/?next=")
 
-    def test_profesor_solo_ve_sus_calificaciones(self, professor_client, evaluation, enrollment):
-        propia = GradeFactory(evaluation=evaluation, student=enrollment.student)
+    def test_profesor_solo_ve_sus_calificaciones(self, professor_client, activity, enrollment):
+        propia = GradeFactory(activity=activity, student=enrollment.student)
         GradeFactory()  # de otro profesor
         response = professor_client.get(reverse("grades:list"))
         assert list(response.context["grades"]) == [propia]
 
-    def test_alumno_solo_ve_las_suyas(self, student_client, student, evaluation, enrollment):
-        propia = GradeFactory(evaluation=evaluation, student=student)
-        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
+    def test_alumno_solo_ve_las_suyas(self, student_client, student, activity, enrollment):
+        propia = GradeFactory(activity=activity, student=student)
+        GradeFactory(activity=activity, student=EnrollmentFactory(course=activity.course).student)
         response = student_client.get(reverse("grades:list"))
         assert list(response.context["grades"]) == [propia]
 
-    def test_profesor_edita_su_calificacion(self, professor_client, evaluation, enrollment):
-        grade = GradeFactory(evaluation=evaluation, student=enrollment.student, score=5)
+    def test_profesor_edita_su_calificacion(self, professor_client, activity, enrollment):
+        grade = GradeFactory(activity=activity, student=enrollment.student, score=5)
         response = professor_client.post(
             reverse("grades:update", args=[grade.pk]),
-            {"evaluation": evaluation.pk, "student": enrollment.student.pk, "score": 7, "feedback": ""},
+            {"activity": activity.pk, "student": enrollment.student.pk, "score": 7, "feedback": ""},
         )
         assert response.status_code == 302
         grade.refresh_from_db()
@@ -125,8 +125,8 @@ class TestPermisos:
         assert professor_client.post(reverse("grades:delete", args=[ajena.pk])).status_code == 404
         assert Grade.objects.filter(pk=ajena.pk).exists()
 
-    def test_profesor_borra_la_suya(self, professor_client, evaluation, enrollment):
-        grade = GradeFactory(evaluation=evaluation, student=enrollment.student)
+    def test_profesor_borra_la_suya(self, professor_client, activity, enrollment):
+        grade = GradeFactory(activity=activity, student=enrollment.student)
         response = professor_client.post(reverse("grades:delete", args=[grade.pk]))
         assert response.status_code == 302
         assert not Grade.objects.filter(pk=grade.pk).exists()
@@ -137,8 +137,8 @@ class TestPermisos:
 class TestExportacionCsv:
     url = "grades:export"
 
-    def test_profesor_incluye_alumno_y_bom(self, professor_client, evaluation, enrollment):
-        GradeFactory(evaluation=evaluation, student=enrollment.student, score=9, feedback="Muy bien")
+    def test_profesor_incluye_alumno_y_bom(self, professor_client, activity, enrollment):
+        GradeFactory(activity=activity, student=enrollment.student, score=9, feedback="Muy bien")
         response = professor_client.get(reverse(self.url))
         assert response.status_code == 200
         assert response["Content-Type"].startswith("text/csv")
@@ -149,25 +149,25 @@ class TestExportacionCsv:
         assert rows[1][2] == enrollment.student.email
         assert "Muy bien" in rows[1]
 
-    def test_alumno_no_ve_columnas_de_alumno_ni_ajenas(self, student_client, student, evaluation, enrollment):
-        GradeFactory(evaluation=evaluation, student=student)
-        GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
+    def test_alumno_no_ve_columnas_de_alumno_ni_ajenas(self, student_client, student, activity, enrollment):
+        GradeFactory(activity=activity, student=student)
+        GradeFactory(activity=activity, student=EnrollmentFactory(course=activity.course).student)
         rows = parse_csv(student_client.get(reverse(self.url)))
         assert rows[0][0] == "Materia"
         assert "Alumno" not in rows[0]
         assert len(rows) == 2  # cabecera + su única calificación
 
     def test_filtra_por_materia(self, professor_client, professor):
-        a = EvaluationFactory(course=CourseFactory(professor=professor, name="Álgebra"))
-        b = EvaluationFactory(course=CourseFactory(professor=professor, name="Cálculo"))
-        GradeFactory(evaluation=a, student=EnrollmentFactory(course=a.course).student)
-        GradeFactory(evaluation=b, student=EnrollmentFactory(course=b.course).student)
+        a = ActivityFactory(course=CourseFactory(professor=professor, name="Álgebra"))
+        b = ActivityFactory(course=CourseFactory(professor=professor, name="Cálculo"))
+        GradeFactory(activity=a, student=EnrollmentFactory(course=a.course).student)
+        GradeFactory(activity=b, student=EnrollmentFactory(course=b.course).student)
         rows = parse_csv(professor_client.get(reverse(self.url), {"materia": a.course_id}))
         assert [r[3] for r in rows[1:]] == ["Álgebra"]
 
-    def test_filtra_por_rango_de_fechas(self, professor_client, evaluation):
-        viejo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
-        nuevo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
+    def test_filtra_por_rango_de_fechas(self, professor_client, activity):
+        viejo = GradeFactory(activity=activity, student=EnrollmentFactory(course=activity.course).student)
+        nuevo = GradeFactory(activity=activity, student=EnrollmentFactory(course=activity.course).student)
         Grade.objects.filter(pk=viejo.pk).update(graded_at=datetime(2026, 1, 10, 18, tzinfo=dt_timezone.utc))
         Grade.objects.filter(pk=nuevo.pk).update(graded_at=datetime(2026, 3, 10, 18, tzinfo=dt_timezone.utc))
 
@@ -176,9 +176,9 @@ class TestExportacionCsv:
         assert [r[2] for r in solo_nuevo[1:]] == [nuevo.student.email]
         assert [r[2] for r in solo_viejo[1:]] == [viejo.student.email]
 
-    def test_incluye_la_matricula_como_texto(self, professor_client, evaluation):
-        alumno = StudentRecordFactory(organization=evaluation.organization, student_number="00123")
-        GradeFactory(evaluation=evaluation, student=alumno)
+    def test_incluye_la_matricula_como_texto(self, professor_client, activity):
+        alumno = StudentRecordFactory(organization=activity.organization, student_number="00123")
+        GradeFactory(activity=activity, student=alumno)
         rows = parse_csv(professor_client.get(reverse(self.url)))
         assert rows[1][0] == "00123"  # con los ceros a la izquierda
 
@@ -209,10 +209,10 @@ class TestPromedioNormalizado:
 
     @pytest.fixture
     def escenario(self, student, course, enrollment):
-        sobre_100 = EvaluationFactory(course=course, max_score=100, weight=1)
-        sobre_10 = EvaluationFactory(course=course, max_score=10, weight=1)
-        GradeFactory(evaluation=sobre_100, student=student, score=80)
-        GradeFactory(evaluation=sobre_10, student=student, score=8)
+        sobre_100 = ActivityFactory(course=course, max_score=100, weight=1)
+        sobre_10 = ActivityFactory(course=course, max_score=10, weight=1)
+        GradeFactory(activity=sobre_100, student=student, score=80)
+        GradeFactory(activity=sobre_10, student=student, score=8)
 
     def test_dashboard_del_alumno(self, student_client, escenario, course):
         context = student_client.get(reverse("student_dashboard")).context

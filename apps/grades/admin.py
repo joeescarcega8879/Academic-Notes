@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade
+from .models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, Submission
 
 class PeriodInline(admin.TabularInline):
     model = EvaluationPeriod
@@ -19,16 +19,23 @@ class EvaluationCriterionAdmin(admin.ModelAdmin):
     search_fields = ('name', 'period__scheme__course__name')
 
 
-@admin.register(Evaluation)
-class EvaluationAdmin(admin.ModelAdmin):
+@admin.register(Activity)
+class ActivityAdmin(admin.ModelAdmin):
     list_display = ('title', 'course', 'type', 'max_score', 'weight', 'date')
     list_filter = ('type', 'course')
     search_fields = ('title', 'course__name')
     autocomplete_fields = ('course',)
 
+@admin.register(Submission)
+class SubmissionAdmin(admin.ModelAdmin):
+    list_display = ('student', 'activity', 'submitted_at', 'is_late')
+    list_filter = ('is_late',)
+    search_fields = ('student__first_name', 'student__last_name', 'activity__title')
+
+
 @admin.register(Grade)
 class GradeAdmin(admin.ModelAdmin):
-    list_display = ('student', 'evaluation', 'score', 'graded_at')
-    list_filter = ('evaluation__course',)
-    search_fields = ('student__first_name', 'student__last_name', 'student__email', 'evaluation__title')
-    autocomplete_fields = ('student', 'evaluation')
+    list_display = ('student', 'activity', 'score', 'graded_at')
+    list_filter = ('activity__course',)
+    search_fields = ('student__first_name', 'student__last_name', 'student__email', 'activity__title')
+    autocomplete_fields = ('student', 'activity')

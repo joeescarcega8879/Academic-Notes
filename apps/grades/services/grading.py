@@ -11,8 +11,8 @@ Cómo se calcula la calificación final de un alumno en un grupo (según el ``Ev
 4. **Final**: media de los periodos ponderada por el peso del periodo, expresada en la escala del esquema.
 
 En cada nivel solo cuenta lo que ya tiene calificaciones: un criterio sin notas no hunde el promedio, y
-los pesos de los demás se reescalan. Se ignoran las evaluaciones sin máximo válido y las de peso cero,
-que no aportan información. El redondeo es "mitad hacia arriba" (7.125 → 7.13), no el del par más
+los pesos de los demás se reescalan. Se ignoran las actividades en borrador, las que no tienen máximo válido
+y las de peso cero, que no aportan información. El redondeo es "mitad hacia arriba" (7.125 → 7.13), no el del par más
 cercano de Python, y se hace una sola vez, al final. Se aprueba con la calificación ya redondeada, que es
 la que ve el alumno.
 
@@ -137,20 +137,22 @@ class CourseResult:
 
 def _usable(grade):
     """(proporción, peso) de una calificación, o None si no aporta información."""
-    evaluation = grade.evaluation
-    max_score, weight = _dec(evaluation.max_score), _dec(evaluation.weight)
+    activity = grade.activity
+    if not activity.published:  # un borrador no cuenta para ninguna calificación
+        return None
+    max_score, weight = _dec(activity.max_score), _dec(activity.weight)
     if max_score <= 0 or weight <= 0:
         return None
     return _dec(grade.score) / max_score, weight
 
 
 def course_result(spec, grades):
-    """Resultado de UN alumno en UN grupo. ``grades`` son sus ``Grade`` (con ``evaluation`` cargada)."""
+    """Resultado de UN alumno en UN grupo. ``grades`` son sus ``Grade`` (con ``activity`` cargada)."""
     by_criterion = defaultdict(list)
     for grade in grades:
         usable = _usable(grade)
         if usable is not None:
-            by_criterion[grade.evaluation.criterion_id].append(usable)
+            by_criterion[grade.activity.criterion_id].append(usable)
 
     # Solo se recorren los criterios del esquema: las notas de criterios ajenos (otro grupo) no cuentan.
     period_results, period_pairs, graded = [], [], 0
@@ -183,7 +185,7 @@ def results_by_course(grades):
     grades = list(grades)
     buckets = defaultdict(list)
     for grade in grades:
-        buckets[grade.evaluation.course_id].append(grade)
+        buckets[grade.activity.course_id].append(grade)
     specs = snapshots_for(buckets)
     return {course_id: course_result(specs[course_id], items) for course_id, items in buckets.items() if course_id in specs}
 
@@ -217,7 +219,7 @@ def group_results(grades):
     grades = list(grades)
     buckets = defaultdict(list)
     for grade in grades:
-        buckets[(grade.evaluation.course_id, grade.student_id)].append(grade)
+        buckets[(grade.activity.course_id, grade.student_id)].append(grade)
     specs = snapshots_for({course_id for course_id, _ in buckets})
     return {
         key: course_result(specs[key[0]], items) for key, items in buckets.items() if key[0] in specs

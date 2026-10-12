@@ -29,7 +29,7 @@ def remove_from_course(course, student):
     """Quita al alumno del grupo. Si ya tiene calificaciones en él, no se quita: se perderían de vista."""
     from apps.grades.models import Grade
 
-    if Grade.objects.filter(student=student, evaluation__course=course).exists():
+    if Grade.objects.filter(student=student, activity__course=course).exists():
         raise ValidationError(
             f'{student} ya tiene calificaciones en este grupo. Elimínalas primero si de verdad quieres quitarlo.'
         )

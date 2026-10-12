@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} actividad · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{% if object %}Editar actividad{% else %}Nueva actividad{% endif %}</h1>
+  <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 720px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'partials/form_fields.html' %}
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a class="btn btn-ghost" href="{% if object %}{{ object.get_absolute_url }}{% else %}{{ course.get_absolute_url }}{% endif %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

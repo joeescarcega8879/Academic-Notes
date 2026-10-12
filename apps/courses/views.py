@@ -33,7 +33,7 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        from apps.grades.models import Evaluation, Grade
+        from apps.grades.models import Activity, Grade
 
         user = self.request.user
         organization = self.request.organization
@@ -44,8 +44,8 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
         grades = list(
             Grade.objects
             .for_organization(organization)
-            .filter(evaluation__course__professor=user, evaluation__course__status=active)
-            .select_related('evaluation')
+            .filter(activity__course__professor=user, activity__course__status=active)
+            .select_related('activity')
         )
 
         results = group_results(grades)
@@ -58,8 +58,8 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
         overall = overall_stats(results)
         context['courses'] = courses
         context['archived_courses'] = list(own.filter(status=Course.Status.ARCHIVED))
-        context['total_evaluations'] = (
-            Evaluation.objects
+        context['total_activities'] = (
+            Activity.objects
             .for_organization(organization)
             .filter(course__professor=user, course__status=active)
             .count()
@@ -101,8 +101,8 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
         grades = list(
             Grade.objects
             .for_organization(organization)
-            .filter(student__user=user, evaluation__course__status=Course.Status.ACTIVE)
-            .select_related('evaluation')
+            .filter(student__user=user, activity__course__status=Course.Status.ACTIVE, activity__published=True)
+            .select_related('activity')
         )
 
         results = results_by_course(grades)
@@ -141,25 +141,30 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
         # Vista docente: calificación final de cada alumno según el esquema del grupo
         if self.request.membership.is_teacher:
             results = group_results(
-                Grade.objects.filter(evaluation__course=self.object).select_related('evaluation')
+                Grade.objects.filter(activity__course=self.object).select_related('activity')
             )
             for enrollment in enrollments:
                 enrollment.result = results.get((self.object.pk, enrollment.student_id))
         context['enrollments'] = enrollments
+        context['activities'] = list(
+            self.object.activities.select_related('criterion').annotate(graded=Count('grades'))
+        )
 
         # Vista alumno: evaluaciones de la materia + su calificación
         if self.request.membership.is_student:
             my_grades = {
-                g.evaluation_id: g
-                for g in Grade.objects.filter(student__user=user, evaluation__course=self.object).select_related('evaluation')
+                g.activity_id: g
+                for g in Grade.objects.filter(
+                    student__user=user, activity__course=self.object, activity__published=True,
+                ).select_related('activity')
             }
             rows = [
-                {'evaluation': evaluation, 'grade': my_grades.get(evaluation.id)}
-                for evaluation in self.object.evaluations.all()
+                {'activity': activity, 'grade': my_grades.get(activity.id)}
+                for activity in self.object.activities.filter(published=True)
             ]
 
             result = results_by_course(my_grades.values()).get(self.object.pk)
-            context['evaluation_rows'] = rows
+            context['activity_rows'] = rows
             context['course_result'] = result
             context['course_average'] = result.final if result else None
         return context

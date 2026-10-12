@@ -7,7 +7,7 @@
   <p>
     Vas a eliminar la calificación de
     <strong>{{ object.student.get_full_name|default:object.student.email }}</strong>
-    en <strong>{{ object.evaluation.title }}</strong>
+    en <strong>{{ object.activity.title }}</strong>
     (<strong>{{ object.score|floatformat:2 }}</strong>).
     Esta acción no se puede deshacer.
   </p>

@@ -94,14 +94,14 @@
 
 <!-- 4. Evaluaciones -->
 <div class="card">
-  <h3 class="section-title">Evaluaciones del grupo</h3>
+  <h3 class="section-title">Actividades del grupo</h3>
   {% if assignment_formset.forms %}
     <form method="post" novalidate>
       {% csrf_token %}
       <input type="hidden" name="action" value="evals">
       {{ assignment_formset.management_form }}
       <table class="tbl">
-        <thead><tr><th>Evaluación</th><th>Tipo</th><th>Peso</th><th>Criterio</th></tr></thead>
+        <thead><tr><th>Actividad</th><th>Tipo</th><th>Peso</th><th>Criterio</th></tr></thead>
         <tbody>
           {% for form in assignment_formset %}
             <tr>
@@ -116,7 +116,7 @@
       <button type="submit" class="btn btn-primary" style="margin-top: 14px">Guardar asignación</button>
     </form>
   {% else %}
-    <p class="text-muted" style="margin: 0">Aún no hay evaluaciones en este grupo.</p>
+    <p class="text-muted" style="margin: 0">Aún no hay actividades en este grupo.</p>
   {% endif %}
 </div>
 {% endblock %}

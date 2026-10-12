@@ -1,7 +1,9 @@
 import csv
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
@@ -12,6 +14,7 @@ from apps.courses.models import Enrollment, Course
 
 from .models import Grade
 from .forms import GradeForm
+from .services.gradebook import grade_activity, remove_grade
 from .services.grading import overall_average
 
 def visible_grades(request):
@@ -19,10 +22,11 @@ def visible_grades(request):
 
     El alumno ve las suyas; quien da clase, las de sus materias.
     """
-    grades = Grade.objects.for_organization(request.organization).select_related('student', 'evaluation__course')
+    grades = Grade.objects.for_organization(request.organization).select_related('student', 'activity__course')
     if request.membership.is_student:
-        return grades.filter(student__user=request.user)
-    return grades.filter(evaluation__course__professor=request.user)
+        # Un alumno no ve las actividades en borrador ni sus notas.
+        return grades.filter(student__user=request.user, activity__published=True)
+    return grades.filter(activity__course__professor=request.user)
 
 
 class GradeListView(OrganizationMemberMixin, ListView):
@@ -43,7 +47,7 @@ class GradeListView(OrganizationMemberMixin, ListView):
         organization = self.request.organization
         if self.request.membership.is_teacher:
             context['courses'] = (
-                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('evaluations')
+                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('activities')
             )
         else:
             context['courses'] = (
@@ -51,10 +55,9 @@ class GradeListView(OrganizationMemberMixin, ListView):
             )
         return context
 
-class GradeCreateView(TeacherRequiredMixin, CreateView):
-    model = Grade
-    template_name = 'calificacion_form.html'
-    form_class = GradeForm
+class GradeSaveMixin:
+    """Guarda la calificación por el servicio: aplica la penalización por entrega tardía y deja bitácora."""
+
     success_url = reverse_lazy('grades:list')
 
     def get_form_kwargs(self):
@@ -63,21 +66,41 @@ class GradeCreateView(TeacherRequiredMixin, CreateView):
         kwargs['organization'] = self.request.organization
         return kwargs
 
-class GradeUpdateView(TeacherRequiredMixin, UpdateView):
+    def form_valid(self, form):
+        data = form.cleaned_data
+        try:
+            self.object = grade_activity(
+                data['activity'], data['student'], score=data['score'], feedback=data['feedback'], by=self.request.user,
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        return redirect(self.get_success_url())
+
+
+class GradeCreateView(GradeSaveMixin, TeacherRequiredMixin, CreateView):
     model = Grade
     template_name = 'calificacion_form.html'
     form_class = GradeForm
-    success_url = reverse_lazy('grades:list')
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        kwargs['organization'] = self.request.organization
-        return kwargs
+    def get_initial(self):
+        # Desde la pantalla de una actividad se llega con el alumno y la actividad ya elegidos.
+        initial = super().get_initial()
+        for name in ('activity', 'student'):
+            value = self.request.GET.get(name, '')
+            if value.isdigit():
+                initial[name] = int(value)
+        return initial
+
+
+class GradeUpdateView(GradeSaveMixin, TeacherRequiredMixin, UpdateView):
+    model = Grade
+    template_name = 'calificacion_form.html'
+    form_class = GradeForm
 
     def get_queryset(self):
         # solo calificaciones de sus materias activas, en la organización activa
-        return visible_grades(self.request).filter(evaluation__course__status='active')
+        return visible_grades(self.request).filter(activity__course__status='active')
 
 class GradeExportView(OrganizationMemberMixin, View):
     """Exporta a CSV las calificaciones que el usuario puede ver."""
@@ -89,7 +112,7 @@ class GradeExportView(OrganizationMemberMixin, View):
         if course_id:
             if not course_id.isdigit():
                 return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
-            grades = grades.filter(evaluation__course_id=int(course_id))
+            grades = grades.filter(activity__course_id=int(course_id))
 
         for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
             raw = request.GET.get(param, '').strip()
@@ -102,7 +125,7 @@ class GradeExportView(OrganizationMemberMixin, View):
             grades = grades.filter(**{lookup: day})
 
         grades = grades.order_by(
-            'evaluation__course__name', 'student__last_name', 'evaluation__date',
+            'activity__course__name', 'student__last_name', 'activity__date',
         )
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -119,15 +142,15 @@ class GradeExportView(OrganizationMemberMixin, View):
         writer.writerow(header)
 
         for grade in grades:
-            evaluation = grade.evaluation
+            activity = grade.activity
             row = [
-                evaluation.course.name,
-                evaluation.title,
-                evaluation.get_type_display(),
-                evaluation.date.isoformat() if evaluation.date else '',
-                evaluation.weight,
+                activity.course.name,
+                activity.title,
+                activity.get_type_display(),
+                activity.date.isoformat() if activity.date else '',
+                activity.weight,
                 grade.score,
-                evaluation.max_score,
+                activity.max_score,
                 grade.feedback,
             ]
             if show_student:
@@ -148,4 +171,8 @@ class GradeDeleteView(TeacherRequiredMixin, DeleteView):
 
     def get_queryset(self):
         # Un grupo archivado es de solo lectura.
-        return visible_grades(self.request).filter(evaluation__course__status='active')
+        return visible_grades(self.request).filter(activity__course__status='active')
+
+    def form_valid(self, form):
+        remove_grade(self.object, by=self.request.user)
+        return redirect(self.get_success_url())

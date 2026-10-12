@@ -12,7 +12,7 @@ from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.factories import PASSWORD, ProfessorFactory, StudentFactory
-from apps.grades.factories import EvaluationFactory, GradeFactory
+from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.factories import MessageFactory
 from apps.messaging.models import Conversation, Message
@@ -29,8 +29,8 @@ def _clase(profesor, organizacion, alumno):
     """Materia de ``profesor`` en ``organizacion`` con evaluación, nota del alumno y un mensaje de él."""
     materia = CourseFactory(professor=profesor, organization=organizacion)
     EnrollmentFactory(course=materia, student=alumno)
-    evaluacion = EvaluationFactory(course=materia)
-    nota = GradeFactory(evaluation=evaluacion, student=alumno)
+    evaluacion = ActivityFactory(course=materia)
+    nota = GradeFactory(activity=evaluacion, student=alumno)
     conversacion = Conversation.objects.get(course=materia, student=alumno)
     mensaje = MessageFactory(conversation=conversacion, sender=alumno)
     return SimpleNamespace(
@@ -84,7 +84,7 @@ class TestDocenteConDosOrganizaciones:
         context = _client(d.profesor, activa.organizacion).get(reverse("professor_dashboard")).context
         assert [s.pk for s in context["courses"]] == [activa.materia.pk]
         assert context["total_students"] == 1
-        assert context["total_evaluations"] == 1
+        assert context["total_activities"] == 1
         assert context["graded_count"] == 1
 
     @pytest.mark.parametrize("lado, otro", [("a", "b"), ("b", "a")])
@@ -124,7 +124,7 @@ class TestDocenteConDosOrganizaciones:
     def test_formulario_de_nota_solo_ofrece_datos_de_la_organizacion_activa(self, docente_en_dos, lado, otro):
         activa = getattr(docente_en_dos, lado)
         form = _client(docente_en_dos.profesor, activa.organizacion).get(reverse("grades:create")).context["form"]
-        assert list(form.fields["evaluation"].queryset) == [activa.evaluacion]
+        assert list(form.fields["activity"].queryset) == [activa.evaluacion]
         assert list(form.fields["student"].queryset) == [activa.nota.student]
 
     @pytest.mark.parametrize("lado, otro", [("a", "b"), ("b", "a")])
@@ -133,7 +133,7 @@ class TestDocenteConDosOrganizaciones:
         total = Grade.objects.count()
         response = _client(docente_en_dos.profesor, activa.organizacion).post(
             reverse("grades:create"),
-            {"evaluation": ajena.evaluacion.pk, "student": ajena.nota.student.pk, "score": 5},
+            {"activity": ajena.evaluacion.pk, "student": ajena.nota.student.pk, "score": 5},
         )
         assert response.status_code == 200  # el formulario rechaza la elección
         assert response.context["form"].errors

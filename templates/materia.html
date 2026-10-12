@@ -72,6 +72,33 @@
     </div>
   {% endif %}
 
+  <!-- Vista PROFESOR: actividades del grupo -->
+  <div class="table-wrap mb-12">
+    <div class="table-head">
+      <h3>Actividades</h3>
+      <span class="grade style-pill ok">{{ activities|length }}</span>
+      <div class="spacer"></div>
+      {% if not course.is_archived %}<a class="btn btn-primary" href="{% url 'grades:activity_create' course.pk %}">Nueva actividad</a>{% endif %}
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Actividad</th><th>Tipo</th><th>Criterio</th><th>Entrega</th><th>Estado</th><th>Calificadas</th></tr></thead>
+      <tbody>
+        {% for activity in activities %}
+          <tr>
+            <td><a href="{{ activity.get_absolute_url }}">{{ activity.title }}</a></td>
+            <td>{{ activity.get_type_display }}</td>
+            <td>{{ activity.criterion.name }}</td>
+            <td>{{ activity.due_at|date:"d/m/Y H:i"|default:"—" }}</td>
+            <td>{% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}</td>
+            <td>{{ activity.graded }} / {{ enrollments|length }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-muted">Aún no hay actividades. Crea la primera para empezar a calificar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
   <!-- Vista PROFESOR: lista de alumnos inscritos -->
   <div class="table-wrap">
     <div class="table-head">
@@ -180,16 +207,16 @@
         </tr>
       </thead>
       <tbody>
-        {% for row in evaluation_rows %}
+        {% for row in activity_rows %}
           <tr>
-            <td>{{ row.evaluation.title }}</td>
-            <td>{{ row.evaluation.get_type_display }}</td>
-            <td>{{ row.evaluation.date|date:"d/m/Y"|default:"—" }}</td>
-            <td>{{ row.evaluation.weight }}</td>
+            <td><a href="{{ row.activity.get_absolute_url }}">{{ row.activity.title }}</a></td>
+            <td>{{ row.activity.get_type_display }}</td>
+            <td>{{ row.activity.date|date:"d/m/Y"|default:"—" }}</td>
+            <td>{{ row.activity.weight }}</td>
             <td>
               {% if row.grade %}
                 <span class="grade style-pill ok">{{ row.grade.score|floatformat:2 }}</span>
-                <span class="text-xs text-muted">/ {{ row.evaluation.max_score|floatformat:0 }}</span>
+                <span class="text-xs text-muted">/ {{ row.activity.max_score|floatformat:0 }}</span>
               {% else %}
                 <span class="text-muted">Sin calificar</span>
               {% endif %}

@@ -47,8 +47,8 @@ def notifications(request):
         recent_grades = (
             Grade.objects
             .for_organization(request.organization)
-            .filter(student__user=user, graded_at__gt=cutoff)
-            .select_related('evaluation__course')
+            .filter(student__user=user, graded_at__gt=cutoff, activity__published=True)
+            .select_related('activity__course')
             .order_by('-graded_at')
         )
         grades_count = recent_grades.count()
@@ -56,9 +56,9 @@ def notifications(request):
             items.append({
                 'type': 'grade',
                 'icon': 'clipboard',
-                'title': grade.evaluation.title,
-                'detail': '%s · %s' % (grade.evaluation.course.name, grade.score),
-                'url': reverse('course_detail', args=[grade.evaluation.course_id]),
+                'title': grade.activity.title,
+                'detail': '%s · %s' % (grade.activity.course.name, grade.score),
+                'url': reverse('course_detail', args=[grade.activity.course_id]),
                 'date': grade.graded_at,
             })
 

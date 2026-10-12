@@ -18,8 +18,8 @@ from .scheme_forms import (
 from .services.schemes import ensure_scheme
 
 PROTECTED_MESSAGE = (
-    'No se puede borrar: todavía tiene evaluaciones asignadas. Reasígnalas a otro criterio en '
-    '"Evaluaciones del grupo" y vuelve a intentarlo.'
+    'No se puede borrar: todavía tiene actividades asignadas. Reasígnalas a otro criterio en '
+    '"Actividades del grupo" y vuelve a intentarlo.'
 )
 
 
@@ -66,7 +66,7 @@ class SchemeView(TeacherRequiredMixin, View):
         elif action == 'evals':
             formset = assignment_formset(scheme=scheme, data=request.POST)
             if formset.is_valid():
-                return self.save_formset(request, course, formset, 'Se reasignaron las evaluaciones.')
+                return self.save_formset(request, course, formset, 'Se reasignaron las actividades.')
             bound['assignment_formset'] = formset
         else:
             messages.error(request, 'Acción desconocida.')
@@ -79,7 +79,7 @@ class SchemeView(TeacherRequiredMixin, View):
         return redirect('grades:scheme', pk=course.pk)
 
     def save_formset(self, request, course, formset, message, **parent):
-        """Guarda altas, cambios y bajas; una baja con evaluaciones asignadas se rechaza con un aviso."""
+        """Guarda altas, cambios y bajas; una baja con actividades asignadas se rechaza con un aviso."""
         try:
             with transaction.atomic():
                 instances = formset.save(commit=False)

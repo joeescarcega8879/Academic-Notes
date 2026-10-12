@@ -61,8 +61,8 @@ class TestServicios:
         assert not course.enrollments.exists()
         assert Student.objects.filter(pk=alumno.pk).exists()
 
-    def test_quitar_con_calificaciones_no_se_permite(self, course, alumno, evaluation):
-        GradeFactory(evaluation=evaluation, student=alumno)
+    def test_quitar_con_calificaciones_no_se_permite(self, course, alumno, activity):
+        GradeFactory(activity=activity, student=alumno)
         with pytest.raises(ValidationError, match="calificaciones"):
             roster.remove_from_course(course, alumno)
         assert course.enrollments.count() == 1 and Grade.objects.count() == 1
@@ -90,8 +90,8 @@ class TestDesvincular:
         alumno.refresh_from_db()
         return alumno
 
-    def test_separa_la_cuenta_y_conserva_al_alumno_y_sus_notas(self, course, vinculado, evaluation):
-        GradeFactory(evaluation=evaluation, student=vinculado, score=9)
+    def test_separa_la_cuenta_y_conserva_al_alumno_y_sus_notas(self, course, vinculado, activity):
+        GradeFactory(activity=activity, student=vinculado, score=9)
         roster.unlink_student(vinculado)
         vinculado.refresh_from_db()
         assert vinculado.user is None
@@ -203,8 +203,8 @@ class TestQuitarYDesvincular:
         assert not course.enrollments.exists()
         assert any("se quitó" in str(m) for m in response.context["messages"])
 
-    def test_quitar_con_calificaciones_avisa_y_no_quita(self, professor_client, course, alumno, evaluation):
-        GradeFactory(evaluation=evaluation, student=alumno)
+    def test_quitar_con_calificaciones_avisa_y_no_quita(self, professor_client, course, alumno, activity):
+        GradeFactory(activity=activity, student=alumno)
         response = professor_client.post(reverse("student_remove", args=[course.pk, alumno.pk]), follow=True)
         assert course.enrollments.count() == 1
         assert any("calificaciones" in str(m) for m in response.context["messages"])
