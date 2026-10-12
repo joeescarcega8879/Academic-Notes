@@ -11,6 +11,8 @@ from django.utils import timezone
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, GradeHistory, Submission
+from apps.quizzes.factories import QuestionFactory
+from apps.quizzes.models import Choice, Question
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
@@ -26,7 +28,7 @@ pytestmark = pytest.mark.django_db
 
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
-    Activity, Submission, Grade, GradeHistory, Conversation, Message,
+    Activity, Submission, Grade, GradeHistory, Question, Choice, Conversation, Message,
 ]
 
 
@@ -213,6 +215,7 @@ def dos_organizaciones():
         alumno = EnrollmentFactory(course=materia).student.user
         evaluacion = ActivityFactory(course=materia)
         GradeFactory(activity=evaluacion, student=alumno)
+        QuestionFactory(author=profesor)
         Submission.objects.create(
             activity=evaluacion, student=materia.enrollments.get().student, text="Mi entrega", submitted_at=timezone.now(),
         )
