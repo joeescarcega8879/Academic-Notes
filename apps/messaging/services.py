@@ -22,7 +22,7 @@ def unread_messages_for(user, membership):
     if membership.is_student:
         return unread.filter(conversation__student=user)
     if membership.is_teacher:
-        return unread.filter(conversation__subject__professor=user)
+        return unread.filter(conversation__course__professor=user)
     return unread.none()
 
 

@@ -14,11 +14,11 @@ class ConversationQuerysetMixin:
         """Conversaciones del usuario en la organización activa."""
         user = self.request.user
         qs = Conversation.objects.for_organization(self.request.organization).select_related(
-            'subject', 'student', 'subject__professor',
+            'course', 'student', 'course__professor',
         )
         if self.request.membership.is_student:
             return qs.filter(student=user)
-        return qs.filter(subject__professor=user)
+        return qs.filter(course__professor=user)
 
     def conversations_for(self, user):
         return self.base_queryset().annotate(
@@ -27,7 +27,7 @@ class ConversationQuerysetMixin:
                 'messages',
                 filter=Q(messages__read_at__isnull=True) & ~Q(messages__sender=user),
             ),
-        ).order_by('-last_message_at', 'subject__name')
+        ).order_by('-last_message_at', 'course__name')
 
     def group_by_day(self, conversation, user):
         groups = []

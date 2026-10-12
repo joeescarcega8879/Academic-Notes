@@ -41,22 +41,22 @@
   {% for enrollment in enrollments %}
   <a
     class="subject-card"
-    href="{% url 'subject_detail' enrollment.subject.pk %}"
-    style="border-top: 3px solid {{ enrollment.subject.color }}">
+    href="{% url 'course_detail' enrollment.course.pk %}"
+    style="border-top: 3px solid {{ enrollment.course.color }}">
 
     <div class="subject-head">
       <div>
-        <h3>{{ enrollment.subject.name }}</h3>
-        <div class="prof">{{ enrollment.subject.professor.get_full_name }}</div>
+        <h3>{{ enrollment.course.name }}</h3>
+        <div class="prof">{{ enrollment.course.professor.get_full_name }}</div>
       </div>
-      <span class="code">{{ enrollment.subject.code }}</span>
+      <span class="code">{{ enrollment.course.code }}</span>
     </div>
     <div class="subject-evals">
       <div class="eval-row">
         <div>
           <div class="ev-name">Horario</div>
           <div class="ev-date">
-            {{ enrollment.subject.schedule|default:"Por definir" }}
+            {{ enrollment.course.schedule|default:"Por definir" }}
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@
           <div class="ev-name">Promedio de la materia</div>
           <div class="ev-date">según calificaciones registradas</div>
         </div>
-        <span class="grade style-pill ok">{{ enrollment.subject_average|floatformat:2|default:"—" }}</span>
+        <span class="grade style-pill ok">{{ enrollment.course_average|floatformat:2|default:"—" }}</span>
       </div>
     </div>
   </a>

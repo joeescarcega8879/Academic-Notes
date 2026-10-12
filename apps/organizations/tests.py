@@ -12,8 +12,8 @@ from apps.grades.factories import EvaluationFactory, GradeFactory
 from apps.grades.models import Evaluation, Grade
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
-from apps.subjects.factories import EnrollmentFactory, SubjectFactory
-from apps.subjects.models import Enrollment, Subject
+from apps.courses.factories import EnrollmentFactory, CourseFactory
+from apps.courses.models import Course, Enrollment, Student
 
 from .factories import MembershipFactory, OrganizationFactory
 from .managers import OrganizationQuerySet
@@ -23,7 +23,7 @@ from .services import ensure_individual_organization, ensure_student_membership,
 
 pytestmark = pytest.mark.django_db
 
-TENANT_MODELS = [Subject, Enrollment, Evaluation, Grade, Conversation, Message]
+TENANT_MODELS = [Course, Student, Enrollment, Evaluation, Grade, Conversation, Message]
 
 
 # ── Membresías y organización individual ──────────────────────────────
@@ -74,42 +74,42 @@ class TestOrganizacionIndividual:
 class TestDerivacionDeOrganizacion:
     def test_la_materia_toma_la_organizacion_de_su_profesor(self):
         profesor = ProfessorFactory()
-        materia = SubjectFactory(professor=profesor)
+        materia = CourseFactory(professor=profesor)
         assert materia.organization == teaching_organization(profesor)
 
     def test_la_materia_respeta_una_organizacion_explicita(self):
         organizacion = OrganizationFactory()
-        assert SubjectFactory(organization=organizacion).organization == organizacion
+        assert CourseFactory(organization=organizacion).organization == organizacion
 
     def test_los_hijos_heredan_la_organizacion_de_la_materia(self):
         inscripcion = EnrollmentFactory()
-        materia = inscripcion.subject
-        evaluacion = EvaluationFactory(subject=materia)
+        materia = inscripcion.course
+        evaluacion = EvaluationFactory(course=materia)
         nota = GradeFactory(evaluation=evaluacion, student=inscripcion.student)
-        conversacion = Conversation.objects.get(subject=materia, student=inscripcion.student)
+        conversacion = Conversation.objects.get(course=materia, student=inscripcion.student.user)
         mensaje = MessageFactory(conversation=conversacion)
 
         for objeto in (inscripcion, evaluacion, nota, conversacion, mensaje):
             assert objeto.organization_id == materia.organization_id, type(objeto).__name__
 
     def test_no_se_puede_forzar_otra_organizacion_en_un_hijo(self):
-        materia = SubjectFactory()
+        materia = CourseFactory()
         intruso = OrganizationFactory()
-        evaluacion = EvaluationFactory.build(subject=materia, organization=intruso)
+        evaluacion = EvaluationFactory.build(course=materia, organization=intruso)
         evaluacion.save()
         assert evaluacion.organization_id == materia.organization_id
 
     def test_inscribirse_hace_al_alumno_miembro_de_la_organizacion(self):
         inscripcion = EnrollmentFactory()
-        membership = Membership.objects.get(user=inscripcion.student)
-        assert membership.organization == inscripcion.subject.organization
+        membership = Membership.objects.get(user=inscripcion.student.user)
+        assert membership.organization == inscripcion.course.organization
         assert membership.role == Membership.Role.STUDENT
 
     def test_inscribirse_en_dos_materias_de_la_misma_organizacion_no_duplica(self):
         profesor = ProfessorFactory()
         alumno = StudentFactory()
-        EnrollmentFactory(student=alumno, subject=SubjectFactory(professor=profesor))
-        EnrollmentFactory(student=alumno, subject=SubjectFactory(professor=profesor))
+        EnrollmentFactory(student=alumno, course=CourseFactory(professor=profesor))
+        EnrollmentFactory(student=alumno, course=CourseFactory(professor=profesor))
         assert alumno.memberships.count() == 1
 
     def test_alumno_en_materias_de_dos_organizaciones(self):
@@ -123,22 +123,22 @@ class TestDerivacionDeOrganizacion:
 
 class TestForOrganization:
     def test_filtra_por_organizacion(self):
-        a, b = SubjectFactory(), SubjectFactory()
-        assert list(Subject.objects.for_organization(a.organization)) == [a]
-        assert list(Subject.objects.for_organization(b.organization)) == [b]
+        a, b = CourseFactory(), CourseFactory()
+        assert list(Course.objects.for_organization(a.organization)) == [a]
+        assert list(Course.objects.for_organization(b.organization)) == [b]
 
     def test_sin_organizacion_no_devuelve_nada(self):
-        SubjectFactory()
-        assert Subject.objects.for_organization(None).count() == 0
+        CourseFactory()
+        assert Course.objects.for_organization(None).count() == 0
 
     def test_se_encadena_con_otros_filtros(self):
-        materia = SubjectFactory(name="Álgebra")
-        SubjectFactory(name="Álgebra", organization=materia.organization)
-        assert Subject.objects.for_organization(materia.organization).filter(code=materia.code).count() == 1
+        materia = CourseFactory(name="Álgebra")
+        CourseFactory(name="Álgebra", organization=materia.organization)
+        assert Course.objects.for_organization(materia.organization).filter(code=materia.code).count() == 1
 
     def test_tambien_funciona_en_los_managers_relacionados(self):
-        materia = SubjectFactory()
-        EnrollmentFactory(subject=materia)
+        materia = CourseFactory()
+        EnrollmentFactory(course=materia)
         assert materia.enrollments.for_organization(materia.organization).count() == 1
         assert materia.enrollments.for_organization(OrganizationFactory()).count() == 0
 
@@ -205,11 +205,11 @@ def dos_organizaciones():
     datos = []
     for _ in range(2):
         profesor = ProfessorFactory()
-        materia = SubjectFactory(professor=profesor)
-        alumno = EnrollmentFactory(subject=materia).student
-        evaluacion = EvaluationFactory(subject=materia)
+        materia = CourseFactory(professor=profesor)
+        alumno = EnrollmentFactory(course=materia).student.user
+        evaluacion = EvaluationFactory(course=materia)
         GradeFactory(evaluation=evaluacion, student=alumno)
-        conversacion = Conversation.objects.get(subject=materia, student=alumno)
+        conversacion = Conversation.objects.get(course=materia, student=alumno)
         MessageFactory(conversation=conversacion, sender=alumno)
         datos.append({"profesor": profesor, "alumno": alumno, "materia": materia, "org": materia.organization})
     return datos
@@ -242,13 +242,13 @@ class TestAislamiento:
         client = Client()
         client.force_login(a["profesor"])
 
-        assert client.get(reverse("subject_detail", args=[b["materia"].pk])).status_code == 404
+        assert client.get(reverse("course_detail", args=[b["materia"].pk])).status_code == 404
 
         notas = client.get(reverse("grades:list")).context["grades"]
-        assert {g.evaluation.subject_id for g in notas} == {a["materia"].pk}
+        assert {g.evaluation.course_id for g in notas} == {a["materia"].pk}
 
         conversaciones = client.get(reverse("messaging:list")).context["conversations"]
-        assert {c.subject_id for c in conversaciones} == {a["materia"].pk}
+        assert {c.course_id for c in conversaciones} == {a["materia"].pk}
 
         csv_texto = client.get(reverse("grades:export")).content.decode("utf-8-sig")
         assert b["alumno"].email not in csv_texto
@@ -258,8 +258,8 @@ class TestAislamiento:
         a, b = dos_organizaciones
         client = Client()
         client.force_login(a["alumno"])
-        assert client.get(reverse("subject_detail", args=[b["materia"].pk])).status_code == 404
-        conversacion_ajena = Conversation.objects.get(subject=b["materia"])
+        assert client.get(reverse("course_detail", args=[b["materia"].pk])).status_code == 404
+        conversacion_ajena = Conversation.objects.get(course=b["materia"])
         assert client.get(reverse("messaging:detail", args=[conversacion_ajena.pk])).status_code == 404
 
     def test_borrar_una_organizacion_con_datos_esta_protegido(self, dos_organizaciones):

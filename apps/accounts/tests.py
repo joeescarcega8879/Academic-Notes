@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.grades.factories import EvaluationFactory, GradeFactory
 from apps.messaging.factories import ConversationFactory, MessageFactory
-from apps.subjects.factories import EnrollmentFactory
+from apps.courses.factories import EnrollmentFactory
 
 from .factories import PASSWORD, ProfessorFactory, StudentFactory
 from .models import ProfessorProfile, StudentProfile
@@ -55,12 +55,12 @@ class TestLogin:
         assert response.status_code == 302
         assert response.url == reverse("profile")
 
-    def test_el_rol_elegido_fija_la_organizacion_activa(self, client, professor, subject):
+    def test_el_rol_elegido_fija_la_organizacion_activa(self, client, professor, course):
         from apps.organizations.factories import MembershipFactory
         from apps.organizations.models import Membership
 
         # Alumno en la organización de otro profesor y profesor en la suya.
-        MembershipFactory(user=professor, organization=EnrollmentFactory().subject.organization)
+        MembershipFactory(user=professor, organization=EnrollmentFactory().course.organization)
         response = client.post(
             reverse("login"), {"username": professor.email, "password": PASSWORD, "role": "student"}
         )
@@ -132,38 +132,38 @@ class TestPerfil:
 
 class TestNotificaciones:
     @pytest.fixture
-    def inscrito(self, student, subject):
-        return EnrollmentFactory(student=student, subject=subject)
+    def inscrito(self, student, course):
+        return EnrollmentFactory(student=student, course=course)
 
     def context(self, client):
         return client.get(reverse("student_dashboard")).context
 
-    def test_mensaje_sin_leer_del_profesor_cuenta(self, student_client, student, subject, professor, inscrito):
-        conversation = ConversationFactory(subject=subject, student=student)
+    def test_mensaje_sin_leer_del_profesor_cuenta(self, student_client, student, course, professor, inscrito):
+        conversation = ConversationFactory(course=course, student=student)
         MessageFactory(conversation=conversation, sender=professor)
         context = self.context(student_client)
         assert context["notifications_count"] == 1
         assert context["notifications"][0]["type"] == "message"
 
-    def test_mensajes_propios_no_cuentan(self, student_client, student, subject, inscrito):
-        MessageFactory(conversation=ConversationFactory(subject=subject, student=student), sender=student)
+    def test_mensajes_propios_no_cuentan(self, student_client, student, course, inscrito):
+        MessageFactory(conversation=ConversationFactory(course=course, student=student), sender=student)
         assert self.context(student_client)["notifications_count"] == 0
 
-    def test_profesor_recibe_mensajes_del_alumno(self, professor_client, student, subject, inscrito):
-        MessageFactory(conversation=ConversationFactory(subject=subject, student=student), sender=student)
+    def test_profesor_recibe_mensajes_del_alumno(self, professor_client, student, course, inscrito):
+        MessageFactory(conversation=ConversationFactory(course=course, student=student), sender=student)
         context = professor_client.get(reverse("professor_dashboard")).context
         assert context["notifications_count"] == 1
 
-    def test_calificacion_reciente_notifica_al_alumno(self, student_client, student, subject, inscrito):
-        GradeFactory(evaluation=EvaluationFactory(subject=subject), student=student)
+    def test_calificacion_reciente_notifica_al_alumno(self, student_client, student, course, inscrito):
+        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
         context = self.context(student_client)
         assert context["notifications_count"] == 1
         assert context["notifications"][0]["type"] == "grade"
 
-    def test_respeta_la_preferencia_notify_grades(self, student_client, student, subject, inscrito):
+    def test_respeta_la_preferencia_notify_grades(self, student_client, student, course, inscrito):
         student.notify_grades = False
         student.save()
-        GradeFactory(evaluation=EvaluationFactory(subject=subject), student=student)
+        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
         assert self.context(student_client)["notifications_count"] == 0
 
     def test_anonimo_no_tiene_notificaciones(self, client, db):
@@ -172,10 +172,10 @@ class TestNotificaciones:
 
 
 class TestMarcarLeidas:
-    def test_marca_mensajes_y_calificaciones_como_leidos(self, student_client, student, subject, professor):
-        EnrollmentFactory(student=student, subject=subject)
-        MessageFactory(conversation=ConversationFactory(subject=subject, student=student), sender=professor)
-        GradeFactory(evaluation=EvaluationFactory(subject=subject), student=student)
+    def test_marca_mensajes_y_calificaciones_como_leidos(self, student_client, student, course, professor):
+        EnrollmentFactory(student=student, course=course)
+        MessageFactory(conversation=ConversationFactory(course=course, student=student), sender=professor)
+        GradeFactory(evaluation=EvaluationFactory(course=course), student=student)
 
         response = student_client.post(reverse("notifications_read"), {"next": reverse("student_dashboard")})
         assert response.status_code == 302

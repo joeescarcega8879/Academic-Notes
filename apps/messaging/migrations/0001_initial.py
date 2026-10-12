@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('subjects', '0001_initial'),
+        ('courses', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('student', models.ForeignKey(limit_choices_to={'role': 'student'}, on_delete=django.db.models.deletion.CASCADE, related_name='student_conversations', to=settings.AUTH_USER_MODEL)),
-                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='conversations', to='subjects.subject')),
+                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='conversations', to='courses.subject')),
             ],
             options={
                 'ordering': ['-created_at'],

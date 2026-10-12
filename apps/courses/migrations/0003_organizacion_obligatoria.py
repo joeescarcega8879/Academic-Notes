@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('organizations', '0002_backfill_organizaciones'),
-        ('subjects', '0002_agregar_organizacion'),
+        ('courses', '0002_agregar_organizacion'),
     ]
 
     operations = [

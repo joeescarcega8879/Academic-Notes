@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('subjects', '0001_initial'),
+        ('courses', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
                 ('max_score', models.FloatField(default=10.0)),
                 ('weight', models.FloatField(default=1.0)),
                 ('date', models.DateField(blank=True, null=True)),
-                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='evaluations', to='subjects.subject')),
+                ('subject', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='evaluations', to='courses.subject')),
             ],
             options={
                 'ordering': ['-date', 'title'],

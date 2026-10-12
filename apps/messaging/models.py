@@ -4,9 +4,9 @@ from django.conf import settings
 from apps.organizations.models import TenantModel
 
 class Conversation(TenantModel):
-    organization_source = 'subject'
+    organization_source = 'course'
 
-    subject = models.ForeignKey("subjects.Subject", 
+    course = models.ForeignKey("courses.Course", 
                                 on_delete=models.CASCADE, 
                                 related_name="conversations"
     )
@@ -20,14 +20,14 @@ class Conversation(TenantModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('subject', 'student')
+        unique_together = ('course', 'student')
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.student.get_full_name() or self.student.username} - {self.subject.name}"
+        return f"{self.student.get_full_name() or self.student.username} - {self.course.name}"
 
     def counterpart(self, user):
-        return self.subject.professor if user == self.student else self.student
+        return self.course.professor if user == self.student else self.student
 
 class Message(TenantModel):
     organization_source = 'conversation'

@@ -23,7 +23,7 @@
         <div class="avatar">{{ c.other.first_name|first }}{{ c.other.last_name|first }}</div>
         <div>
           <div class="who">{{ c.other.get_full_name|default:c.other.email }}</div>
-          <div class="last">{{ c.subject.name }}</div>
+          <div class="last">{{ c.course.name }}</div>
         </div>
         <div class="meta">
           <span class="time">{{ c.last_message_at|date:"d M" }}</span>
@@ -41,10 +41,10 @@
     <header class="chat-head">
       <a class="chat-back" href="{% url 'messaging:list' %}" title="Volver a la lista"><i data-icon="chevron-left"></i></a>
       <div>
-        <div class="who">{{ active_conversation.subject.professor.get_full_name }}</div>
+        <div class="who">{{ active_conversation.course.professor.get_full_name }}</div>
         <div class="sub">{{ active_conversation.student.get_full_name }}</div>
       </div>
-      <span class="chat-ref"><i data-icon="book-open"></i> {{ active_conversation.subject.name }}</span>
+      <span class="chat-ref"><i data-icon="book-open"></i> {{ active_conversation.course.name }}</span>
     </header>
 
     <div class="chat-body">

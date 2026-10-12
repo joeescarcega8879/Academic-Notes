@@ -1,11 +1,11 @@
-from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
 from apps.organizations.models import TenantModel
 
 class Evaluation(TenantModel):
-    organization_source = 'subject'
+    organization_source = 'course'
 
     class Type(models.TextChoices):
         QUIZ = 'quiz', 'Quiz'
@@ -13,7 +13,7 @@ class Evaluation(TenantModel):
         HOMEWORK = 'homework', 'Tarea'
         PROJECT = 'project', 'Proyecto'
 
-    subject = models.ForeignKey("subjects.Subject", on_delete=models.CASCADE, related_name="evaluations")
+    course = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="evaluations")
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.QUIZ)
@@ -25,19 +25,14 @@ class Evaluation(TenantModel):
         ordering = ['-date', 'title']
 
     def __str__(self):
-        return f"{self.title} · {self.subject.name}"
+        return f"{self.title} · {self.course.name}"
 
     
 class Grade(TenantModel):
     organization_source = 'evaluation'
 
     evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='grades')
-    student = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='grades',
-        limit_choices_to={'role': 'student'},
-    )
+    student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='grades')
     score = models.FloatField(validators=[MinValueValidator(0)])
     feedback = models.TextField(blank=True)
     graded_at = models.DateTimeField(auto_now_add=True)
@@ -47,4 +42,12 @@ class Grade(TenantModel):
         ordering = ['-graded_at']
 
     def __str__(self):
-        return f'{self.student.get_full_name() or self.student.username} — {self.evaluation.title}: {self.score}'
+        return f'{self.student} — {self.evaluation.title}: {self.score}'
+
+    def clean(self):
+        if self.student_id and self.evaluation_id and self.student.organization_id != self.evaluation.organization_id:
+            raise ValidationError('El alumno y la evaluación deben pertenecer a la misma organización.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

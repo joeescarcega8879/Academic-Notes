@@ -15,8 +15,8 @@ def backfill(apps, schema_editor):
     Organization = apps.get_model('organizations', 'Organization')
     Membership = apps.get_model('organizations', 'Membership')
     User = apps.get_model('accounts', 'User')
-    Subject = apps.get_model('subjects', 'Subject')
-    Enrollment = apps.get_model('subjects', 'Enrollment')
+    Subject = apps.get_model('courses', 'Subject')
+    Enrollment = apps.get_model('courses', 'Enrollment')
     Evaluation = apps.get_model('grades', 'Evaluation')
     Grade = apps.get_model('grades', 'Grade')
     Conversation = apps.get_model('messaging', 'Conversation')
@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('organizations', '0001_initial'),
         ('accounts', '0003_user_notifications_read_at'),
-        ('subjects', '0002_agregar_organizacion'),
+        ('courses', '0002_agregar_organizacion'),
         ('grades', '0004_agregar_organizacion'),
         ('messaging', '0003_agregar_organizacion'),
     ]

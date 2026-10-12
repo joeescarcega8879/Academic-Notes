@@ -8,7 +8,7 @@ from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
-from apps.subjects.models import Enrollment, Subject
+from apps.courses.models import Enrollment, Course
 
 from .models import Grade
 from .forms import GradeForm
@@ -19,10 +19,10 @@ def visible_grades(request):
 
     El alumno ve las suyas; quien da clase, las de sus materias.
     """
-    grades = Grade.objects.for_organization(request.organization).select_related('student', 'evaluation__subject')
+    grades = Grade.objects.for_organization(request.organization).select_related('student', 'evaluation__course')
     if request.membership.is_student:
-        return grades.filter(student=request.user)
-    return grades.filter(evaluation__subject__professor=request.user)
+        return grades.filter(student__user=request.user)
+    return grades.filter(evaluation__course__professor=request.user)
 
 
 class GradeListView(OrganizationMemberMixin, ListView):
@@ -42,12 +42,12 @@ class GradeListView(OrganizationMemberMixin, ListView):
 
         organization = self.request.organization
         if self.request.membership.is_teacher:
-            context['subjects'] = (
-                Subject.objects.for_organization(organization).filter(professor=user).prefetch_related('evaluations')
+            context['courses'] = (
+                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('evaluations')
             )
         else:
-            context['subjects'] = (
-                Enrollment.objects.for_organization(organization).filter(student=user).select_related('subject')
+            context['courses'] = (
+                Enrollment.objects.for_organization(organization).filter(student__user=user).select_related('course')
             )
         return context
 
@@ -85,11 +85,11 @@ class GradeExportView(OrganizationMemberMixin, View):
     def get(self, request):
         grades = visible_grades(request)
 
-        subject_id = request.GET.get('materia', '').strip()
-        if subject_id:
-            if not subject_id.isdigit():
+        course_id = request.GET.get('materia', '').strip()
+        if course_id:
+            if not course_id.isdigit():
                 return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
-            grades = grades.filter(evaluation__subject_id=int(subject_id))
+            grades = grades.filter(evaluation__course_id=int(course_id))
 
         for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
             raw = request.GET.get(param, '').strip()
@@ -102,7 +102,7 @@ class GradeExportView(OrganizationMemberMixin, View):
             grades = grades.filter(**{lookup: day})
 
         grades = grades.order_by(
-            'evaluation__subject__name', 'student__last_name', 'evaluation__date',
+            'evaluation__course__name', 'student__last_name', 'evaluation__date',
         )
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -115,13 +115,13 @@ class GradeExportView(OrganizationMemberMixin, View):
         show_student = request.membership.is_teacher
         header = ['Materia', 'Evaluación', 'Tipo', 'Fecha', 'Peso', 'Calificación', 'Máximo', 'Comentario']
         if show_student:
-            header = ['Alumno', 'Email'] + header
+            header = ['Matrícula', 'Alumno', 'Email'] + header
         writer.writerow(header)
 
         for grade in grades:
             evaluation = grade.evaluation
             row = [
-                evaluation.subject.name,
+                evaluation.course.name,
                 evaluation.title,
                 evaluation.get_type_display(),
                 evaluation.date.isoformat() if evaluation.date else '',
@@ -132,7 +132,8 @@ class GradeExportView(OrganizationMemberMixin, View):
             ]
             if show_student:
                 row = [
-                    grade.student.get_full_name() or grade.student.username,
+                    grade.student.student_number,
+                    str(grade.student),
                     grade.student.email,
                 ] + row
             writer.writerow(row)

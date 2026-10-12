@@ -16,7 +16,7 @@ from apps.grades.factories import EvaluationFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.factories import MessageFactory
 from apps.messaging.models import Conversation, Message
-from apps.subjects.factories import EnrollmentFactory, SubjectFactory
+from apps.courses.factories import EnrollmentFactory, CourseFactory
 
 from .factories import MembershipFactory, OrganizationFactory
 from .models import Membership
@@ -27,11 +27,11 @@ pytestmark = pytest.mark.django_db
 
 def _clase(profesor, organizacion, alumno):
     """Materia de ``profesor`` en ``organizacion`` con evaluación, nota del alumno y un mensaje de él."""
-    materia = SubjectFactory(professor=profesor, organization=organizacion)
-    EnrollmentFactory(subject=materia, student=alumno)
-    evaluacion = EvaluationFactory(subject=materia)
+    materia = CourseFactory(professor=profesor, organization=organizacion)
+    EnrollmentFactory(course=materia, student=alumno)
+    evaluacion = EvaluationFactory(course=materia)
     nota = GradeFactory(evaluation=evaluacion, student=alumno)
-    conversacion = Conversation.objects.get(subject=materia, student=alumno)
+    conversacion = Conversation.objects.get(course=materia, student=alumno)
     mensaje = MessageFactory(conversation=conversacion, sender=alumno)
     return SimpleNamespace(
         materia=materia, evaluacion=evaluacion, nota=nota, conversacion=conversacion, mensaje=mensaje,
@@ -82,7 +82,7 @@ class TestDocenteConDosOrganizaciones:
         d = docente_en_dos
         activa = getattr(d, lado)
         context = _client(d.profesor, activa.organizacion).get(reverse("professor_dashboard")).context
-        assert [s.pk for s in context["subjects"]] == [activa.materia.pk]
+        assert [s.pk for s in context["courses"]] == [activa.materia.pk]
         assert context["total_students"] == 1
         assert context["total_evaluations"] == 1
         assert context["graded_count"] == 1
@@ -91,8 +91,8 @@ class TestDocenteConDosOrganizaciones:
     def test_materia_de_la_otra_organizacion_es_404(self, docente_en_dos, lado, otro):
         activa, ajena = getattr(docente_en_dos, lado), getattr(docente_en_dos, otro)
         client = _client(docente_en_dos.profesor, activa.organizacion)
-        assert client.get(reverse("subject_detail", args=[activa.materia.pk])).status_code == 200
-        assert client.get(reverse("subject_detail", args=[ajena.materia.pk])).status_code == 404
+        assert client.get(reverse("course_detail", args=[activa.materia.pk])).status_code == 200
+        assert client.get(reverse("course_detail", args=[ajena.materia.pk])).status_code == 404
 
     @pytest.mark.parametrize("lado, otro", [("a", "b"), ("b", "a")])
     def test_lista_y_exportacion_de_notas(self, docente_en_dos, lado, otro):
@@ -100,7 +100,7 @@ class TestDocenteConDosOrganizaciones:
         client = _client(docente_en_dos.profesor, activa.organizacion)
 
         assert [g.pk for g in client.get(reverse("grades:list")).context["grades"]] == [activa.nota.pk]
-        assert [s.pk for s in client.get(reverse("grades:list")).context["subjects"]] == [activa.materia.pk]
+        assert [s.pk for s in client.get(reverse("grades:list")).context["courses"]] == [activa.materia.pk]
 
         csv_texto = client.get(reverse("grades:export")).content.decode("utf-8-sig")
         assert activa.nota.student.email in csv_texto
@@ -178,15 +178,15 @@ class TestAlumnoConDosOrganizaciones:
     def test_dashboard_muestra_solo_la_organizacion_activa(self, alumno_en_dos, lado):
         activa = getattr(alumno_en_dos, lado)
         context = _client(alumno_en_dos.alumno, activa.organizacion).get(reverse("student_dashboard")).context
-        assert [e.subject_id for e in context["enrollments"]] == [activa.materia.pk]
+        assert [e.course_id for e in context["enrollments"]] == [activa.materia.pk]
 
     @pytest.mark.parametrize("lado, otro", [("a", "b"), ("b", "a")])
     def test_materia_notas_y_mensajes_de_la_otra_organizacion(self, alumno_en_dos, lado, otro):
         activa, ajena = getattr(alumno_en_dos, lado), getattr(alumno_en_dos, otro)
         client = _client(alumno_en_dos.alumno, activa.organizacion)
 
-        assert client.get(reverse("subject_detail", args=[activa.materia.pk])).status_code == 200
-        assert client.get(reverse("subject_detail", args=[ajena.materia.pk])).status_code == 404
+        assert client.get(reverse("course_detail", args=[activa.materia.pk])).status_code == 200
+        assert client.get(reverse("course_detail", args=[ajena.materia.pk])).status_code == 404
         assert [g.pk for g in client.get(reverse("grades:list")).context["grades"]] == [activa.nota.pk]
         assert [c.pk for c in client.get(reverse("messaging:list")).context["conversations"]] == [activa.conversacion.pk]
         assert client.get(reverse("messaging:detail", args=[ajena.conversacion.pk])).status_code == 404
@@ -244,7 +244,7 @@ class TestCambiarOrganizacion:
         assert response.status_code == 302 and response.url == reverse("professor_dashboard")
         assert client.session[SESSION_KEY] == d.b.organizacion.pk
         context = client.get(reverse("professor_dashboard")).context
-        assert [s.pk for s in context["subjects"]] == [d.b.materia.pk]
+        assert [s.pk for s in context["courses"]] == [d.b.materia.pk]
 
     def test_redirige_al_inicio_del_rol_en_la_organizacion_elegida(self, docente_en_dos):
         d = docente_en_dos

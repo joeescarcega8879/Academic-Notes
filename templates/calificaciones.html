@@ -30,7 +30,7 @@
       {% if is_teacher %}Materias activas{% else %}Materias
       inscritas{% endif %}
     </div>
-    <div class="stat-value">{{ subjects|length }}</div>
+    <div class="stat-value">{{ courses|length }}</div>
     <div class="stat-trend">este período</div>
   </div>
   <div class="stat">
@@ -62,7 +62,7 @@
       {% if is_teacher %}
       <select class="select" name="materia" title="Materia">
         <option value="">Todas las materias</option>
-        {% for s in subjects %}
+        {% for s in courses %}
         <option value="{{ s.pk }}">{{ s.name }}</option>
         {% endfor %}
       </select>
@@ -93,7 +93,7 @@
         {% if is_teacher %}
         <td>{{ grade.student.get_full_name|default:grade.student.email }}</td>
         {% endif %}
-        <td>{{ grade.evaluation.subject.name }}</td>
+        <td>{{ grade.evaluation.course.name }}</td>
         <td>{{ grade.evaluation.title }}</td>
         <td>
           <span class="grade style-pill ok"

@@ -15,7 +15,7 @@
 <div class="stat-grid">
   <div class="stat">
     <div class="stat-label"><span class="i"><i data-icon="book-open"></i></span> Materias activas</div>
-    <div class="stat-value">{{ subjects|length }}</div>
+    <div class="stat-value">{{ courses|length }}</div>
     <div class="stat-trend">este período</div>
   </div>
   <div class="stat">
@@ -47,37 +47,37 @@
 
 <!-- Grid de materias -->
 <div class="subject-grid">
-  {% for subject in subjects %}
-    <a class="subject-card" href="{% url 'subject_detail' subject.pk %}"
-       style="border-top: 3px solid {{ subject.color }}">
+  {% for course in courses %}
+    <a class="subject-card" href="{% url 'course_detail' course.pk %}"
+       style="border-top: 3px solid {{ course.color }}">
       <div class="subject-head">
         <div>
-          <h3>{{ subject.name }}</h3>
-          <div class="prof">{{ subject.schedule|default:"Horario por asignar" }}</div>
+          <h3>{{ course.name }}</h3>
+          <div class="prof">{{ course.schedule|default:"Horario por asignar" }}</div>
         </div>
-        <span class="code">{{ subject.code }}</span>
+        <span class="code">{{ course.code }}</span>
       </div>
       <div class="subject-evals">
         <div class="eval-row">
           <div>
             <div class="ev-name">Alumnos inscritos</div>
-            <div class="ev-date">{{ subject.description|truncatewords:12 }}</div>
+            <div class="ev-date">{{ course.description|truncatewords:12 }}</div>
           </div>
-          <span class="grade style-pill ok">{{ subject.student_count }}</span>
+          <span class="grade style-pill ok">{{ course.student_count }}</span>
         </div>
         <div class="eval-row">
           <div>
             <div class="ev-name">Promedio del grupo</div>
             <div class="ev-date">según calificaciones registradas</div>
           </div>
-          <span class="grade style-pill ok">{{ subject.average|floatformat:2|default:"—" }}</span>
+          <span class="grade style-pill ok">{{ course.average|floatformat:2|default:"—" }}</span>
         </div>
         <div class="eval-row">
           <div>
             <div class="ev-name">Tasa de aprobación</div>
             <div class="ev-date">60% del puntaje máximo</div>
           </div>
-          <span class="grade style-pill ok">{% if subject.pass_rate is not None %}{{ subject.pass_rate }}%{% else %}—{% endif %}</span>
+          <span class="grade style-pill ok">{% if course.pass_rate is not None %}{{ course.pass_rate }}%{% else %}—{% endif %}</span>
         </div>
       </div>
     </a>
@@ -85,7 +85,7 @@
     <div class="card" style="grid-column: 1 / -1">
       <h3>No tienes materias todavía</h3>
       <p>Puedes crearlas desde el panel de administración.</p>
-      <a class="btn btn-primary" href="/admin/subjects/subject/add/">Crear materia</a>
+      <a class="btn btn-primary" href="/admin/courses/course/add/">Crear materia</a>
     </div>
   {% endfor %}
 </div>

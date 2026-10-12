@@ -4,7 +4,8 @@ from django.contrib.auth.models import AnonymousUser
 from apps.accounts.models import User, StudentProfile, ProfessorProfile
 from apps.messaging.context_processors import unread_messages
 from apps.messaging.models import Conversation, Message
-from apps.subjects.models import Subject, Enrollment
+from apps.courses.models import Course, Enrollment
+from apps.courses.services import student_for_user
 
 
 def conv_items(html):
@@ -33,28 +34,32 @@ class MessagingAccessTests(TestCase):
             username='alum1', email='alum1@test.local', password='Pass123!',
             role='student', first_name='Sofia', last_name='Lopez',
         )
-        StudentProfile.objects.create(user=cls.student, program='ISC', semester=5, enrollment_number='A0001')
+        StudentProfile.objects.create(user=cls.student, program='ISC', semester=5)
 
         cls.other_student = User.objects.create_user(
             username='alum2', email='alum2@test.local', password='Pass123!',
             role='student', first_name='Diego', last_name='Ruiz',
         )
-        StudentProfile.objects.create(user=cls.other_student, program='ISC', semester=3, enrollment_number='A0002')
+        StudentProfile.objects.create(user=cls.other_student, program='ISC', semester=3)
 
-        cls.subject = Subject.objects.create(name='Calculo', code='CAL1', professor=cls.prof)
-        cls.subject2 = Subject.objects.create(name='Fisica', code='FIS1', professor=cls.other_prof)
+        cls.course = Course.objects.create(name='Calculo', code='CAL1', professor=cls.prof)
+        cls.course2 = Course.objects.create(name='Fisica', code='FIS1', professor=cls.other_prof)
 
-        cls.enrollment = Enrollment.objects.create(student=cls.student, subject=cls.subject)
-        cls.other_enrollment = Enrollment.objects.create(student=cls.other_student, subject=cls.subject2)
+        cls.enrollment = Enrollment.objects.create(
+            student=student_for_user(cls.student, cls.course.organization), course=cls.course,
+        )
+        cls.other_enrollment = Enrollment.objects.create(
+            student=student_for_user(cls.other_student, cls.course2.organization), course=cls.course2,
+        )
 
     def conv(self):
-        return Conversation.objects.get(student=self.student, subject=self.subject)
+        return Conversation.objects.get(student=self.student, course=self.course)
 
     # --- signal ---
 
     def test_signal_crea_conversacion_al_inscribir(self):
         self.assertEqual(Conversation.objects.count(), 2)
-        self.assertTrue(Conversation.objects.filter(subject=self.subject, student=self.student).exists())
+        self.assertTrue(Conversation.objects.filter(course=self.course, student=self.student).exists())
 
     # --- acceso ---
 
@@ -79,7 +84,7 @@ class MessagingAccessTests(TestCase):
 
     def test_detalle_ajeno_404(self):
         self.client.force_login(self.student)
-        ajeno = Conversation.objects.get(student=self.other_student, subject=self.subject2)
+        ajeno = Conversation.objects.get(student=self.other_student, course=self.course2)
         self.assertEqual(self.client.get('/mensajes/%s/' % ajeno.pk).status_code, 404)
 
     # --- envio ---

@@ -21,7 +21,7 @@
   <div class="avatar xl">{{ user.first_name|first }}{{ user.last_name|first }}</div>
   <div>
     <h2 class="ph-name">{{ user.get_full_name }}</h2>
-    <div class="ph-meta">{{ user.email }}{% if user.student_profile %} · Matrícula {{ user.student_profile.enrollment_number }}{% endif %}</div>
+    <div class="ph-meta">{{ user.email }}{% if student_number %} · Matrícula {{ student_number }}{% endif %}</div>
     <div class="ph-chips">
       {% if user.student_profile %}
         <span class="chip brand"><i data-icon="graduation"></i> {{ user.student_profile.program }}</span>

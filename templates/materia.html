@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ subject.name }} - Academic Notes{% endblock %}
+{% block title %}{{ course.name }} - Academic Notes{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
-  <h1>{{ subject.name }}</h1>
-  <span class="sub">· {{ subject.code }}</span>
+  <h1>{{ course.name }}</h1>
+  <span class="sub">· {{ course.code }}</span>
   <div class="spacer"></div>
   {% include 'partials/notifications.html' %}
 </header>
@@ -13,16 +13,16 @@
 {% block content %}
 
 <!-- Presentación de la materia -->
-<div class="card mb-12" style="border-top: 3px solid {{ subject.color }}">
+<div class="card mb-12" style="border-top: 3px solid {{ course.color }}">
   <div class="flex-row items-baseline gap-14">
-    <h2 style="margin: 0">{{ subject.name }}</h2>
-    <span class="text-xs text-muted">{{ subject.code }}</span>
+    <h2 style="margin: 0">{{ course.name }}</h2>
+    <span class="text-xs text-muted">{{ course.code }}</span>
   </div>
   <div class="text-sm text-muted" style="margin-top: 6px">
-    {{ subject.schedule|default:"Horario por definir" }} · {{ subject.professor.get_full_name }}
+    {{ course.schedule|default:"Horario por definir" }} · {{ course.professor.get_full_name }}
   </div>
-  {% if subject.description %}
-    <p class="text-sm text-muted" style="margin-bottom: 0">{{ subject.description }}</p>
+  {% if course.description %}
+    <p class="text-sm text-muted" style="margin-bottom: 0">{{ course.description }}</p>
   {% endif %}
 </div>
 
@@ -33,7 +33,7 @@
       <h3>Alumnos inscritos</h3>
       <span class="grade style-pill ok">{{ enrollments|length }}</span>
       <div class="spacer"></div>
-      <a class="btn btn-ghost" href="/admin/subjects/enrollment/add/">Inscribir alumno</a>
+      <a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>
     </div>
     <table class="tbl">
       <thead>
@@ -48,7 +48,7 @@
         {% for enrollment in enrollments %}
           <tr>
             <td>{{ enrollment.student.get_full_name|default:enrollment.student.email }}</td>
-            <td>{{ enrollment.student.student_profile.enrollment_number }}</td>
+            <td>{{ enrollment.student.student_number }}</td>
             <td>{{ enrollment.student.email }}</td>
             <td>{{ enrollment.enrolled_at|date:"d/m/Y" }}</td>
           </tr>
@@ -67,11 +67,11 @@
     <h3 class="section-title mb-12">Información de la materia</h3>
     <div class="kv-row">
       <div class="k">Profesor</div>
-      <div class="v">{{ subject.professor.get_full_name }}</div>
+      <div class="v">{{ course.professor.get_full_name }}</div>
     </div>
     <div class="kv-row">
       <div class="k">Horario</div>
-      <div class="v">{{ subject.schedule|default:"Por definir" }}</div>
+      <div class="v">{{ course.schedule|default:"Por definir" }}</div>
     </div>
     <div class="kv-row">
       <div class="k">Inscrito el</div>
@@ -79,7 +79,7 @@
     </div>
     <div class="kv-row">
       <div class="k">Código</div>
-      <div class="v">{{ subject.code }}</div>
+      <div class="v">{{ course.code }}</div>
     </div>
   </div>
 
@@ -87,7 +87,7 @@
   <div class="table-wrap" style="margin-top: 14px">
     <div class="table-head">
       <h3>Evaluaciones y calificaciones</h3>
-      <span class="grade style-pill ok">Promedio: {{ subject_average|floatformat:2|default:"—" }}</span>
+      <span class="grade style-pill ok">Promedio: {{ course_average|floatformat:2|default:"—" }}</span>
     </div>
     <table class="tbl">
       <thead>
