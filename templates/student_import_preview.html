@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Revisar importación · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Revisar importación</h1>
+  <span class="sub">{{ course.name }} · {{ filename }}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card mb-12">
+    <h3 class="section-title">1. ¿Qué columna es cada dato?</h3>
+    <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end">
+      {% for f in fields %}
+        <div class="field" style="min-width: 200px">
+          <label for="map_{{ f.key }}">{{ f.label }}{% if f.required %} *{% endif %}</label>
+          <select class="select" id="map_{{ f.key }}" name="map_{{ f.key }}">
+            <option value="">— No importar —</option>
+            {% for header in headers %}
+              <option value="{{ forloop.counter0 }}"{% if f.selected == forloop.counter0 %} selected{% endif %}>{{ header }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+      <button type="submit" name="action" value="preview" class="btn btn-ghost" style="margin-bottom: 14px">Actualizar vista previa</button>
+    </div>
+    {% for error in mapping_errors %}
+      <div style="color: var(--bad); font-size: 13px">{{ error }}</div>
+    {% endfor %}
+  </div>
+
+  {% if plan %}
+    <div class="stat-grid mb-12">
+      <div class="stat"><div class="stat-label">Nuevos</div><div class="stat-value">{{ plan.count_create }}</div></div>
+      <div class="stat"><div class="stat-label">Se actualizan</div><div class="stat-value">{{ plan.count_update }}</div></div>
+      <div class="stat"><div class="stat-label">Sin cambios</div><div class="stat-value">{{ plan.count_unchanged }}</div></div>
+      <div class="stat"><div class="stat-label">Con errores</div><div class="stat-value">{{ plan.count_error }}</div></div>
+      <div class="stat"><div class="stat-label">Se inscriben</div><div class="stat-value">{{ plan.to_enroll }}</div></div>
+    </div>
+
+    <div class="table-wrap mb-12">
+      <div class="table-head">
+        <h3>2. Qué pasará con cada fila</h3>
+        <div class="spacer"></div>
+        <span class="text-sm text-muted">Las filas con error se omiten; el resto se guarda.</span>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr><th>Fila</th><th>Matrícula</th><th>Nombre(s)</th><th>Apellidos</th><th>Correo</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+          {% for row in preview_rows %}
+            <tr>
+              <td>{{ row.line }}</td>
+              <td>{{ row.values.student_number }}</td>
+              <td>{{ row.values.first_name }}</td>
+              <td>{{ row.values.last_name }}</td>
+              <td>{{ row.values.email }}</td>
+              <td>
+                {% if row.action == 'error' %}
+                  <span class="chip" style="color: var(--bad)">Error</span>
+                  {% for error in row.errors %}<div class="text-xs" style="color: var(--bad)">{{ error }}</div>{% endfor %}
+                {% elif row.action == 'create' %}
+                  <span class="chip ok">Nuevo</span>
+                {% elif row.action == 'update' %}
+                  <span class="chip brand">Actualiza</span>
+                  <div class="text-xs text-muted">{{ row.changes_labels|join:", " }}{% if row.match %} · por {{ row.match }}{% endif %}</div>
+                {% else %}
+                  <span class="chip">Sin cambios</span>
+                  {% if row.match %}<div class="text-xs text-muted">por {{ row.match }}</div>{% endif %}
+                {% endif %}
+                {% if row.action != 'error' and not row.enroll %}<div class="text-xs text-muted">ya inscrito</div>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if hidden_rows %}
+        <p class="text-sm text-muted" style="padding: 10px 14px">… y {{ hidden_rows }} filas más (se importan igual).</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="flex-row gap-14">
+    <button type="submit" name="action" value="confirm" class="btn btn-primary"{% if not can_confirm %} disabled{% endif %}>Confirmar importación</button>
+    <a class="btn btn-ghost" href="{% url 'student_import' course.pk %}">Cambiar archivo</a>
+    <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

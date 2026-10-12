@@ -52,7 +52,10 @@
       <h3>Alumnos inscritos</h3>
       <span class="grade style-pill ok">{{ enrollments|length }}</span>
       <div class="spacer"></div>
-      {% if not course.is_archived %}<a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>{% endif %}
+      {% if not course.is_archived %}
+        <a class="btn btn-primary" href="{% url 'student_import' course.pk %}">Importar lista</a>
+        <a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>
+      {% endif %}
     </div>
     <table class="tbl">
       <thead>

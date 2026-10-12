@@ -14,6 +14,9 @@ urlpatterns = [
     path('materia/<int:pk>/archivar/', views.CourseArchiveView.as_view(), name='course_archive'),
     path('materia/<int:pk>/desarchivar/', views.CourseUnarchiveView.as_view(), name='course_unarchive'),
     path('materia/<int:pk>/duplicar/', views.CourseCloneView.as_view(), name='course_clone'),
+    path('materia/<int:pk>/importar/', views.StudentImportView.as_view(), name='student_import'),
+    path('materia/<int:pk>/importar/vista-previa/', views.StudentImportPreviewView.as_view(), name='student_import_preview'),
+    path('importar/plantilla.csv', views.StudentImportTemplateView.as_view(), name='student_import_template'),
     path('ciclos/', views.AcademicYearListView.as_view(), name='academic_years'),
     path('ciclos/<int:pk>/actual/', views.AcademicYearCurrentView.as_view(), name='academic_year_current'),
 ]
