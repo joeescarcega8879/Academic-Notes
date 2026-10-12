@@ -12,5 +12,5 @@ class EvaluationAdmin(admin.ModelAdmin):
 class GradeAdmin(admin.ModelAdmin):
     list_display = ('student', 'evaluation', 'score', 'graded_at')
     list_filter = ('evaluation__course',)
-    search_fields = ('student__username', 'student__email', 'evaluation__title')
+    search_fields = ('student__first_name', 'student__last_name', 'student__email', 'evaluation__title')
     autocomplete_fields = ('student', 'evaluation')

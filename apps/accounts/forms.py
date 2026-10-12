@@ -40,7 +40,7 @@ class ProfileForm(forms.ModelForm):
 class StudentProfileForm(forms.ModelForm):
     class Meta:
         model = StudentProfile
-        fields = ['program', 'semester', 'enrollment_number']
+        fields = ['program', 'semester']
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -51,7 +51,11 @@ class StudentProfile(models.Model):
     program = models.CharField(max_length=100)
     semester = models.IntegerField()
     tutor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tutor_students')
-    enrollment_number = models.CharField(max_length=20, unique=True)
+    # Deprecado: la matrícula pertenece a la organización (courses.Student.student_number).
+    enrollment_number = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text='Deprecado: la matrícula vive en courses.Student.student_number.',
+    )
 
     def __str__(self):
         return f'{self.user.get_full_name()} — {self.program} ({self.semester}º sem)'

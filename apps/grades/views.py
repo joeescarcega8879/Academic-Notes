@@ -21,7 +21,7 @@ def visible_grades(request):
     """
     grades = Grade.objects.for_organization(request.organization).select_related('student', 'evaluation__course')
     if request.membership.is_student:
-        return grades.filter(student=request.user)
+        return grades.filter(student__user=request.user)
     return grades.filter(evaluation__course__professor=request.user)
 
 
@@ -47,7 +47,7 @@ class GradeListView(OrganizationMemberMixin, ListView):
             )
         else:
             context['courses'] = (
-                Enrollment.objects.for_organization(organization).filter(student=user).select_related('course')
+                Enrollment.objects.for_organization(organization).filter(student__user=user).select_related('course')
             )
         return context
 
@@ -115,7 +115,7 @@ class GradeExportView(OrganizationMemberMixin, View):
         show_student = request.membership.is_teacher
         header = ['Materia', 'Evaluación', 'Tipo', 'Fecha', 'Peso', 'Calificación', 'Máximo', 'Comentario']
         if show_student:
-            header = ['Alumno', 'Email'] + header
+            header = ['Matrícula', 'Alumno', 'Email'] + header
         writer.writerow(header)
 
         for grade in grades:
@@ -132,7 +132,8 @@ class GradeExportView(OrganizationMemberMixin, View):
             ]
             if show_student:
                 row = [
-                    grade.student.get_full_name() or grade.student.username,
+                    grade.student.student_number,
+                    str(grade.student),
                     grade.student.email,
                 ] + row
             writer.writerow(row)

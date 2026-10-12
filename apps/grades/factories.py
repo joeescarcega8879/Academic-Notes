@@ -1,7 +1,6 @@
 import factory
 
-from apps.accounts.factories import StudentFactory
-from apps.courses.factories import CourseFactory
+from apps.courses.factories import CourseFactory, StudentRecordFactory, as_student
 
 from .models import Evaluation, Grade
 
@@ -22,5 +21,10 @@ class GradeFactory(factory.django.DjangoModelFactory):
         model = Grade
 
     evaluation = factory.SubFactory(EvaluationFactory)
-    student = factory.SubFactory(StudentFactory)
+    student = factory.SubFactory(StudentRecordFactory, organization=factory.SelfAttribute('..evaluation.organization'))
     score = 8.0
+
+    @classmethod
+    def _adjust_kwargs(cls, **kwargs):
+        kwargs['student'] = as_student(kwargs['student'], kwargs['evaluation'].organization)
+        return kwargs

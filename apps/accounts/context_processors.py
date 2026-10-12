@@ -47,7 +47,7 @@ def notifications(request):
         recent_grades = (
             Grade.objects
             .for_organization(request.organization)
-            .filter(student=user, graded_at__gt=cutoff)
+            .filter(student__user=user, graded_at__gt=cutoff)
             .select_related('evaluation__course')
             .order_by('-graded_at')
         )

@@ -1,10 +1,7 @@
 from django import forms
-from django.contrib.auth import get_user_model
-from apps.courses.models import Enrollment, Course
+from apps.courses.models import Course, Enrollment, Student
 
 from .models import Grade, Evaluation
-
-User = get_user_model()
 
 class GradeForm(forms.ModelForm):
     class Meta:
@@ -27,7 +24,7 @@ class GradeForm(forms.ModelForm):
             field.widget.attrs.setdefault('class', css)
 
         # Etiquetas legibles en los selects
-        self.fields['student'].label_from_instance = lambda u: u.get_full_name() or u.email
+        self.fields['student'].label_from_instance = str
         self.fields['evaluation'].label_from_instance = lambda e: e.title
 
         courses = Course.objects.for_organization(self.organization).filter(professor=self.user)
@@ -36,7 +33,9 @@ class GradeForm(forms.ModelForm):
             Evaluation.objects.for_organization(self.organization).filter(course__in=courses).select_related('course')
         )
         # Solo alumnos inscritos en alguna materia del profesor
-        self.fields['student'].queryset = User.objects.filter(enrollments__course__in=courses).distinct()
+        self.fields['student'].queryset = (
+            Student.objects.for_organization(self.organization).filter(enrollments__course__in=courses).distinct()
+        )
 
     def clean(self):
         cleaned = super().clean()

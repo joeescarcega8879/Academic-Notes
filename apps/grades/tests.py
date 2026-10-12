@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 
 from apps.accounts.factories import StudentFactory
-from apps.courses.factories import EnrollmentFactory, CourseFactory
+from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
 from .factories import EvaluationFactory, GradeFactory
 from .models import Grade
@@ -145,8 +145,8 @@ class TestExportacionCsv:
         assert response.content.startswith("﻿".encode("utf-8"))
         assert "attachment" in response["Content-Disposition"]
         rows = parse_csv(response)
-        assert rows[0][:2] == ["Alumno", "Email"]
-        assert rows[1][1] == enrollment.student.email
+        assert rows[0][:3] == ["Matrícula", "Alumno", "Email"]
+        assert rows[1][2] == enrollment.student.email
         assert "Muy bien" in rows[1]
 
     def test_alumno_no_ve_columnas_de_alumno_ni_ajenas(self, student_client, student, evaluation, enrollment):
@@ -163,7 +163,7 @@ class TestExportacionCsv:
         GradeFactory(evaluation=a, student=EnrollmentFactory(course=a.course).student)
         GradeFactory(evaluation=b, student=EnrollmentFactory(course=b.course).student)
         rows = parse_csv(professor_client.get(reverse(self.url), {"materia": a.course_id}))
-        assert [r[2] for r in rows[1:]] == ["Álgebra"]
+        assert [r[3] for r in rows[1:]] == ["Álgebra"]
 
     def test_filtra_por_rango_de_fechas(self, professor_client, evaluation):
         viejo = GradeFactory(evaluation=evaluation, student=EnrollmentFactory(course=evaluation.course).student)
@@ -173,8 +173,14 @@ class TestExportacionCsv:
 
         solo_nuevo = parse_csv(professor_client.get(reverse(self.url), {"desde": "2026-02-01"}))
         solo_viejo = parse_csv(professor_client.get(reverse(self.url), {"hasta": "2026-02-01"}))
-        assert [r[1] for r in solo_nuevo[1:]] == [nuevo.student.email]
-        assert [r[1] for r in solo_viejo[1:]] == [viejo.student.email]
+        assert [r[2] for r in solo_nuevo[1:]] == [nuevo.student.email]
+        assert [r[2] for r in solo_viejo[1:]] == [viejo.student.email]
+
+    def test_incluye_la_matricula_como_texto(self, professor_client, evaluation):
+        alumno = StudentRecordFactory(organization=evaluation.organization, student_number="00123")
+        GradeFactory(evaluation=evaluation, student=alumno)
+        rows = parse_csv(professor_client.get(reverse(self.url)))
+        assert rows[1][0] == "00123"  # con los ceros a la izquierda
 
     @pytest.mark.parametrize(
         "params",

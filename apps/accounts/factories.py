@@ -48,4 +48,3 @@ class StudentProfileFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(StudentFactory)
     program = "Ingeniería"
     semester = 3
-    enrollment_number = factory.Sequence(lambda n: f"A{n:05d}")

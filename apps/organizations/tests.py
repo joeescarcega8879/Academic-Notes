@@ -13,7 +13,7 @@ from apps.grades.models import Evaluation, Grade
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
-from apps.courses.models import Enrollment, Course
+from apps.courses.models import Course, Enrollment, Student
 
 from .factories import MembershipFactory, OrganizationFactory
 from .managers import OrganizationQuerySet
@@ -23,7 +23,7 @@ from .services import ensure_individual_organization, ensure_student_membership,
 
 pytestmark = pytest.mark.django_db
 
-TENANT_MODELS = [Course, Enrollment, Evaluation, Grade, Conversation, Message]
+TENANT_MODELS = [Course, Student, Enrollment, Evaluation, Grade, Conversation, Message]
 
 
 # ── Membresías y organización individual ──────────────────────────────
@@ -86,7 +86,7 @@ class TestDerivacionDeOrganizacion:
         materia = inscripcion.course
         evaluacion = EvaluationFactory(course=materia)
         nota = GradeFactory(evaluation=evaluacion, student=inscripcion.student)
-        conversacion = Conversation.objects.get(course=materia, student=inscripcion.student)
+        conversacion = Conversation.objects.get(course=materia, student=inscripcion.student.user)
         mensaje = MessageFactory(conversation=conversacion)
 
         for objeto in (inscripcion, evaluacion, nota, conversacion, mensaje):
@@ -101,7 +101,7 @@ class TestDerivacionDeOrganizacion:
 
     def test_inscribirse_hace_al_alumno_miembro_de_la_organizacion(self):
         inscripcion = EnrollmentFactory()
-        membership = Membership.objects.get(user=inscripcion.student)
+        membership = Membership.objects.get(user=inscripcion.student.user)
         assert membership.organization == inscripcion.course.organization
         assert membership.role == Membership.Role.STUDENT
 
@@ -206,7 +206,7 @@ def dos_organizaciones():
     for _ in range(2):
         profesor = ProfessorFactory()
         materia = CourseFactory(professor=profesor)
-        alumno = EnrollmentFactory(course=materia).student
+        alumno = EnrollmentFactory(course=materia).student.user
         evaluacion = EvaluationFactory(course=materia)
         GradeFactory(evaluation=evaluacion, student=alumno)
         conversacion = Conversation.objects.get(course=materia, student=alumno)

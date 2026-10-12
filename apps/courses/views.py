@@ -67,13 +67,13 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
         enrollments = list(
             Enrollment.objects
             .for_organization(organization)
-            .filter(student=user)
+            .filter(student__user=user)
             .select_related('course', 'course__professor')
         )
 
         # Promedio ponderado del alumno (general y por materia)
         grades = list(
-            Grade.objects.for_organization(organization).filter(student=user).select_related('evaluation')
+            Grade.objects.for_organization(organization).filter(student__user=user).select_related('evaluation')
         )
 
         per_course = stats_by_course(grades)
@@ -96,13 +96,13 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
         user = self.request.user
         if self.request.membership.is_teacher:
             return qs.filter(professor=user)
-        return qs.filter(enrollments__student=user)
+        return qs.filter(enrollments__student__user=user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         context['enrollments'] = self.object.enrollments.select_related('student')
-        context['my_enrollment'] = self.object.enrollments.filter(student=user).first()
+        context['my_enrollment'] = self.object.enrollments.filter(student__user=user).first()
 
         # Vista alumno: evaluaciones de la materia + su calificación
         if self.request.membership.is_student:
@@ -110,7 +110,7 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
 
             my_grades = {
                 g.evaluation_id: g
-                for g in Grade.objects.filter(student=user, evaluation__course=self.object).select_related('evaluation')
+                for g in Grade.objects.filter(student__user=user, evaluation__course=self.object).select_related('evaluation')
             }
             rows = [
                 {'evaluation': evaluation, 'grade': my_grades.get(evaluation.id)}

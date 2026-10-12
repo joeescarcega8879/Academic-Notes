@@ -102,8 +102,20 @@ class ProfileView(LoginRequiredMixin, View):
             eform = StudentProfileForm(instance=getattr(request.user, 'student_profile', None))
         else:
             eform = ProfessorProfileForm(instance=getattr(request.user, 'professor_profile', None))
-        return render(request, self.template_name, {'profile_form': profile_form, 'extra_form': eform})
-    
+        return render(request, self.template_name, self.context(request, profile_form, eform))
+
+    @staticmethod
+    def context(request, profile_form, extra_form):
+        # La matrícula pertenece a la organización activa, no a la cuenta.
+        from apps.courses.models import Student
+
+        student = Student.objects.for_organization(request.organization).filter(user=request.user).first()
+        return {
+            'profile_form': profile_form,
+            'extra_form': extra_form,
+            'student_number': student.student_number if student else '',
+        }
+
     def post(self, request):
         pform = ProfileForm(request.POST, request.FILES, instance=request.user)
         if request.user.role == User.Role.STUDENT:
@@ -116,4 +128,4 @@ class ProfileView(LoginRequiredMixin, View):
             extra.user = request.user
             extra.save()
             return redirect('profile')
-        return render(request, self.template_name, {'profile_form': pform, 'extra_form': eform})
+        return render(request, self.template_name, self.context(request, pform, eform))
