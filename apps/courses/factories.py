@@ -1,11 +1,13 @@
+import datetime
+
 import factory
 from django.contrib.auth import get_user_model
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.organizations.factories import OrganizationFactory
 
-from .models import Course, Enrollment, Student
-from .services import student_for_user
+from .models import AcademicYear, Course, Enrollment, Student
+from .services.students import student_for_user
 
 
 class CourseFactory(factory.django.DjangoModelFactory):
@@ -47,3 +49,13 @@ class EnrollmentFactory(factory.django.DjangoModelFactory):
     def _adjust_kwargs(cls, **kwargs):
         kwargs['student'] = as_student(kwargs['student'], kwargs['course'].organization)
         return kwargs
+
+
+class AcademicYearFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = AcademicYear
+
+    organization = factory.SubFactory(OrganizationFactory)
+    name = factory.Sequence(lambda n: f"Ciclo {n}")
+    start_date = datetime.date(2026, 8, 1)
+    end_date = datetime.date(2027, 7, 31)

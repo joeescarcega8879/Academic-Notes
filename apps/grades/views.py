@@ -76,8 +76,8 @@ class GradeUpdateView(TeacherRequiredMixin, UpdateView):
         return kwargs
 
     def get_queryset(self):
-        # solo calificaciones de sus materias, en la organización activa
-        return visible_grades(self.request)
+        # solo calificaciones de sus materias activas, en la organización activa
+        return visible_grades(self.request).filter(evaluation__course__status='active')
 
 class GradeExportView(OrganizationMemberMixin, View):
     """Exporta a CSV las calificaciones que el usuario puede ver."""
@@ -147,4 +147,5 @@ class GradeDeleteView(TeacherRequiredMixin, DeleteView):
     success_url = reverse_lazy('grades:list')
 
     def get_queryset(self):
-        return visible_grades(self.request)
+        # Un grupo archivado es de solo lectura.
+        return visible_grades(self.request).filter(evaluation__course__status='active')

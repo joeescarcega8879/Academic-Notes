@@ -1,6 +1,6 @@
 """Reglas de negocio de alumnos e inscripciones."""
 
-from .models import Student
+from ..models import Student
 
 
 def student_for_user(user, organization):

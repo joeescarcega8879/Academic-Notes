@@ -17,6 +17,25 @@
   <div class="flex-row items-baseline gap-14">
     <h2 style="margin: 0">{{ course.name }}</h2>
     <span class="text-xs text-muted">{{ course.code }}</span>
+    <span class="chip">{{ course.academic_year }}</span>
+    {% if course.is_archived %}<span class="chip">Archivada</span>{% endif %}
+    {% if is_teacher %}
+      <div class="spacer"></div>
+      {% if course.is_archived %}
+        <form method="post" action="{% url 'course_unarchive' course.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">Desarchivar</button>
+        </form>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'course_update' course.pk %}">Editar</a>
+        <form method="post" action="{% url 'course_archive' course.pk %}" class="inline-form"
+              onsubmit="return confirm('¿Archivar esta materia? Seguirá consultable, pero ya no admitirá cambios.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">Archivar</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
+    {% endif %}
   </div>
   <div class="text-sm text-muted" style="margin-top: 6px">
     {{ course.schedule|default:"Horario por definir" }} · {{ course.professor.get_full_name }}
@@ -27,13 +46,41 @@
 </div>
 
 {% if is_teacher %}
+  {% if not course.is_archived %}
+    <div class="card mb-12">
+      <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+        <h3 class="section-title" style="margin: 0">Código de invitación</h3>
+        {% if course.invite_code %}
+          <code style="font-size: 1.3em; letter-spacing: 3px">{{ course.invite_code }}</code>
+          <span class="text-sm text-muted">Tus alumnos lo usan en «Unirme a un grupo» con su matrícula y apellidos.</span>
+        {% else %}
+          <span class="text-sm text-muted">Desactivado: nadie puede enlazar su cuenta a este grupo.</span>
+        {% endif %}
+        <div class="spacer"></div>
+        <form method="post" action="{% url 'course_invite' course.pk %}" class="inline-form">
+          {% csrf_token %}
+          {% if course.invite_code %}
+            <button type="submit" name="action" value="regenerate" class="btn btn-ghost"
+                    onclick="return confirm('El código actual dejará de funcionar. ¿Generar uno nuevo?')">Regenerar</button>
+            <button type="submit" name="action" value="disable" class="btn btn-ghost">Desactivar</button>
+          {% else %}
+            <button type="submit" name="action" value="enable" class="btn btn-ghost">Activar</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Vista PROFESOR: lista de alumnos inscritos -->
   <div class="table-wrap">
     <div class="table-head">
       <h3>Alumnos inscritos</h3>
       <span class="grade style-pill ok">{{ enrollments|length }}</span>
       <div class="spacer"></div>
-      <a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>
+      {% if not course.is_archived %}
+        <a class="btn btn-primary" href="{% url 'student_import' course.pk %}">Importar lista</a>
+        <a class="btn btn-ghost" href="{% url 'student_add' course.pk %}">Agregar alumno</a>
+      {% endif %}
     </div>
     <table class="tbl">
       <thead>
@@ -41,7 +88,9 @@
           <th>Alumno</th>
           <th>Matrícula</th>
           <th>Email</th>
+          <th>Cuenta</th>
           <th>Inscrito el</th>
+          {% if not course.is_archived %}<th></th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -50,11 +99,29 @@
             <td>{{ enrollment.student.get_full_name|default:enrollment.student.email }}</td>
             <td>{{ enrollment.student.student_number }}</td>
             <td>{{ enrollment.student.email }}</td>
+            <td>{% if enrollment.student.user_id %}<span class="chip ok">Vinculada</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
             <td>{{ enrollment.enrolled_at|date:"d/m/Y" }}</td>
+            {% if not course.is_archived %}
+              <td style="white-space: nowrap">
+                <a class="btn btn-ghost" href="{% url 'student_edit' course.pk enrollment.student.pk %}">Editar</a>
+                {% if enrollment.student.user_id %}
+                  <form method="post" action="{% url 'student_unlink' course.pk enrollment.student.pk %}" class="inline-form"
+                        onsubmit="return confirm('Se desvinculará la cuenta y se borrarán sus conversaciones de este grupo. ¿Continuar?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-ghost">Desvincular</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="{% url 'student_remove' course.pk enrollment.student.pk %}" class="inline-form"
+                      onsubmit="return confirm('¿Quitar a este alumno del grupo?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost">Quitar</button>
+                </form>
+              </td>
+            {% endif %}
           </tr>
         {% empty %}
           <tr>
-            <td colspan="4" class="text-muted">Sin alumnos inscritos todavía.</td>
+            <td colspan="6" class="text-muted">Sin alumnos inscritos todavía. Importa tu lista o agrégalos uno por uno.</td>
           </tr>
         {% endfor %}
       </tbody>

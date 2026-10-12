@@ -79,4 +79,24 @@
   {% endfor %}
 </div>
 
+{% if archived_enrollments %}
+  <details class="archived-list">
+    <summary>Materias de ciclos anteriores ({{ archived_enrollments|length }})</summary>
+    <div class="table-wrap" style="margin-top: 10px">
+      <table class="tbl">
+        <thead><tr><th>Materia</th><th>Profesor</th><th>Ciclo</th></tr></thead>
+        <tbody>
+          {% for enrollment in archived_enrollments %}
+            <tr>
+              <td><a href="{{ enrollment.course.get_absolute_url }}">{{ enrollment.course.name }}</a></td>
+              <td>{{ enrollment.course.professor.get_full_name }}</td>
+              <td>{{ enrollment.course.academic_year }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% endif %}
+
 {% endblock %}

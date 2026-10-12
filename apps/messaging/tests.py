@@ -5,7 +5,7 @@ from apps.accounts.models import User, StudentProfile, ProfessorProfile
 from apps.messaging.context_processors import unread_messages
 from apps.messaging.models import Conversation, Message
 from apps.courses.models import Course, Enrollment
-from apps.courses.services import student_for_user
+from apps.courses.services.students import student_for_user
 
 
 def conv_items(html):

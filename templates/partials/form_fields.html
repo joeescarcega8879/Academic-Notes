@@ -1,0 +1,16 @@
+{% if form.non_field_errors %}
+  <div class="flash flash-error" style="margin-bottom: var(--pad-2)">{{ form.non_field_errors }}</div>
+{% endif %}
+
+{% for field in form %}
+  <div class="field">
+    {% if field.field.widget.input_type == 'checkbox' %}
+      <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+    {% else %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+    {% endif %}
+    {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+    {% for error in field.errors %}<div style="color: var(--bad); font-size: 12px;">{{ error }}</div>{% endfor %}
+  </div>
+{% endfor %}

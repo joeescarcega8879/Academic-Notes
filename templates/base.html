@@ -45,6 +45,13 @@
         {% endblock %}
         
         <div class="content">
+          {% if messages %}
+            <div class="flash-list">
+              {% for message in messages %}
+                <div class="flash flash-{{ message.level_tag }}" role="status">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
           {% block content %}
           
           {% endblock %}

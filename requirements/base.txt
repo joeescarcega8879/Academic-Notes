@@ -10,3 +10,6 @@ psycopg[binary]>=3.2
 # ── Tareas asíncronas (infraestructura de la Fase 0; se usan desde Fase 1) ──
 celery>=5.4
 redis>=5.2
+
+# ── Importación de listas (Excel) ─────────────────────────────────────
+openpyxl>=3.1

@@ -27,7 +27,9 @@ class GradeForm(forms.ModelForm):
         self.fields['student'].label_from_instance = str
         self.fields['evaluation'].label_from_instance = lambda e: e.title
 
-        courses = Course.objects.for_organization(self.organization).filter(professor=self.user)
+        courses = Course.objects.for_organization(self.organization).filter(
+            professor=self.user, status=Course.Status.ACTIVE,  # un grupo archivado es de solo lectura
+        )
         # Solo las evaluaciones de las materias del profesor
         self.fields['evaluation'].queryset = (
             Evaluation.objects.for_organization(self.organization).filter(course__in=courses).select_related('course')
