@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from ..models import Course
+from ..signals import course_cloned
 
 
 def archive_course(course):
@@ -32,9 +33,9 @@ def unarchive_course(course):
 def clone_course(course, academic_year, *, code=None, name=None):
     """Duplica ``course`` en ``academic_year`` para un nuevo ciclo.
 
-    Copia los datos del grupo y sus evaluaciones (sin fecha, listas para volver a programarse). No copia
-    alumnos, inscripciones ni calificaciones: los ``Student`` persisten en la organización y en el nuevo
-    ciclo solo se crean inscripciones nuevas.
+    Copia los datos del grupo y, mediante ``course_cloned``, su contenido (esquema de evaluación y evaluaciones
+    sin fecha, listas para volver a programarse). No copia alumnos, inscripciones ni calificaciones: los
+    ``Student`` persisten en la organización y en el nuevo ciclo solo se crean inscripciones nuevas.
     """
     if academic_year.organization_id != course.organization_id:
         raise ValidationError('El ciclo debe pertenecer a la misma organización que el grupo.')
@@ -53,10 +54,5 @@ def clone_course(course, academic_year, *, code=None, name=None):
         schedule=course.schedule,
         color=course.color,
     )
-    for evaluation in course.evaluations.all():
-        # Sin fecha: el docente vuelve a programarla en el nuevo ciclo.
-        clone.evaluations.create(
-            title=evaluation.title, description=evaluation.description, type=evaluation.type,
-            max_score=evaluation.max_score, weight=evaluation.weight, date=None,
-        )
+    course_cloned.send(sender=Course, source=course, clone=clone)
     return clone
