@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Armar quiz · {{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Armar quiz</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>
+  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
+</header>
+{% endblock %}
+
+{% block content %}
+{% if read_only %}<div class="flash mb-12">El grupo está archivado: el quiz es de solo lectura.</div>{% endif %}
+{% if locked %}
+  <div class="flash mb-12">Este quiz ya tiene intentos: sus preguntas y puntos no se pueden cambiar. La configuración sí.</div>
+{% endif %}
+
+<div class="card mb-12">
+  <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+    <h3 class="section-title" style="margin: 0">Resumen</h3>
+    <span class="chip">{{ question_count }} pregunta{{ question_count|pluralize }}</span>
+    <span class="chip">{{ total_points|floatformat:"-2" }} puntos en total</span>
+    <span class="chip {% if points_match %}ok{% endif %}">La actividad vale {{ activity.max_score|floatformat:"-2" }}</span>
+    {% if activity.published %}<span class="chip ok">Publicado</span>{% else %}<span class="chip">Borrador</span>{% endif %}
+    <div class="spacer"></div>
+    {% if question_count and not points_match and not locked and not read_only %}
+      <form method="post" class="inline-form">{% csrf_token %}
+        <input type="hidden" name="action" value="sync">
+        <button type="submit" class="btn btn-ghost">Usar el total como puntos de la actividad</button>
+      </form>
+    {% endif %}
+  </div>
+  <p class="text-xs text-muted" style="margin-bottom: 0">
+    La calificación del alumno se calcula sobre los puntos de la actividad: si saca {{ total_points|floatformat:"-2" }} de {{ total_points|floatformat:"-2" }} obtiene el máximo.
+    {% if not activity.published %}Para publicarlo necesita al menos una pregunta.{% endif %}
+  </p>
+</div>
+
+<div class="card mb-12" style="max-width: 720px">
+  <h3 class="section-title">Configuración</h3>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="settings">
+    {% include 'partials/form_fields.html' with form=config_form %}
+    {% if not read_only %}<button type="submit" class="btn btn-primary" style="margin-top: 14px">Guardar configuración</button>{% endif %}
+  </form>
+</div>
+
+<div class="table-wrap mb-12">
+  <div class="table-head">
+    <h3>Preguntas del quiz</h3>
+    <div class="spacer"></div>
+    {% if not locked and not read_only %}
+      <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'multiple_choice' %}?add_to={{ activity.pk }}">Nueva opción múltiple</a>
+      <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}?add_to={{ activity.pk }}">Nueva verdadero/falso</a>
+    {% endif %}
+  </div>
+  <table class="tbl">
+    <thead><tr><th>#</th><th>Pregunta</th><th>Respuesta correcta</th><th>Puntos</th><th></th></tr></thead>
+    <tbody>
+      {% for question in questions %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ question.text|truncatechars:100 }}<div class="text-xs text-muted">{{ question.get_kind_display }}</div></td>
+          <td>{% for choice in question.choices.all %}{% if choice.is_correct %}{{ choice.text|truncatechars:40 }}{% endif %}{% endfor %}</td>
+          <td style="white-space: nowrap">
+            {% if locked or read_only %}{{ question.points|floatformat:"-2" }}{% else %}
+              <form method="post" class="inline-form">{% csrf_token %}
+                <input type="hidden" name="action" value="points"><input type="hidden" name="question_id" value="{{ question.pk }}">
+                <input class="input" style="width: 80px; display: inline-block" type="text" inputmode="decimal" name="points" value="{{ question.points|floatformat:'-2' }}">
+                <button type="submit" class="btn btn-ghost">Guardar</button>
+              </form>
+            {% endif %}
+          </td>
+          <td style="white-space: nowrap">
+            {% if not locked and not read_only %}
+              <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.pk }}">
+                <button type="submit" name="action" value="up" class="btn btn-ghost"{% if forloop.first %} disabled{% endif %}>↑</button>
+                <button type="submit" name="action" value="down" class="btn btn-ghost"{% if forloop.last %} disabled{% endif %}>↓</button>
+                <button type="submit" name="action" value="remove" class="btn btn-ghost">Quitar</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Todavía no hay preguntas. Agrégalas del banco o crea nuevas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if not locked and not read_only %}
+<div class="card">
+  <h3 class="section-title">Agregar desde el banco</h3>
+  <form method="get" class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px">
+    <div class="field"><label for="bq">Buscar</label><input class="input" type="text" id="bq" name="bq" value="{{ picker_filters.q }}"></div>
+    <div class="field"><label for="btopic">Tema</label><input class="input" type="text" id="btopic" name="btopic" value="{{ picker_filters.topic }}"></div>
+    <div class="field"><label for="bkind">Tipo</label>
+      <select class="select" id="bkind" name="bkind"><option value="">Todos</option>
+        {% for value, label in kinds %}<option value="{{ value }}"{% if picker_filters.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select></div>
+    <button type="submit" class="btn btn-ghost" style="margin-bottom: 14px">Filtrar</button>
+  </form>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <table class="tbl">
+      <thead><tr><th></th><th>Pregunta</th><th>Tipo</th><th>Tema</th><th>Puntos</th></tr></thead>
+      <tbody>
+        {% for question in picker %}
+          <tr>
+            <td><input type="checkbox" name="question" value="{{ question.pk }}" id="q{{ question.pk }}"></td>
+            <td><label for="q{{ question.pk }}">{{ question.text|truncatechars:90 }}</label></td>
+            <td>{{ question.get_kind_display }}</td>
+            <td>{{ question.topic|default:"—" }}</td>
+            <td>{{ question.points|floatformat:"-2" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-muted">No hay preguntas del banco para agregar con esos filtros.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if picker.has_other_pages %}
+      <div class="flex-row gap-14" style="padding: 10px 0">
+        {% if picker.has_previous %}<a class="btn btn-ghost" href="?{% if picker_querystring %}{{ picker_querystring }}&{% endif %}bp={{ picker.previous_page_number }}">Anterior</a>{% endif %}
+        <span class="text-sm text-muted">Página {{ picker.number }} de {{ picker.paginator.num_pages }}</span>
+        {% if picker.has_next %}<a class="btn btn-ghost" href="?{% if picker_querystring %}{{ picker_querystring }}&{% endif %}bp={{ picker.next_page_number }}">Siguiente</a>{% endif %}
+      </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary" style="margin-top: 10px">Agregar las seleccionadas</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

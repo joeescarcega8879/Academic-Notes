@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Importar preguntas · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Importar preguntas</h1>
+  <span class="sub">Desde Excel o CSV</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Volver al banco</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 720px">
+  <p class="text-sm text-muted" style="margin-top: 0">
+    Una pregunta por fila. En el siguiente paso verás qué pasará con cada una antes de guardar nada.
+  </p>
+  <ul class="text-sm text-muted">
+    <li><strong>Pregunta</strong> y <strong>Correcta</strong> son obligatorias.</li>
+    <li>Opción múltiple: llena <strong>Opción A, B, C…</strong> (hasta 8) y en <strong>Correcta</strong> escribe la letra (B), el número (2) o el texto de la opción.</li>
+    <li>Verdadero/falso: deja las opciones vacías y escribe «Verdadero» o «Falso» en <strong>Correcta</strong>.</li>
+    <li>Opcionales: <strong>Tipo</strong>, <strong>Puntos</strong> (1 si falta), <strong>Tema</strong> y <strong>Explicación</strong>.</li>
+    <li>Las preguntas que ya están en el banco se omiten, así que puedes volver a subir el archivo sin duplicar.</li>
+    <li>Máximo 2 MB y 2000 preguntas por archivo.</li>
+  </ul>
+
+  {% if error %}<div class="flash flash-error" style="margin-bottom: var(--pad-2)">{{ error }}</div>{% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="field">
+      <label for="file">Archivo</label>
+      <input class="input" type="file" id="file" name="file" accept=".xlsx,.csv,.txt" required>
+    </div>
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Subir y revisar</button>
+      <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Cancelar</a>
+      <div class="spacer"></div>
+      <a class="btn btn-ghost" href="{% url 'quizzes:import_template' %}">Descargar plantilla</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

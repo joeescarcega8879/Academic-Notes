@@ -18,6 +18,8 @@
     {% if is_teacher %}
       {% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}
       <div class="spacer"></div>
+      {% if activity.type == 'quiz' %}<a class="btn btn-primary" href="{% url 'quizzes:builder' activity.pk %}">Armar quiz</a>
+        <a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'grades:activity_history' activity.pk %}">Historial</a>
       {% if not course.is_archived %}
         <a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>
@@ -87,6 +89,7 @@
               {% if enrollment.grade %}
                 <span class="grade style-pill ok">{{ enrollment.grade.score|floatformat:"-2" }}</span>
                 <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span>
+                {% if enrollment.grade.source == 'quiz' %}<span class="chip">Automática</span>{% endif %}
               {% else %}<span class="text-muted">Sin calificar</span>{% endif %}
             </td>
             <td class="text-muted">{{ enrollment.grade.feedback|default:"—" }}</td>
@@ -98,6 +101,13 @@
     </table>
   </div>
 {% else %}
+  {% if activity.type == 'quiz' %}
+    <div class="card mb-12" style="max-width: 720px">
+      <h3 class="section-title">Quiz</h3>
+      <p style="margin-top: 0">Este quiz se resuelve en línea y se califica solo.</p>
+      <a class="btn btn-primary" href="{% url 'quizzes:overview' activity.pk %}">Ir al quiz</a>
+    </div>
+  {% endif %}
   {% if activity.accepts_submissions %}
     <div class="card mb-12" style="max-width: 720px">
       <h3 class="section-title">Tu entrega</h3>

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}{% if question %}Editar{% else %}Nueva{% endif %} pregunta · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{% if question %}Editar pregunta{% else %}Nueva pregunta{% endif %}</h1>
+  <span class="sub">{{ kind_label }}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'partials/form_fields.html' %}
+
+    {% if formset %}
+      <h3 class="section-title" style="margin-top: 18px">Opciones</h3>
+      <p class="text-sm text-muted" style="margin-top: 0">Escribe de 2 a 8 opciones y marca la correcta. Las filas vacías se ignoran.</p>
+      {% if formset.non_form_errors %}<div class="flash flash-error" style="margin-bottom: 10px">{{ formset.non_form_errors }}</div>{% endif %}
+      {{ formset.management_form }}
+      <div id="choices">
+        {% for choice in formset %}
+          <div class="flex-row gap-14 choice-row" style="align-items: center; margin-bottom: 8px">
+            <label>{{ choice.is_correct }} Correcta</label>
+            <div style="flex: 1">{{ choice.text }}{{ choice.text.errors }}</div>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-ghost" id="add-choice">Agregar opción</button>
+    {% endif %}
+
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a class="btn btn-ghost" href="{% if question %}{% url 'quizzes:question_detail' question.pk %}{% else %}{% url 'quizzes:bank' %}{% endif %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% if formset %}
+<script>
+  (function () {
+    var button = document.getElementById("add-choice");
+    var total = document.getElementById("id_choices-TOTAL_FORMS");
+    var max = parseInt(document.getElementById("id_choices-MAX_NUM_FORMS").value, 10);
+    var box = document.getElementById("choices");
+    button.addEventListener("click", function () {
+      var count = parseInt(total.value, 10);
+      if (count >= max) { button.disabled = true; return; }
+      var row = box.querySelector(".choice-row").cloneNode(true);
+      row.querySelectorAll("input").forEach(function (input) {
+        input.name = input.name.replace(/choices-\d+-/, "choices-" + count + "-");
+        input.id = input.id.replace(/choices-\d+-/, "choices-" + count + "-");
+        if (input.type === "checkbox") { input.checked = false; } else { input.value = ""; }
+      });
+      row.querySelectorAll("ul.errorlist").forEach(function (list) { list.remove(); });
+      box.appendChild(row);
+      total.value = count + 1;
+      if (count + 1 >= max) { button.disabled = true; }
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

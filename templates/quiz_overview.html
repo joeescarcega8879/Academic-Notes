@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{{ activity.title }}</h1>
+  <span class="sub">Quiz · {{ course.name }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12" style="max-width: 760px">
+  {% if activity.instructions %}<p style="white-space: pre-line; margin-top: 0">{{ activity.instructions }}</p>{% endif %}
+  <div class="kv-row"><div class="k">Preguntas</div><div class="v">{{ question_count }}</div></div>
+  <div class="kv-row"><div class="k">Puntos de la actividad</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
+  <div class="kv-row"><div class="k">Tiempo</div><div class="v">{% if quiz.time_limit_minutes %}{{ quiz.time_limit_minutes }} minutos desde que empiezas{% else %}Sin límite{% endif %}</div></div>
+  <div class="kv-row"><div class="k">Intentos</div><div class="v">{{ attempts_used }} de {{ quiz.attempts_allowed }} usados</div></div>
+  {% if quiz.attempts_allowed > 1 %}<div class="kv-row"><div class="k">Cuenta</div><div class="v">{{ quiz.get_attempt_policy_display }}</div></div>{% endif %}
+  {% if activity.opens_at %}<div class="kv-row"><div class="k">Abre</div><div class="v">{{ activity.opens_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
+  {% if activity.due_at %}<div class="kv-row"><div class="k">Cierra</div><div class="v">{{ activity.due_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
+
+  <form method="post" style="margin-top: 16px">
+    {% csrf_token %}
+    {% if open_attempt %}
+      <p class="text-sm">Tienes un intento en curso. El tiempo sigue corriendo aunque cierres la página.</p>
+      <button type="submit" class="btn btn-primary">Continuar el intento {{ open_attempt.number }}</button>
+    {% elif blocked %}
+      <p class="text-muted" style="margin: 0">{{ blocked }}</p>
+    {% else %}
+      {% if quiz.time_limit_minutes %}<p class="text-sm">Al comenzar empieza a correr el tiempo.</p>{% endif %}
+      <button type="submit" class="btn btn-primary">{% if attempts_used %}Comenzar otro intento{% else %}Comenzar el quiz{% endif %}</button>
+    {% endif %}
+  </form>
+</div>
+
+{% if attempts %}
+<div class="table-wrap" style="max-width: 760px">
+  <div class="table-head"><h3>Tus intentos</h3></div>
+  <table class="tbl">
+    <thead><tr><th>Intento</th><th>Inicio</th><th>Estado</th><th>Resultado</th><th></th></tr></thead>
+    <tbody>
+      {% for attempt in attempts %}
+        <tr>
+          <td>{{ attempt.number }}</td>
+          <td>{{ attempt.started_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ attempt.get_status_display }}</td>
+          <td>{% if attempt.is_finished %}{{ attempt.score|floatformat:"-2" }} / {{ attempt.max_points|floatformat:"-2" }}{% else %}—{% endif %}</td>
+          <td>{% if attempt.is_finished %}<a href="{% url 'quizzes:result' attempt.pk %}">Ver</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

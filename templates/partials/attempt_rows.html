@@ -1,0 +1,28 @@
+{# Respuestas de un intento: lo que marcó el alumno, lo correcto y la explicación. Espera `rows`. #}
+{% for row in rows %}
+  <div class="card mb-12" style="max-width: 760px">
+    <div class="flex-row items-baseline gap-14">
+      <strong>{{ forloop.counter }}.</strong>
+      {% if row.is_correct %}<span class="chip ok">Correcta</span>
+      {% elif row.answered %}<span class="chip" style="color: var(--bad)">Incorrecta</span>
+      {% else %}<span class="chip">Sin responder</span>{% endif %}
+      <span class="chip">{{ row.points|floatformat:"-2" }} / {{ row.question.points|floatformat:"-2" }}</span>
+    </div>
+    <p style="white-space: pre-line; margin: 8px 0 10px">{{ row.question.text }}</p>
+    <ul style="list-style: none; padding: 0; margin: 0">
+      {% for item in row.choices %}
+        <li style="padding: 6px 10px; margin-bottom: 4px; border-radius: 6px;
+          {% if item.correct %}background: var(--ok-bg); color: var(--ok)
+          {% elif item.chosen %}background: var(--bad); color: #fff
+          {% else %}background: var(--surface-2){% endif %}">
+          {{ item.choice.text }}
+          {% if item.chosen %}<span class="text-xs"> · {% if is_teacher %}respuesta del alumno{% else %}tu respuesta{% endif %}</span>{% endif %}
+          {% if item.correct %}<span class="text-xs"> · correcta</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% if row.question.explanation %}
+      <p class="text-sm" style="margin: 10px 0 0; white-space: pre-line"><strong>Explicación:</strong> {{ row.question.explanation }}</p>
+    {% endif %}
+  </div>
+{% endfor %}

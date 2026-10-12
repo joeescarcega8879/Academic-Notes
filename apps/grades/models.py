@@ -9,6 +9,8 @@ from django.db import models
 
 from apps.organizations.models import TenantModel
 
+from .hooks import activity_publishing
+
 
 class EvaluationScheme(TenantModel):
     """Cómo se calcula la calificación final de un grupo: escala, mínimo aprobatorio y redondeo.
@@ -152,6 +154,9 @@ class Activity(TenantModel):
             raise ValidationError({'criterion': 'El criterio debe ser del esquema de este grupo.'})
         if self.opens_at and self.due_at and self.due_at < self.opens_at:
             raise ValidationError({'due_at': 'La fecha límite no puede ser anterior a la apertura.'})
+        if self.published:
+            # Otras apps pueden vetar la publicación (un quiz sin preguntas, por ejemplo).
+            activity_publishing.send(sender=Activity, activity=self)
 
     def save(self, *args, **kwargs):
         from .services.schemes import default_criterion
@@ -177,10 +182,16 @@ class Grade(TenantModel):
     ``score`` se recalcula al guardar, de modo que la penalización nunca se aplica dos veces.
     """
 
+    class Source(models.TextChoices):
+        MANUAL = 'manual', 'Docente'
+        QUIZ = 'quiz', 'Quiz (automática)'
+
     organization_source = 'activity'
 
     activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='grades')
     student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='grades')
+    # De dónde viene: lo que el docente fija a mano manda sobre la calificación automática de un quiz.
+    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
     score = models.FloatField(validators=[MinValueValidator(0)])
     raw_score = models.FloatField(validators=[MinValueValidator(0)])
     late_penalty = models.DecimalField(max_digits=5, decimal_places=2, default=0)

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Pregunta · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Pregunta</h1>
+  <span class="sub">{{ question.get_kind_display }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Volver al banco</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px">
+  <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+    <span class="chip">{{ question.get_kind_display }}</span>
+    {% if question.topic %}<span class="chip brand">{{ question.topic }}</span>{% endif %}
+    <span class="chip">{{ question.points|floatformat:"-2" }} punto{{ question.points|pluralize }}</span>
+    {% if question.is_archived %}<span class="chip">Archivada</span>{% endif %}
+    <div class="spacer"></div>
+    <form method="post" action="{% url 'quizzes:question_duplicate' question.pk %}" class="inline-form">
+      {% csrf_token %}<button type="submit" class="btn btn-ghost">Duplicar</button>
+    </form>
+    {% if can_edit %}
+      <a class="btn btn-ghost" href="{% url 'quizzes:question_update' question.pk %}">Editar</a>
+      <form method="post" action="{% url 'quizzes:question_archive' question.pk %}" class="inline-form">
+        {% csrf_token %}<button type="submit" class="btn btn-ghost">{% if question.is_archived %}Desarchivar{% else %}Archivar{% endif %}</button>
+      </form>
+      <form method="post" action="{% url 'quizzes:question_delete' question.pk %}" class="inline-form"
+            onsubmit="return confirm('¿Eliminar esta pregunta del banco? Los quizzes que ya la usan conservan su copia.')">
+        {% csrf_token %}<button type="submit" class="btn btn-ghost">Eliminar</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <p style="white-space: pre-line; font-size: 1.05em">{{ question.text }}</p>
+
+  <ul style="list-style: none; padding: 0">
+    {% for choice in question.choices.all %}
+      <li style="padding: 6px 10px; margin-bottom: 4px; border-radius: 6px; {% if choice.is_correct %}background: var(--ok-bg); color: var(--ok){% else %}background: var(--surface-2){% endif %}">
+        {{ choice.text }}{% if choice.is_correct %} <strong>✓ correcta</strong>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  {% if question.explanation %}
+    <h3 class="section-title">Explicación</h3>
+    <p style="white-space: pre-line">{{ question.explanation }}</p>
+  {% endif %}
+
+  <p class="text-xs text-muted">Autor: {{ question.author.get_full_name|default:question.author.email|default:"—" }}
+    · actualizada el {{ question.updated_at|date:"d/m/Y" }}</p>
+</div>
+{% endblock %}
