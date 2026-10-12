@@ -168,6 +168,20 @@ button { font: inherit; cursor: pointer; }
 .profile .meta .name { color: #fff; font-weight: 500; font-size: 14px; }
 .profile .meta .role { color: #8c9bb3; font-size: 12px; }
 
+.flash-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--pad-3); }
+.flash {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.flash-success { background: var(--ok-bg); color: var(--ok); border-color: rgba(34,168,102,0.2); }
+.flash-error { background: var(--bad); color: #fff; border-color: transparent; }
+.inline-form { display: inline; margin: 0; }
+.archived-list { margin-top: var(--pad-3); }
+.archived-list summary { cursor: pointer; font-weight: 500; color: var(--text-muted); }
+
 .org-switch { padding: 0 6px; }
 .org-switch .select { width: 100%; height: 34px; font-size: 13px; }
 

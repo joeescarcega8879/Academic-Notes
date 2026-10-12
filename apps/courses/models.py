@@ -105,6 +105,11 @@ class Course(TenantModel):
             models.UniqueConstraint(fields=['organization', 'academic_year', 'code'], name='unique_course_code_per_year'),
         ]
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse('course_detail', args=[self.pk])
+
     @property
     def is_archived(self):
         return self.status == self.Status.ARCHIVED
@@ -196,9 +201,10 @@ class Enrollment(TenantModel):
     def clean(self):
         if self.student_id and self.course_id and self.student.organization_id != self.course.organization_id:
             raise ValidationError('El alumno y el grupo deben pertenecer a la misma organización.')
+        if self.course_id:
+            self.course.ensure_editable()
 
     def save(self, *args, **kwargs):
         # El alumno y el grupo comparten organización; la inscripción la hereda del grupo.
         self.clean()
-        self.course.ensure_editable()
         super().save(*args, **kwargs)

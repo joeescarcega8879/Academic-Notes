@@ -1,10 +1,17 @@
+from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db.models import Count
-from django.views.generic import TemplateView, DetailView
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views import View
+from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
 from apps.grades.services.grading import grade_stats, stats_by_course
 
-from .models import Course, Enrollment
+from .forms import AcademicYearForm, CloneCourseForm, CourseForm
+from .models import AcademicYear, Course, Enrollment
+from .services.courses import archive_course, clone_course, unarchive_course
+
 
 class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
@@ -16,16 +23,14 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
         user = self.request.user
         organization = self.request.organization
-        courses = list(
-            Course.objects
-            .for_organization(organization)
-            .filter(professor=user)
-            .annotate(student_count=Count('enrollments'))
-        )
+        active = Course.Status.ACTIVE
+        own = Course.objects.for_organization(organization).filter(professor=user).select_related('academic_year')
+        courses = list(own.filter(status=active).annotate(student_count=Count('enrollments')))
+        # La vista principal y sus estadísticas cubren solo los grupos activos.
         grades = list(
             Grade.objects
             .for_organization(organization)
-            .filter(evaluation__course__professor=user)
+            .filter(evaluation__course__professor=user, evaluation__course__status=active)
             .select_related('evaluation')
         )
 
@@ -37,8 +42,12 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
         overall = grade_stats(grades)
         context['courses'] = courses
+        context['archived_courses'] = list(own.filter(status=Course.Status.ARCHIVED))
         context['total_evaluations'] = (
-            Evaluation.objects.for_organization(organization).filter(course__professor=user).count()
+            Evaluation.objects
+            .for_organization(organization)
+            .filter(course__professor=user, course__status=active)
+            .count()
         )
         context['graded_count'] = overall.count
         context['group_average'] = overall.average
@@ -47,12 +56,13 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
         context['total_students'] = (
             Enrollment.objects
             .for_organization(organization)
-            .filter(course__professor=user)
+            .filter(course__professor=user, course__status=active)
             .values('student')
             .distinct()
             .count()
         )
         return context
+
 
 class StudentDashboardView(StudentRequiredMixin, TemplateView):
 
@@ -64,12 +74,13 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
 
         user = self.request.user
         organization = self.request.organization
-        enrollments = list(
+        mine = (
             Enrollment.objects
             .for_organization(organization)
             .filter(student__user=user)
             .select_related('course', 'course__professor')
         )
+        enrollments = list(mine.filter(course__status=Course.Status.ACTIVE))
 
         # Promedio ponderado del alumno (general y por materia)
         grades = list(
@@ -82,8 +93,10 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
             e.course_average = stats.average if stats else None
 
         context['enrollments'] = enrollments
+        context['archived_enrollments'] = list(mine.filter(course__status=Course.Status.ARCHIVED))
         context['average'] = grade_stats(grades).average
         return context
+
 
 class CourseDetailView(OrganizationMemberMixin, DetailView):
 
@@ -92,7 +105,7 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
     context_object_name = 'course'
 
     def get_queryset(self):
-        qs = Course.objects.for_organization(self.request.organization)
+        qs = Course.objects.for_organization(self.request.organization).select_related('academic_year')
         user = self.request.user
         if self.request.membership.is_teacher:
             return qs.filter(professor=user)
@@ -120,3 +133,125 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
             context['evaluation_rows'] = rows
             context['course_average'] = grade_stats(my_grades.values()).average
         return context
+
+
+# ── Grupos: crear, editar, archivar y duplicar ────────────────────────
+
+class OwnCourseMixin(TeacherRequiredMixin):
+    """Grupos del docente en la organización activa."""
+
+    def get_queryset(self):
+        return Course.objects.for_organization(self.request.organization).filter(professor=self.request.user)
+
+
+class CourseFormKwargsMixin:
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['organization'] = self.request.organization
+        kwargs['professor'] = self.request.user
+        return kwargs
+
+
+class CourseCreateView(CourseFormKwargsMixin, TeacherRequiredMixin, CreateView):
+    model = Course
+    form_class = CourseForm
+    template_name = 'course_form.html'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, f'Se creó el grupo "{self.object.name}".')
+        return response
+
+
+class CourseUpdateView(CourseFormKwargsMixin, OwnCourseMixin, UpdateView):
+    form_class = CourseForm
+    template_name = 'course_form.html'
+
+    def get_queryset(self):
+        # Un grupo archivado es de solo lectura.
+        return super().get_queryset().filter(status=Course.Status.ACTIVE)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Se guardaron los cambios del grupo.')
+        return response
+
+
+class CourseArchiveView(OwnCourseMixin, View):
+    def post(self, request, pk):
+        course = get_object_or_404(self.get_queryset(), pk=pk)
+        archive_course(course)
+        messages.success(request, f'"{course.name}" quedó archivado: sigue consultable, pero ya no admite cambios.')
+        return redirect('professor_dashboard')
+
+
+class CourseUnarchiveView(OwnCourseMixin, View):
+    def post(self, request, pk):
+        course = get_object_or_404(self.get_queryset(), pk=pk)
+        unarchive_course(course)
+        messages.success(request, f'"{course.name}" volvió a estar activo.')
+        return redirect(course)
+
+
+class CourseCloneView(OwnCourseMixin, View):
+    """Duplica un grupo para un nuevo ciclo (copia el grupo y sus evaluaciones; no alumnos ni notas)."""
+
+    template_name = 'course_clone.html'
+
+    def get_course(self, pk):
+        return get_object_or_404(self.get_queryset().select_related('academic_year'), pk=pk)
+
+    def get(self, request, pk):
+        course = self.get_course(pk)
+        return render(request, self.template_name, {'course': course, 'form': CloneCourseForm(course=course)})
+
+    def post(self, request, pk):
+        course = self.get_course(pk)
+        form = CloneCourseForm(request.POST, course=course)
+        if form.is_valid():
+            try:
+                clone = clone_course(
+                    course, form.cleaned_data['academic_year'],
+                    code=form.cleaned_data['code'], name=form.cleaned_data['name'],
+                )
+            except ValidationError as error:
+                form.add_error(None, error)
+            else:
+                messages.success(request, f'Se duplicó "{course.name}" en el ciclo {clone.academic_year}.')
+                return redirect(clone)
+        return render(request, self.template_name, {'course': course, 'form': form})
+
+
+# ── Ciclos escolares ──────────────────────────────────────────────────
+
+class AcademicYearListView(TeacherRequiredMixin, ListView):
+    """Ciclos de la organización, con el formulario para crear uno nuevo."""
+
+    template_name = 'academic_years.html'
+    context_object_name = 'years'
+
+    def get_queryset(self):
+        return AcademicYear.objects.for_organization(self.request.organization).annotate(course_count=Count('courses'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault('form', AcademicYearForm(organization=self.request.organization))
+        return context
+
+    def post(self, request):
+        form = AcademicYearForm(request.POST, organization=request.organization)
+        if form.is_valid():
+            year = form.save()
+            messages.success(request, f'Se creó el ciclo {year}.')
+            return redirect('academic_years')
+        self.object_list = self.get_queryset()
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class AcademicYearCurrentView(TeacherRequiredMixin, View):
+    def post(self, request, pk):
+        year = get_object_or_404(AcademicYear.objects.for_organization(request.organization), pk=pk)
+        year.is_current = True
+        year.save()
+        messages.success(request, f'{year} es ahora el ciclo actual.')
+        return redirect('academic_years')

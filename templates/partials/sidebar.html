@@ -37,6 +37,7 @@
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}
       </a>
+      <a href="{% url 'academic_years' %}" class="{% if request.resolver_match.view_name == 'academic_years' %}is-active{% endif %}"><i data-icon="calendar"></i> Ciclos escolares</a>
       <a href="#"><i data-icon="settings"></i> Ajustes</a>
     {% else %}
       <a href="{% url 'student_dashboard' %}" class="{% if request.resolver_match.view_name == 'student_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis Materias</a>

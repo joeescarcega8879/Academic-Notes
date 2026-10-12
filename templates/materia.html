@@ -17,6 +17,25 @@
   <div class="flex-row items-baseline gap-14">
     <h2 style="margin: 0">{{ course.name }}</h2>
     <span class="text-xs text-muted">{{ course.code }}</span>
+    <span class="chip">{{ course.academic_year }}</span>
+    {% if course.is_archived %}<span class="chip">Archivada</span>{% endif %}
+    {% if is_teacher %}
+      <div class="spacer"></div>
+      {% if course.is_archived %}
+        <form method="post" action="{% url 'course_unarchive' course.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">Desarchivar</button>
+        </form>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'course_update' course.pk %}">Editar</a>
+        <form method="post" action="{% url 'course_archive' course.pk %}" class="inline-form"
+              onsubmit="return confirm('¿Archivar esta materia? Seguirá consultable, pero ya no admitirá cambios.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">Archivar</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
+    {% endif %}
   </div>
   <div class="text-sm text-muted" style="margin-top: 6px">
     {{ course.schedule|default:"Horario por definir" }} · {{ course.professor.get_full_name }}
@@ -33,7 +52,7 @@
       <h3>Alumnos inscritos</h3>
       <span class="grade style-pill ok">{{ enrollments|length }}</span>
       <div class="spacer"></div>
-      <a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>
+      {% if not course.is_archived %}<a class="btn btn-ghost" href="/admin/courses/enrollment/add/">Inscribir alumno</a>{% endif %}
     </div>
     <table class="tbl">
       <thead>

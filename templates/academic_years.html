@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Ciclos escolares · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Ciclos escolares</h1>
+  <span class="sub">{{ organization.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrap mb-12">
+  <div class="table-head">
+    <h3>Ciclos</h3>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr><th>Ciclo</th><th>Inicio</th><th>Fin</th><th>Grupos</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for year in years %}
+        <tr>
+          <td>{{ year.name }} {% if year.is_current %}<span class="chip ok">Actual</span>{% endif %}</td>
+          <td>{{ year.start_date|date:"d/m/Y" }}</td>
+          <td>{{ year.end_date|date:"d/m/Y" }}</td>
+          <td>{{ year.course_count }}</td>
+          <td>
+            {% if not year.is_current %}
+              <form method="post" action="{% url 'academic_year_current' year.pk %}" class="inline-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost">Marcar como actual</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Aún no hay ciclos. Se crea uno automáticamente con tu primer grupo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="max-width: 640px">
+  <h3 class="section-title">Nuevo ciclo</h3>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'partials/form_fields.html' %}
+    <button type="submit" class="btn btn-primary" style="margin-top: 14px">Crear ciclo</button>
+  </form>
+</div>
+{% endblock %}

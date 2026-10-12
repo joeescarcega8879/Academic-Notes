@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} materia · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{% if object %}Editar materia{% else %}Nueva materia{% endif %}</h1>
+  <span class="sub">{% if object %}{{ object.name }}{% else %}Crear un grupo{% endif %}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 640px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'partials/form_fields.html' %}
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a class="btn btn-ghost" href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'professor_dashboard' %}{% endif %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

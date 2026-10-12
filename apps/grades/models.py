@@ -51,8 +51,9 @@ class Grade(TenantModel):
     def clean(self):
         if self.student_id and self.evaluation_id and self.student.organization_id != self.evaluation.organization_id:
             raise ValidationError('El alumno y la evaluación deben pertenecer a la misma organización.')
+        if self.evaluation_id:
+            self.evaluation.course.ensure_editable()
 
     def save(self, *args, **kwargs):
         self.clean()
-        self.evaluation.course.ensure_editable()
         super().save(*args, **kwargs)

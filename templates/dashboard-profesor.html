@@ -6,6 +6,7 @@
     <h1>Mis Materias</h1>
     <span class="sub"> Panel del profesor</span>
     <div class="spacer"></div>
+    <a class="btn btn-primary" href="{% url 'course_create' %}">Nueva materia</a>
     {% include 'partials/notifications.html' %}
 </header>
 {% endblock  %}
@@ -83,10 +84,30 @@
     </a>
   {% empty %}
     <div class="card" style="grid-column: 1 / -1">
-      <h3>No tienes materias todavía</h3>
-      <p>Puedes crearlas desde el panel de administración.</p>
-      <a class="btn btn-primary" href="/admin/courses/course/add/">Crear materia</a>
+      <h3>No tienes materias activas</h3>
+      <p>Crea tu primera materia para empezar a inscribir alumnos y calificar.</p>
+      <a class="btn btn-primary" href="{% url 'course_create' %}">Crear materia</a>
     </div>
   {% endfor %}
 </div>
+
+{% if archived_courses %}
+  <details class="archived-list">
+    <summary>Materias archivadas ({{ archived_courses|length }})</summary>
+    <div class="table-wrap" style="margin-top: 10px">
+      <table class="tbl">
+        <thead><tr><th>Materia</th><th>Código</th><th>Ciclo</th></tr></thead>
+        <tbody>
+          {% for course in archived_courses %}
+            <tr>
+              <td><a href="{{ course.get_absolute_url }}">{{ course.name }}</a></td>
+              <td>{{ course.code }}</td>
+              <td>{{ course.academic_year }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% endif %}
 {% endblock  %}
