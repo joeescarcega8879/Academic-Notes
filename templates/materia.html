@@ -34,6 +34,7 @@
           <button type="submit" class="btn btn-ghost">Archivar</button>
         </form>
       {% endif %}
+      {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
     {% endif %}
   </div>
@@ -89,6 +90,7 @@
           <th>Matrícula</th>
           <th>Email</th>
           <th>Cuenta</th>
+          <th>Calificación final</th>
           <th>Inscrito el</th>
           {% if not course.is_archived %}<th></th>{% endif %}
         </tr>
@@ -100,6 +102,13 @@
             <td>{{ enrollment.student.student_number }}</td>
             <td>{{ enrollment.student.email }}</td>
             <td>{% if enrollment.student.user_id %}<span class="chip ok">Vinculada</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if enrollment.result and enrollment.result.final is not None %}
+                <strong>{{ enrollment.result.final|floatformat:course.scheme.rounding_decimals }}</strong>
+                <span class="text-xs text-muted">/ {{ enrollment.result.scale_max }}</span>
+                {% if enrollment.result.passed %}<span class="chip ok">Aprobado</span>{% else %}<span class="chip" style="color: var(--bad)">No aprobado</span>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
             <td>{{ enrollment.enrolled_at|date:"d/m/Y" }}</td>
             {% if not course.is_archived %}
               <td style="white-space: nowrap">
@@ -121,7 +130,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6" class="text-muted">Sin alumnos inscritos todavía. Importa tu lista o agrégalos uno por uno.</td>
+            <td colspan="7" class="text-muted">Sin alumnos inscritos todavía. Importa tu lista o agrégalos uno por uno.</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -154,7 +163,10 @@
   <div class="table-wrap" style="margin-top: 14px">
     <div class="table-head">
       <h3>Evaluaciones y calificaciones</h3>
-      <span class="grade style-pill ok">Promedio: {{ course_average|floatformat:2|default:"—" }}</span>
+      <span class="grade style-pill ok">Calificación final: {{ course_average|floatformat:course.scheme.rounding_decimals|default:"—" }}{% if course_result %} / {{ course_result.scale_max }}{% endif %}</span>
+      {% if course_result and course_result.passed is not None %}
+        {% if course_result.passed %}<span class="chip ok">Aprobado</span>{% else %}<span class="chip" style="color: var(--bad)">No aprobado</span>{% endif %}
+      {% endif %}
     </div>
     <table class="tbl">
       <thead>
@@ -192,6 +204,32 @@
       </tbody>
     </table>
   </div>
+
+  {% if course_result %}
+    <!-- Cómo se forma la calificación final -->
+    <div class="table-wrap" style="margin-top: 14px">
+      <div class="table-head"><h3>Cómo se calcula tu calificación</h3></div>
+      <table class="tbl">
+        <thead><tr><th>Periodo</th><th>Criterio</th><th>Peso</th><th>Tu avance</th></tr></thead>
+        <tbody>
+          {% for period in course_result.periods %}
+            {% for criterion in period.criteria %}
+              <tr>
+                <td>{{ period.name }} <span class="text-xs text-muted">({{ period.weight|floatformat:"-2" }} %)</span></td>
+                <td>{{ criterion.name }}</td>
+                <td>{{ criterion.weight|floatformat:"-2" }} %</td>
+                <td>{% if criterion.ratio is not None %}{% widthratio criterion.ratio 1 100 %} %{% else %}<span class="text-muted">Sin calificar</span>{% endif %}</td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="text-xs text-muted" style="padding: 8px 14px; margin: 0">
+        Mínimo aprobatorio: {{ course.scheme.pass_mark|floatformat:"-2" }} de {{ course.scheme.scale_max }}.
+        Solo cuentan los criterios que ya tienen calificaciones.
+      </p>
+    </div>
+  {% endif %}
 {% endif %}
 
 {% endblock %}
