@@ -13,7 +13,7 @@ from apps.grades.models import Evaluation, Grade
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
-from apps.courses.models import Course, Enrollment, Student
+from apps.courses.models import AcademicYear, Course, Enrollment, Student
 
 from .factories import MembershipFactory, OrganizationFactory
 from .managers import OrganizationQuerySet
@@ -23,7 +23,7 @@ from .services import ensure_individual_organization, ensure_student_membership,
 
 pytestmark = pytest.mark.django_db
 
-TENANT_MODELS = [Course, Student, Enrollment, Evaluation, Grade, Conversation, Message]
+TENANT_MODELS = [AcademicYear, Course, Student, Enrollment, Evaluation, Grade, Conversation, Message]
 
 
 # ── Membresías y organización individual ──────────────────────────────

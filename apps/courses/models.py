@@ -1,14 +1,85 @@
-from django.core.exceptions import ValidationError
-from django.db import models
+import datetime
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.utils import timezone
 
 from apps.organizations.models import Organization, TenantModel
 from apps.organizations.services import ensure_individual_organization, ensure_student_membership
 
 
+class AcademicYear(TenantModel):
+    """Ciclo escolar de una organización (el año o el semestre; los periodos viven dentro de él).
+
+    Los grupos se archivan y se duplican al cambiar de ciclo, nunca se renombran.
+    """
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
+    name = models.CharField('nombre', max_length=60)
+    start_date = models.DateField('inicio')
+    end_date = models.DateField('fin')
+    is_current = models.BooleanField('ciclo actual', default=False)
+
+    class Meta:
+        ordering = ['-start_date', 'name']
+        constraints = [
+            models.UniqueConstraint(fields=['organization', 'name'], name='unique_academic_year_name_per_organization'),
+            # A lo sumo un ciclo actual por organización.
+            models.UniqueConstraint(
+                fields=['organization'], condition=models.Q(is_current=True),
+                name='unique_current_academic_year_per_organization',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(end_date__gte=models.F('start_date')), name='academic_year_end_not_before_start',
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError('El ciclo no puede terminar antes de empezar.')
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        if self.is_current:
+            # Marcar éste como actual desmarca el anterior.
+            AcademicYear.objects.filter(organization_id=self.organization_id, is_current=True).exclude(
+                pk=self.pk,
+            ).update(is_current=False)
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def default_period(today):
+        """(nombre, inicio, fin) del ciclo agosto–julio que contiene ``today``."""
+        start_year = today.year if today.month >= 8 else today.year - 1
+        return (
+            f'{start_year}–{start_year + 1}',
+            datetime.date(start_year, 8, 1),
+            datetime.date(start_year + 1, 7, 31),
+        )
+
+    @classmethod
+    def current_for(cls, organization):
+        """Ciclo actual de ``organization``; si no tiene, crea el agosto–julio en curso y lo marca actual."""
+        current = cls.objects.filter(organization=organization, is_current=True).first()
+        if current is not None:
+            return current
+        name, start, end = cls.default_period(timezone.localdate())
+        year, _ = cls.objects.get_or_create(
+            organization=organization, name=name, defaults={'start_date': start, 'end_date': end},
+        )
+        year.is_current = True
+        year.save()
+        return year
+
+
 class Course(TenantModel):
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=20, unique=True)
+    # El código es único dentro del ciclo de una organización, para poder duplicar el grupo al siguiente ciclo.
+    code = models.CharField(max_length=20)
     description = models.TextField(blank=True)
     schedule = models.CharField(max_length=200, blank=True)
     color = models.CharField(max_length=7, default='#1e3a5f')  # Hex color code
@@ -18,8 +89,30 @@ class Course(TenantModel):
 
     professor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='courses', limit_choices_to={'role': 'professor'})
 
+    academic_year = models.ForeignKey(AcademicYear, on_delete=models.PROTECT, related_name='courses', verbose_name='ciclo')
+
+    class Status(models.TextChoices):
+        ACTIVE = 'active', 'Activo'
+        ARCHIVED = 'archived', 'Archivado'
+
+    # Un grupo archivado es de solo lectura: sigue siendo consultable y exportable.
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['organization', 'academic_year', 'code'], name='unique_course_code_per_year'),
+        ]
+
+    @property
+    def is_archived(self):
+        return self.status == self.Status.ARCHIVED
+
+    def ensure_editable(self):
+        """Un grupo archivado no admite cambios en sus alumnos, evaluaciones ni notas."""
+        if self.is_archived:
+            raise ValidationError('El grupo está archivado y es de solo lectura.')
 
     def __str__(self):
         return f"{self.name} ({self.code})"
@@ -28,6 +121,10 @@ class Course(TenantModel):
         # Sin organización explícita, la materia pertenece a donde da clase su profesor.
         if self.organization_id is None:
             self.organization = ensure_individual_organization(self.professor)
+        if self.academic_year_id is None:
+            self.academic_year = AcademicYear.current_for(self.organization)
+        elif self.academic_year.organization_id != self.organization_id:
+            raise ValidationError('El ciclo y el grupo deben pertenecer a la misma organización.')
         super().save(*args, **kwargs)
 
 
@@ -103,4 +200,5 @@ class Enrollment(TenantModel):
     def save(self, *args, **kwargs):
         # El alumno y el grupo comparten organización; la inscripción la hereda del grupo.
         self.clean()
+        self.course.ensure_editable()
         super().save(*args, **kwargs)

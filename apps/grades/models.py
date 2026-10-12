@@ -27,6 +27,10 @@ class Evaluation(TenantModel):
     def __str__(self):
         return f"{self.title} · {self.course.name}"
 
+    def save(self, *args, **kwargs):
+        self.course.ensure_editable()
+        super().save(*args, **kwargs)
+
     
 class Grade(TenantModel):
     organization_source = 'evaluation'
@@ -50,4 +54,5 @@ class Grade(TenantModel):
 
     def save(self, *args, **kwargs):
         self.clean()
+        self.evaluation.course.ensure_editable()
         super().save(*args, **kwargs)

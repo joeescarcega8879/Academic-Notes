@@ -14,7 +14,7 @@ from apps.organizations.models import Membership
 
 from .factories import EnrollmentFactory, StudentRecordFactory
 from .models import Enrollment, Student
-from .services import student_for_user
+from .services.students import student_for_user
 
 pytestmark = pytest.mark.django_db
 
