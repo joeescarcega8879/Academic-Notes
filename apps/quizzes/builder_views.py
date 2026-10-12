@@ -10,6 +10,7 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 from apps.grades.models import Activity
+from core.utils import parse_id
 
 from .forms import BankFilterForm, QuizConfigForm
 from .models import Question, QuizConfig, QuizQuestion
@@ -86,7 +87,7 @@ class BuilderView(OwnQuizMixin, View):
                 form.save()
                 messages.success(request, 'Se guardó la configuración del quiz.')
             elif action == 'add':
-                ids = [int(i) for i in request.POST.getlist('question') if i.isdigit()]
+                ids = [i for i in map(parse_id, request.POST.getlist('question')) if i is not None]
                 questions = Question.objects.for_organization(request.organization).filter(pk__in=ids)
                 added = builder.add_questions(self.quiz, questions)
                 messages.success(request, f'Se agregaron {len(added)} preguntas.' if added else 'No había preguntas nuevas que agregar.')

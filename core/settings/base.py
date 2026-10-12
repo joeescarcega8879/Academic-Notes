@@ -202,6 +202,15 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TIME_LIMIT = 60 * 10
 
+# Tareas periódicas (requieren el proceso `celery -A core beat`).
+CELERY_BEAT_SCHEDULE = {
+    # Un alumno que cierra el navegador a medio quiz no puede dejar su intento abierto para siempre.
+    'cerrar-intentos-de-quiz-vencidos': {
+        'task': 'apps.quizzes.tasks.close_overdue_attempts',
+        'schedule': 60.0,
+    },
+}
+
 
 # ── Logging ───────────────────────────────────────────────────────────
 LOGGING = {

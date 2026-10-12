@@ -11,6 +11,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.courses.models import Enrollment, Course
+from core.utils import parse_id
 
 from .models import Grade
 from .forms import GradeForm
@@ -87,9 +88,9 @@ class GradeCreateView(GradeSaveMixin, TeacherRequiredMixin, CreateView):
         # Desde la pantalla de una actividad se llega con el alumno y la actividad ya elegidos.
         initial = super().get_initial()
         for name in ('activity', 'student'):
-            value = self.request.GET.get(name, '')
-            if value.isdigit():
-                initial[name] = int(value)
+            value = parse_id(self.request.GET.get(name, ''))
+            if value is not None:
+                initial[name] = value
         return initial
 
 
@@ -110,9 +111,10 @@ class GradeExportView(OrganizationMemberMixin, View):
 
         course_id = request.GET.get('materia', '').strip()
         if course_id:
-            if not course_id.isdigit():
+            course_id = parse_id(course_id)
+            if course_id is None:
                 return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
-            grades = grades.filter(activity__course_id=int(course_id))
+            grades = grades.filter(activity__course_id=course_id)
 
         for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
             raw = request.GET.get(param, '').strip()

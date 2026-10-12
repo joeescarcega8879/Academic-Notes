@@ -10,6 +10,7 @@ from django.views import View
 from apps.accounts.mixins import OrganizationMemberMixin
 from apps.courses.models import Student
 from apps.grades.models import Activity, Grade
+from core.utils import parse_id
 
 from .models import QuizAttempt, QuizConfig
 from .services import attempts as service
@@ -17,11 +18,19 @@ from .services import results
 
 
 def parse_selections(post):
-    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción. Lo que no viene, no se toca."""
+    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción. Lo que no viene, no se toca.
+
+    Un valor vacío borra la respuesta; un valor que no es un id válido se ignora (no borra nada).
+    """
     selections = {}
     for name, value in post.items():
-        if name.startswith('q_') and name[2:].isdigit():
-            selections[int(name[2:])] = int(value) if value.isdigit() else None
+        question_id = parse_id(name[2:]) if name.startswith('q_') else None
+        if question_id is None:
+            continue
+        if value == '':
+            selections[question_id] = None
+        elif parse_id(value) is not None:
+            selections[question_id] = parse_id(value)
     return selections
 
 
@@ -49,7 +58,9 @@ class StudentQuizMixin(OrganizationMemberMixin):
         """Un intento del propio alumno, ya puesto al día (si se le acabó el tiempo, queda cerrado)."""
         self.student_only(request)
         attempt = get_object_or_404(
-            QuizAttempt.objects.for_organization(request.organization).filter(student__user=request.user).select_related(
+            QuizAttempt.objects.for_organization(request.organization).filter(
+                student__user=request.user, quiz__activity__published=True,  # un quiz despublicado deja de verse
+            ).select_related(
                 'quiz__activity__course', 'student',
             ),
             pk=pk,

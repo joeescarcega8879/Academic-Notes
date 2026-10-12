@@ -11,6 +11,7 @@ from django.views import View
 from apps.accounts.mixins import TeacherRequiredMixin
 
 from apps.grades.models import Activity
+from core.utils import parse_id
 
 from .forms import BankFilterForm, QuestionForm, TrueFalseForm, choice_formset
 from .models import Question, QuizConfig
@@ -109,11 +110,11 @@ class QuestionFormMixin(BankMixin):
 
     def quiz_to_add_to(self, request):
         """El quiz (propio y de un grupo activo) al que se agrega la pregunta nueva, si se llegó desde su constructor."""
-        raw = request.GET.get('add_to', '')
-        if not raw.isdigit():
+        activity_id = parse_id(request.GET.get('add_to', ''))
+        if activity_id is None:
             return None
         return QuizConfig.objects.filter(
-            activity_id=int(raw), activity__course__professor=request.user, organization=request.organization,
+            activity_id=activity_id, activity__course__professor=request.user, organization=request.organization,
             activity__course__status='active',
         ).first()
 

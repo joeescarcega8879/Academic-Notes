@@ -19,6 +19,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.courses.services.text import normalize_text
+from core.utils import parse_id
 
 from ..models import Question
 from .bank import save_question, validate_choices
@@ -127,8 +128,8 @@ def _correct_index(correct_cell, texts):
         return None, 'Falta la respuesta correcta.'
     if len(value) == 1 and value in LETTERS:
         index = LETTERS.index(value)
-    elif value.isdigit():
-        index = int(value) - 1
+    elif parse_id(value) is not None:
+        index = parse_id(value) - 1
     else:
         matches = [i for i, text in enumerate(texts) if normalize_text(text) == value]
         if len(matches) == 1:

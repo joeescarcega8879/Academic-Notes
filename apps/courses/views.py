@@ -10,6 +10,7 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
+from core.utils import parse_id
 from apps.grades.services.grading import (
     course_stats, group_results, overall_stats, results_by_course, student_average,
 )
@@ -511,8 +512,7 @@ class StudentImportPreviewView(ImportMixin, View):
     def read_mapping(post):
         mapping = {}
         for key in importing.FIELDS:
-            raw = post.get(f'map_{key}', '')
-            mapping[key] = int(raw) if raw.isdigit() else None
+            mapping[key] = parse_id(post.get(f'map_{key}', ''))
         return mapping
 
     @staticmethod

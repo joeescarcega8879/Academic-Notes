@@ -111,5 +111,8 @@ python credenciales-prueba/crear_datos_demo.py    # 5 materias + 17 inscripcione
 - Si tu `db.sqlite3` es anterior al renombrado de la app `subjects` a `courses`, ejecuta una vez,
   **antes** de `migrate`: `python manage.py renombrar_app_subjects`. En una base nueva no hace falta.
 - Las credenciales de prueba son únicamente para desarrollo local.
+- Las entregas de los alumnos se guardan en `private_media/` (privado, fuera de `/media/`).
+- Los intentos de quiz que se quedan abiertos pasado su plazo se cierran con Celery beat cada minuto
+  (`celery -A core beat`, ya incluido en `docker compose`) o a mano con `python manage.py cerrar_intentos_vencidos`.
 - Para el registro técnico por fases (qué se creó, por qué y cómo se verificó),
   consulta **[CONTEXT.md](CONTEXT.md)**.

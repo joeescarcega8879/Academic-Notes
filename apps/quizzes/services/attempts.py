@@ -5,6 +5,7 @@ llegue después se rechaza y el intento se cierra con lo que ya estaba guardado.
 solo la próxima vez que alguien lo toca (o con la tarea periódica de cierre).
 """
 
+import logging
 import random
 from datetime import timedelta
 from decimal import Decimal
@@ -17,6 +18,8 @@ from apps.courses.models import Enrollment
 
 from ..models import Answer, Question, QuizAttempt
 from . import results
+
+logger = logging.getLogger(__name__)
 
 # Margen por latencia de red: un envío que llega unos segundos tarde se acepta; más allá, no.
 GRACE_SECONDS = 5
@@ -121,6 +124,31 @@ def expire_if_overdue(attempt, now=None):
     if attempt.status == QuizAttempt.Status.IN_PROGRESS and attempt.deadline and now > attempt.deadline:
         return finalize_attempt(attempt, expired=True, now=now)
     return attempt
+
+
+def close_overdue_attempts(now=None):
+    """Cierra y califica todos los intentos en curso cuyo plazo ya pasó. Devuelve cuántos cerró por tiempo.
+
+    Es una tarea de mantenimiento que recorre todas las organizaciones a propósito. Espera el margen de red
+    antes de cerrar, para no adelantarse a un envío legítimo que viene en camino. Un intento problemático se
+    registra y no detiene a los demás.
+    """
+    now = now or timezone.now()
+    cutoff = now - timedelta(seconds=GRACE_SECONDS)
+    pending = list(
+        QuizAttempt.objects.filter(status=QuizAttempt.Status.IN_PROGRESS, deadline__lt=cutoff).values_list('pk', flat=True)
+    )
+    closed = 0
+    for pk in pending:
+        attempt = QuizAttempt.objects.filter(pk=pk).first()
+        if attempt is None:
+            continue
+        try:
+            if finalize_attempt(attempt, expired=True, now=now).status == QuizAttempt.Status.EXPIRED:
+                closed += 1
+        except Exception:  # noqa: BLE001 - un intento con problemas no debe frenar el cierre de los demás
+            logger.exception('No se pudo cerrar el intento %s', pk)
+    return closed
 
 
 # ── Empezar ───────────────────────────────────────────────────────────
