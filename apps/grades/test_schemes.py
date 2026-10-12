@@ -8,8 +8,8 @@ from django.db.models import ProtectedError
 from apps.courses.factories import AcademicYearFactory, CourseFactory
 from apps.courses.services.courses import clone_course
 
-from .factories import EvaluationFactory
-from .models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
+from .factories import ActivityFactory
+from .models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
 from .services.schemes import copy_scheme, create_default_scheme, default_criterion, ensure_scheme
 
 pytestmark = pytest.mark.django_db
@@ -86,24 +86,24 @@ class TestValidaciones:
 
 class TestAsignacion:
     @pytest.mark.parametrize("tipo, criterio", [
-        (Evaluation.Type.EXAM, "Exámenes"), (Evaluation.Type.HOMEWORK, "Tareas"),
-        (Evaluation.Type.PROJECT, "Proyecto"), (Evaluation.Type.QUIZ, "Quizzes"),
+        (Activity.Type.EXAM, "Exámenes"), (Activity.Type.HOMEWORK, "Tareas"),
+        (Activity.Type.PROJECT, "Proyecto"), (Activity.Type.QUIZ, "Quizzes"),
     ])
     def test_la_evaluacion_nueva_va_al_criterio_de_su_tipo(self, course, tipo, criterio):
-        assert EvaluationFactory(course=course, type=tipo).criterion.name == criterio
+        assert ActivityFactory(course=course, type=tipo).criterion.name == criterio
 
     def test_sin_criterio_del_mismo_tipo_va_al_primero(self, course):
         EvaluationCriterion.objects.filter(period__scheme=course.scheme).update(default_type="")
-        assert EvaluationFactory(course=course, type=Evaluation.Type.EXAM).criterion == course.scheme.criteria().first()
+        assert ActivityFactory(course=course, type=Activity.Type.EXAM).criterion == course.scheme.criteria().first()
 
     def test_un_criterio_explicito_se_respeta(self, course):
         tareas = course.scheme.criteria().get(name="Tareas")
-        assert EvaluationFactory(course=course, type=Evaluation.Type.EXAM, criterion=tareas).criterion == tareas
+        assert ActivityFactory(course=course, type=Activity.Type.EXAM, criterion=tareas).criterion == tareas
 
     def test_el_criterio_debe_ser_del_mismo_grupo(self, course):
         ajeno = CourseFactory().scheme.criteria().first()
         with pytest.raises(ValidationError):
-            EvaluationFactory(course=course, criterion=ajeno)
+            ActivityFactory(course=course, criterion=ajeno)
 
     def test_un_esquema_sin_criterios_no_admite_evaluaciones(self, course):
         EvaluationCriterion.objects.filter(period__scheme=course.scheme).delete()
@@ -111,12 +111,12 @@ class TestAsignacion:
             default_criterion(course, "exam")
 
     def test_no_se_borra_un_criterio_con_evaluaciones(self, course):
-        evaluacion = EvaluationFactory(course=course)
+        evaluacion = ActivityFactory(course=course)
         with pytest.raises(ProtectedError):
             evaluacion.criterion.delete()
 
     def test_no_se_borra_un_periodo_con_evaluaciones(self, course):
-        evaluacion = EvaluationFactory(course=course)
+        evaluacion = ActivityFactory(course=course)
         with pytest.raises(ProtectedError):
             evaluacion.criterion.period.delete()
 
@@ -167,10 +167,10 @@ class TestCopia:
 
     def test_copiar_a_un_grupo_con_evaluaciones_asignadas_no_destruye_nada(self, personalizado):
         destino = CourseFactory(professor=personalizado.professor)
-        EvaluationFactory(course=destino)
+        ActivityFactory(course=destino)
         with pytest.raises(ProtectedError):
             copy_scheme(personalizado, destino)
-        assert Evaluation.objects.filter(course=destino).count() == 1
+        assert Activity.objects.filter(course=destino).count() == 1
 
 
 class TestDuplicarGrupo:
@@ -189,15 +189,15 @@ class TestDuplicarGrupo:
 
     def test_las_evaluaciones_copiadas_van_a_los_criterios_de_la_copia(self, course, nuevo_ciclo):
         tareas = course.scheme.criteria().get(name="Tareas")
-        EvaluationFactory(course=course, title="Ensayo", type=Evaluation.Type.EXAM, criterion=tareas, weight=2)
+        ActivityFactory(course=course, title="Ensayo", type=Activity.Type.EXAM, criterion=tareas, weight=2)
         copia = clone_course(course, nuevo_ciclo)
-        (evaluacion,) = copia.evaluations.all()
+        (evaluacion,) = copia.activities.all()
         assert evaluacion.criterion.name == "Tareas"
         assert evaluacion.criterion.period.scheme.course_id == copia.pk  # no el criterio del original
         assert (evaluacion.title, evaluacion.weight, evaluacion.date) == ("Ensayo", 2, None)
 
     def test_el_original_conserva_sus_criterios_y_evaluaciones(self, course, nuevo_ciclo):
-        evaluacion = EvaluationFactory(course=course)
+        evaluacion = ActivityFactory(course=course)
         clone_course(course, nuevo_ciclo)
         evaluacion.refresh_from_db()
         assert evaluacion.criterion.period.scheme.course_id == course.pk
@@ -207,8 +207,8 @@ class TestDuplicarGrupo:
         def falla(*args, **kwargs):
             raise RuntimeError("boom")
 
-        EvaluationFactory(course=course)
-        monkeypatch.setattr(Evaluation, "save", falla)
+        ActivityFactory(course=course)
+        monkeypatch.setattr(Activity, "save", falla)
         with pytest.raises(RuntimeError):
             clone_course(course, nuevo_ciclo)
         assert EvaluationScheme.objects.count() == 1  # solo el del original

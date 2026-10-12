@@ -1,12 +1,12 @@
 from django import forms
 from apps.courses.models import Course, Enrollment, Student
 
-from .models import Grade, Evaluation
+from .models import Grade, Activity
 
 class GradeForm(forms.ModelForm):
     class Meta:
         model = Grade
-        fields = ['evaluation', 'student', 'score', 'feedback']
+        fields = ['activity', 'student', 'score', 'feedback']
         widgets = {
             'feedback': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Comentario del profesor (opcional)'}),
         }
@@ -25,14 +25,14 @@ class GradeForm(forms.ModelForm):
 
         # Etiquetas legibles en los selects
         self.fields['student'].label_from_instance = str
-        self.fields['evaluation'].label_from_instance = lambda e: e.title
+        self.fields['activity'].label_from_instance = lambda e: e.title
 
         courses = Course.objects.for_organization(self.organization).filter(
             professor=self.user, status=Course.Status.ACTIVE,  # un grupo archivado es de solo lectura
         )
         # Solo las evaluaciones de las materias del profesor
-        self.fields['evaluation'].queryset = (
-            Evaluation.objects.for_organization(self.organization).filter(course__in=courses).select_related('course')
+        self.fields['activity'].queryset = (
+            Activity.objects.for_organization(self.organization).filter(course__in=courses).select_related('course')
         )
         # Solo alumnos inscritos en alguna materia del profesor
         self.fields['student'].queryset = (
@@ -41,15 +41,15 @@ class GradeForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        evaluation = cleaned.get('evaluation')
+        activity = cleaned.get('activity')
         student = cleaned.get('student')
         score = cleaned.get('score')
 
-        if evaluation and student:
+        if activity and student:
             if not Enrollment.objects.for_organization(self.organization).filter(
-                student=student, course=evaluation.course,
+                student=student, course=activity.course,
             ).exists():
                 raise forms.ValidationError('El alumno no está inscrito en la materia de esta evaluación.')
-        if evaluation and score is not None and score > evaluation.max_score:
-            raise forms.ValidationError(f'La calificación no puede superar el máximo de {evaluation.max_score}.')
+        if activity and score is not None and score > activity.max_score:
+            raise forms.ValidationError(f'La calificación no puede superar el máximo de {activity.max_score}.')
         return cleaned

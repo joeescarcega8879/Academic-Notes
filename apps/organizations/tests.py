@@ -8,8 +8,8 @@ from django.test import Client, RequestFactory
 from django.urls import reverse
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
-from apps.grades.factories import EvaluationFactory, GradeFactory
-from apps.grades.models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade
+from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
 
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
-    Evaluation, Grade, Conversation, Message,
+    Activity, Grade, Conversation, Message,
 ]
 
 
@@ -87,8 +87,8 @@ class TestDerivacionDeOrganizacion:
     def test_los_hijos_heredan_la_organizacion_de_la_materia(self):
         inscripcion = EnrollmentFactory()
         materia = inscripcion.course
-        evaluacion = EvaluationFactory(course=materia)
-        nota = GradeFactory(evaluation=evaluacion, student=inscripcion.student)
+        evaluacion = ActivityFactory(course=materia)
+        nota = GradeFactory(activity=evaluacion, student=inscripcion.student)
         conversacion = Conversation.objects.get(course=materia, student=inscripcion.student.user)
         mensaje = MessageFactory(conversation=conversacion)
 
@@ -98,7 +98,7 @@ class TestDerivacionDeOrganizacion:
     def test_no_se_puede_forzar_otra_organizacion_en_un_hijo(self):
         materia = CourseFactory()
         intruso = OrganizationFactory()
-        evaluacion = EvaluationFactory.build(course=materia, organization=intruso)
+        evaluacion = ActivityFactory.build(course=materia, organization=intruso)
         evaluacion.save()
         assert evaluacion.organization_id == materia.organization_id
 
@@ -210,8 +210,8 @@ def dos_organizaciones():
         profesor = ProfessorFactory()
         materia = CourseFactory(professor=profesor)
         alumno = EnrollmentFactory(course=materia).student.user
-        evaluacion = EvaluationFactory(course=materia)
-        GradeFactory(evaluation=evaluacion, student=alumno)
+        evaluacion = ActivityFactory(course=materia)
+        GradeFactory(activity=evaluacion, student=alumno)
         conversacion = Conversation.objects.get(course=materia, student=alumno)
         MessageFactory(conversation=conversacion, sender=alumno)
         datos.append({"profesor": profesor, "alumno": alumno, "materia": materia, "org": materia.organization})
@@ -248,7 +248,7 @@ class TestAislamiento:
         assert client.get(reverse("course_detail", args=[b["materia"].pk])).status_code == 404
 
         notas = client.get(reverse("grades:list")).context["grades"]
-        assert {g.evaluation.course_id for g in notas} == {a["materia"].pk}
+        assert {g.activity.course_id for g in notas} == {a["materia"].pk}
 
         conversaciones = client.get(reverse("messaging:list")).context["conversations"]
         assert {c.course_id for c in conversaciones} == {a["materia"].pk}

@@ -3,16 +3,16 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from ..models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
+from ..models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
 
 DEFAULT_PERIOD_NAME = 'Periodo único'
 
 # (nombre, peso, tipo de evaluación que se le asigna solo). Suma 100: nunca una pantalla vacía.
 DEFAULT_CRITERIA = [
-    ('Exámenes', 40, Evaluation.Type.EXAM),
-    ('Tareas', 30, Evaluation.Type.HOMEWORK),
-    ('Proyecto', 20, Evaluation.Type.PROJECT),
-    ('Quizzes', 10, Evaluation.Type.QUIZ),
+    ('Exámenes', 40, Activity.Type.EXAM),
+    ('Tareas', 30, Activity.Type.HOMEWORK),
+    ('Proyecto', 20, Activity.Type.PROJECT),
+    ('Quizzes', 10, Activity.Type.QUIZ),
 ]
 
 
@@ -21,9 +21,9 @@ def create_default_scheme(course):
     """Esquema inicial del grupo: escala 0–10, aprobatorio 6, un periodo y cuatro criterios editables."""
     scheme = EvaluationScheme.objects.create(course=course)
     period = EvaluationPeriod.objects.create(scheme=scheme, name=DEFAULT_PERIOD_NAME, weight=100, position=0)
-    for position, (name, weight, evaluation_type) in enumerate(DEFAULT_CRITERIA):
+    for position, (name, weight, activity_type) in enumerate(DEFAULT_CRITERIA):
         EvaluationCriterion.objects.create(
-            period=period, name=name, weight=weight, default_type=evaluation_type, position=position,
+            period=period, name=name, weight=weight, default_type=activity_type, position=position,
         )
     return scheme
 
@@ -36,12 +36,12 @@ def ensure_scheme(course):
         return create_default_scheme(course)
 
 
-def default_criterion(course, evaluation_type):
+def default_criterion(course, activity_type):
     """Criterio al que va una evaluación nueva: el del mismo tipo o, si no hay, el primero del esquema."""
     criteria = list(ensure_scheme(course).criteria())
     if not criteria:
         raise ValidationError('El esquema de evaluación del grupo no tiene criterios.')
-    return next((c for c in criteria if c.default_type == evaluation_type), criteria[0])
+    return next((c for c in criteria if c.default_type == activity_type), criteria[0])
 
 
 @transaction.atomic

@@ -18,9 +18,9 @@ def create_scheme_for_new_course(sender, instance, created, raw=False, **kwargs)
 def copy_course_content(sender, source, clone, **kwargs):
     """Al duplicar un grupo se copian su esquema y sus evaluaciones (sin fechas ni calificaciones)."""
     criteria = copy_scheme(source, clone)
-    for evaluation in source.evaluations.all():
-        clone.evaluations.create(
-            title=evaluation.title, description=evaluation.description, type=evaluation.type,
-            max_score=evaluation.max_score, weight=evaluation.weight, date=None,
-            criterion=criteria[evaluation.criterion_id],
+    for activity in source.activities.all():
+        clone.activities.create(
+            title=activity.title, instructions=activity.instructions, type=activity.type,
+            max_score=activity.max_score, weight=activity.weight, date=None,
+            criterion=criteria[activity.criterion_id],
         )

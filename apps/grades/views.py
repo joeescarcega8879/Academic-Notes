@@ -19,10 +19,10 @@ def visible_grades(request):
 
     El alumno ve las suyas; quien da clase, las de sus materias.
     """
-    grades = Grade.objects.for_organization(request.organization).select_related('student', 'evaluation__course')
+    grades = Grade.objects.for_organization(request.organization).select_related('student', 'activity__course')
     if request.membership.is_student:
         return grades.filter(student__user=request.user)
-    return grades.filter(evaluation__course__professor=request.user)
+    return grades.filter(activity__course__professor=request.user)
 
 
 class GradeListView(OrganizationMemberMixin, ListView):
@@ -43,7 +43,7 @@ class GradeListView(OrganizationMemberMixin, ListView):
         organization = self.request.organization
         if self.request.membership.is_teacher:
             context['courses'] = (
-                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('evaluations')
+                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('activities')
             )
         else:
             context['courses'] = (
@@ -77,7 +77,7 @@ class GradeUpdateView(TeacherRequiredMixin, UpdateView):
 
     def get_queryset(self):
         # solo calificaciones de sus materias activas, en la organización activa
-        return visible_grades(self.request).filter(evaluation__course__status='active')
+        return visible_grades(self.request).filter(activity__course__status='active')
 
 class GradeExportView(OrganizationMemberMixin, View):
     """Exporta a CSV las calificaciones que el usuario puede ver."""
@@ -89,7 +89,7 @@ class GradeExportView(OrganizationMemberMixin, View):
         if course_id:
             if not course_id.isdigit():
                 return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
-            grades = grades.filter(evaluation__course_id=int(course_id))
+            grades = grades.filter(activity__course_id=int(course_id))
 
         for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
             raw = request.GET.get(param, '').strip()
@@ -102,7 +102,7 @@ class GradeExportView(OrganizationMemberMixin, View):
             grades = grades.filter(**{lookup: day})
 
         grades = grades.order_by(
-            'evaluation__course__name', 'student__last_name', 'evaluation__date',
+            'activity__course__name', 'student__last_name', 'activity__date',
         )
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
@@ -119,15 +119,15 @@ class GradeExportView(OrganizationMemberMixin, View):
         writer.writerow(header)
 
         for grade in grades:
-            evaluation = grade.evaluation
+            activity = grade.activity
             row = [
-                evaluation.course.name,
-                evaluation.title,
-                evaluation.get_type_display(),
-                evaluation.date.isoformat() if evaluation.date else '',
-                evaluation.weight,
+                activity.course.name,
+                activity.title,
+                activity.get_type_display(),
+                activity.date.isoformat() if activity.date else '',
+                activity.weight,
                 grade.score,
-                evaluation.max_score,
+                activity.max_score,
                 grade.feedback,
             ]
             if show_student:
@@ -148,4 +148,4 @@ class GradeDeleteView(TeacherRequiredMixin, DeleteView):
 
     def get_queryset(self):
         # Un grupo archivado es de solo lectura.
-        return visible_grades(self.request).filter(evaluation__course__status='active')
+        return visible_grades(self.request).filter(activity__course__status='active')

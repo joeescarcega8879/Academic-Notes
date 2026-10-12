@@ -6,8 +6,8 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from apps.grades.factories import EvaluationFactory, GradeFactory
-from apps.grades.models import Evaluation, Grade
+from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity, Grade
 from apps.organizations.factories import OrganizationFactory
 
 from .factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
@@ -111,33 +111,33 @@ class TestArchivar:
         course.refresh_from_db()
         assert not course.is_archived and course.archived_at is None
 
-    def test_un_grupo_archivado_es_de_solo_lectura(self, course, evaluation, enrollment):
-        nota = GradeFactory(evaluation=evaluation, student=enrollment.student)
+    def test_un_grupo_archivado_es_de_solo_lectura(self, course, activity, enrollment):
+        nota = GradeFactory(activity=activity, student=enrollment.student)
         archive_course(course)
 
         with pytest.raises(ValidationError):
             Enrollment.objects.create(student=StudentRecordFactory(organization=course.organization), course=course)
         with pytest.raises(ValidationError):
-            EvaluationFactory(course=course)
-        evaluation.title = "Otro"
+            ActivityFactory(course=course)
+        activity.title = "Otro"
         with pytest.raises(ValidationError):
-            evaluation.save()
+            activity.save()
         nota.score = 1
         with pytest.raises(ValidationError):
             nota.save()
         with pytest.raises(ValidationError):
-            GradeFactory(evaluation=evaluation, student=StudentRecordFactory(organization=course.organization))
+            GradeFactory(activity=activity, student=StudentRecordFactory(organization=course.organization))
 
-    def test_sigue_siendo_consultable(self, course, evaluation, enrollment):
-        GradeFactory(evaluation=evaluation, student=enrollment.student)
+    def test_sigue_siendo_consultable(self, course, activity, enrollment):
+        GradeFactory(activity=activity, student=enrollment.student)
         archive_course(course)
-        assert Grade.objects.filter(evaluation__course=course).count() == 1
+        assert Grade.objects.filter(activity__course=course).count() == 1
         assert course.enrollments.count() == 1
 
-    def test_al_desarchivar_vuelve_a_poder_editarse(self, course, evaluation):
+    def test_al_desarchivar_vuelve_a_poder_editarse(self, course, activity):
         archive_course(course)
         unarchive_course(course)
-        EvaluationFactory(course=course)  # ya no lanza
+        ActivityFactory(course=course)  # ya no lanza
 
 
 # ── Duplicar para un nuevo ciclo ──────────────────────────────────────
@@ -149,9 +149,9 @@ class TestDuplicar:
 
     @pytest.fixture
     def grupo_completo(self, course, enrollment):
-        e1 = EvaluationFactory(course=course, title="Parcial", max_score=100, weight=3, date=datetime.date(2026, 10, 1))
-        EvaluationFactory(course=course, title="Tarea", weight=1, date=datetime.date(2026, 10, 5))
-        GradeFactory(evaluation=e1, student=enrollment.student, score=90)
+        e1 = ActivityFactory(course=course, title="Parcial", max_score=100, weight=3, date=datetime.date(2026, 10, 1))
+        ActivityFactory(course=course, title="Tarea", weight=1, date=datetime.date(2026, 10, 5))
+        GradeFactory(activity=e1, student=enrollment.student, score=90)
         course.description = "Descripción"
         course.schedule = "Lun 8:00"
         course.color = "#123456"
@@ -171,19 +171,19 @@ class TestDuplicar:
 
     def test_copia_las_evaluaciones_sin_fechas(self, grupo_completo, nuevo_ciclo):
         copia = clone_course(grupo_completo, nuevo_ciclo)
-        copiadas = {(e.title, e.max_score, e.weight, e.date) for e in copia.evaluations.all()}
+        copiadas = {(e.title, e.max_score, e.weight, e.date) for e in copia.activities.all()}
         assert copiadas == {("Parcial", 100, 3, None), ("Tarea", 10.0, 1, None)}
 
     def test_no_copia_alumnos_inscripciones_ni_notas(self, grupo_completo, nuevo_ciclo):
         copia = clone_course(grupo_completo, nuevo_ciclo)
         assert copia.enrollments.count() == 0
-        assert Grade.objects.filter(evaluation__course=copia).count() == 0
+        assert Grade.objects.filter(activity__course=copia).count() == 0
 
     def test_no_modifica_el_original(self, grupo_completo, nuevo_ciclo):
         clone_course(grupo_completo, nuevo_ciclo)
         assert grupo_completo.enrollments.count() == 1
-        assert {e.date for e in grupo_completo.evaluations.all()} == {datetime.date(2026, 10, 1), datetime.date(2026, 10, 5)}
-        assert Grade.objects.filter(evaluation__course=grupo_completo).count() == 1
+        assert {e.date for e in grupo_completo.activities.all()} == {datetime.date(2026, 10, 1), datetime.date(2026, 10, 5)}
+        assert Grade.objects.filter(activity__course=grupo_completo).count() == 1
 
     def test_los_alumnos_persisten_para_inscribirlos_en_el_nuevo_ciclo(self, grupo_completo, nuevo_ciclo, enrollment):
         copia = clone_course(grupo_completo, nuevo_ciclo)
@@ -208,7 +208,7 @@ class TestDuplicar:
         def falla(*args, **kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(Evaluation, "save", falla)
+        monkeypatch.setattr(Activity, "save", falla)
         with pytest.raises(RuntimeError):
             clone_course(grupo_completo, nuevo_ciclo)
         assert not Course.objects.filter(academic_year=nuevo_ciclo).exists()
@@ -217,4 +217,4 @@ class TestDuplicar:
         archive_course(grupo_completo)
         copia = clone_course(grupo_completo, nuevo_ciclo)
         assert not copia.is_archived
-        assert copia.evaluations.count() == 2
+        assert copia.activities.count() == 2

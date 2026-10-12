@@ -93,8 +93,8 @@
         {% if is_teacher %}
         <td>{{ grade.student.get_full_name|default:grade.student.email }}</td>
         {% endif %}
-        <td>{{ grade.evaluation.course.name }}</td>
-        <td>{{ grade.evaluation.title }}</td>
+        <td>{{ grade.activity.course.name }}</td>
+        <td>{{ grade.activity.title }}</td>
         <td>
           <span class="grade style-pill ok"
             >{{ grade.score|floatformat:2 }}</span

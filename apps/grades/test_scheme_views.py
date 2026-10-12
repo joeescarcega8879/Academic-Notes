@@ -8,8 +8,8 @@ from apps.courses.services.courses import archive_course
 from apps.organizations.factories import MembershipFactory
 from apps.organizations.models import Membership
 
-from .factories import EvaluationFactory, GradeFactory
-from .models import Evaluation, EvaluationCriterion, EvaluationPeriod
+from .factories import ActivityFactory, GradeFactory
+from .models import Activity, EvaluationCriterion, EvaluationPeriod
 
 pytestmark = pytest.mark.django_db
 
@@ -107,8 +107,8 @@ class TestAjustes:
         response = professor_client.post(url(course), {**base, campo: valor})
         assert response.status_code == 200 and campo in response.context["settings_form"].errors
 
-    def test_cambiar_la_escala_cambia_la_final_y_la_aprobacion(self, professor_client, course, enrollment, evaluation):
-        GradeFactory(evaluation=evaluation, student=enrollment.student, score=6.5)  # 65 %
+    def test_cambiar_la_escala_cambia_la_final_y_la_aprobacion(self, professor_client, course, enrollment, activity):
+        GradeFactory(activity=activity, student=enrollment.student, score=6.5)  # 65 %
         professor_client.post(url(course), {"action": "settings", "scale_max": 100, "pass_mark": "70", "rounding_decimals": 1})
         detalle = professor_client.get(course.get_absolute_url())
         resultado = detalle.context["enrollments"][0].result
@@ -143,7 +143,7 @@ class TestPeriodos:
         professor_client.post(url(course), datos(pagina["period_formset"], "periods", **{"1-DELETE": "on"}))
         assert not EvaluationPeriod.objects.filter(pk=extra.pk).exists()
 
-    def test_no_borra_un_periodo_con_evaluaciones(self, professor_client, course, evaluation):
+    def test_no_borra_un_periodo_con_evaluaciones(self, professor_client, course, activity):
         pagina = professor_client.get(url(course)).context
         # Se agrega otro periodo para poder intentar borrar el primero sin quedarse vacío.
         EvaluationPeriod.objects.create(scheme=course.scheme, name="Otro", weight=0, position=1)
@@ -187,7 +187,7 @@ class TestCriterios:
         assert not EvaluationCriterion.objects.filter(name="Intruso").exists()
 
     def test_no_borra_un_criterio_con_evaluaciones_y_avisa(self, professor_client, course):
-        evaluacion = EvaluationFactory(course=course, type=Evaluation.Type.EXAM)
+        evaluacion = ActivityFactory(course=course, type=Activity.Type.EXAM)
         pagina = professor_client.get(url(course)).context
         response = professor_client.post(url(course), datos(pagina["criterion_formset"], "criteria", **{"0-DELETE": "on"}), follow=True)
         assert any("evaluaciones asignadas" in str(m) for m in response.context["messages"])
@@ -207,15 +207,15 @@ class TestCriterios:
     def test_las_evaluaciones_nuevas_siguen_el_tipo_configurado(self, professor_client, course, pagina):
         # Los quizzes pasan a ir a "Tareas".
         professor_client.post(url(course), datos(pagina["criterion_formset"], "criteria", **{"1-default_type": "homework", "3-default_type": ""}))
-        assert EvaluationFactory(course=course, type=Evaluation.Type.HOMEWORK).criterion.name == "Tareas"
-        assert EvaluationFactory(course=course, type=Evaluation.Type.QUIZ).criterion.name == "Exámenes"  # el primero
+        assert ActivityFactory(course=course, type=Activity.Type.HOMEWORK).criterion.name == "Tareas"
+        assert ActivityFactory(course=course, type=Activity.Type.QUIZ).criterion.name == "Exámenes"  # el primero
 
 
 # ── Evaluaciones ──────────────────────────────────────────────────────
 
 class TestAsignacion:
     def test_reasigna_una_evaluacion_a_otro_criterio(self, professor_client, course):
-        evaluacion = EvaluationFactory(course=course, type=Evaluation.Type.EXAM)
+        evaluacion = ActivityFactory(course=course, type=Activity.Type.EXAM)
         proyecto = course.scheme.criteria().get(name="Proyecto")
         pagina = professor_client.get(url(course)).context
         professor_client.post(url(course), datos(pagina["assignment_formset"], "evals", **{"0-criterion": proyecto.pk}))
@@ -223,7 +223,7 @@ class TestAsignacion:
         assert evaluacion.criterion == proyecto
 
     def test_no_acepta_un_criterio_de_otro_grupo(self, professor_client, course):
-        evaluacion = EvaluationFactory(course=course)
+        evaluacion = ActivityFactory(course=course)
         original = evaluacion.criterion
         ajeno = CourseFactory().scheme.criteria().first()
         pagina = professor_client.get(url(course)).context
@@ -233,10 +233,10 @@ class TestAsignacion:
         assert evaluacion.criterion == original
 
     def test_reasignar_cambia_la_calificacion_final(self, professor_client, course, enrollment):
-        examen = EvaluationFactory(course=course, type=Evaluation.Type.EXAM)
-        tarea = EvaluationFactory(course=course, type=Evaluation.Type.HOMEWORK)
-        GradeFactory(evaluation=examen, student=enrollment.student, score=10)
-        GradeFactory(evaluation=tarea, student=enrollment.student, score=4)
+        examen = ActivityFactory(course=course, type=Activity.Type.EXAM)
+        tarea = ActivityFactory(course=course, type=Activity.Type.HOMEWORK)
+        GradeFactory(activity=examen, student=enrollment.student, score=10)
+        GradeFactory(activity=tarea, student=enrollment.student, score=4)
         antes = professor_client.get(course.get_absolute_url()).context["enrollments"][0].result.final
         assert antes == 7.43  # (10·40 + 4·30) / 70
         # La tarea pasa a Exámenes: todo cae en un criterio, media simple de 10 y 4
@@ -256,8 +256,8 @@ class TestAsignacion:
 class TestDetalle:
     @pytest.fixture
     def con_notas(self, course, enrollment):
-        examen = EvaluationFactory(course=course, type=Evaluation.Type.EXAM)
-        GradeFactory(evaluation=examen, student=enrollment.student, score=8)
+        examen = ActivityFactory(course=course, type=Activity.Type.EXAM)
+        GradeFactory(activity=examen, student=enrollment.student, score=8)
         return enrollment
 
     def test_el_docente_ve_la_final_y_el_estado_de_cada_alumno(self, professor_client, course, con_notas):

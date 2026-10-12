@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
-from apps.grades.factories import EvaluationFactory
+from apps.grades.factories import ActivityFactory
 from apps.courses.factories import EnrollmentFactory, CourseFactory
 
 
@@ -29,8 +29,8 @@ def enrollment(course, student):
 
 
 @pytest.fixture
-def evaluation(course):
-    return EvaluationFactory(course=course)
+def activity(course):
+    return ActivityFactory(course=course)
 
 
 def _client_for(user):

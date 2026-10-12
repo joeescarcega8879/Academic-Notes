@@ -14,8 +14,8 @@ from django.test.utils import CaptureQueriesContext
 
 from apps.courses.factories import CourseFactory, StudentRecordFactory
 
-from .factories import EvaluationFactory, GradeFactory
-from .models import Evaluation
+from .factories import ActivityFactory, GradeFactory
+from .models import Activity
 from .services.grading import (
     DISPLAY_SCALE,
     CourseResult,
@@ -56,10 +56,10 @@ def criterion(spec, name):
 
 def grade(spec, name, score, max_score=10, weight=1, student_id=1):
     """Calificación en el criterio ``name`` del esquema ``spec``."""
-    evaluation = SimpleNamespace(
+    activity = SimpleNamespace(
         max_score=max_score, weight=weight, criterion_id=criterion(spec, name).id, course_id=spec.course_id,
     )
-    return SimpleNamespace(score=score, student_id=student_id, evaluation=evaluation)
+    return SimpleNamespace(score=score, student_id=student_id, activity=activity)
 
 
 def final(spec, *grades):
@@ -298,9 +298,9 @@ class TestAprobacion:
 class TestConModelos:
     def test_con_la_plantilla_por_defecto(self, course):
         alumno = StudentRecordFactory(organization=course.organization)
-        examen = EvaluationFactory(course=course, type=Evaluation.Type.EXAM)
-        tarea = EvaluationFactory(course=course, type=Evaluation.Type.HOMEWORK)
-        notas = [GradeFactory(evaluation=examen, student=alumno, score=8), GradeFactory(evaluation=tarea, student=alumno, score=6)]
+        examen = ActivityFactory(course=course, type=Activity.Type.EXAM)
+        tarea = ActivityFactory(course=course, type=Activity.Type.HOMEWORK)
+        notas = [GradeFactory(activity=examen, student=alumno, score=8), GradeFactory(activity=tarea, student=alumno, score=6)]
         # Solo Exámenes (40) y Tareas (30) tienen notas: (8·.4 + 6·.3) / .7 = 7.1428… -> 7.14
         resultado = results_by_course(notas)[course.pk]
         assert (resultado.final, resultado.passed) == (7.14, True)
@@ -312,8 +312,8 @@ class TestConModelos:
         alumno_a = StudentRecordFactory(organization=a.organization)
         alumno_b = StudentRecordFactory(organization=b.organization)
         notas = [
-            GradeFactory(evaluation=EvaluationFactory(course=a, max_score=10), student=alumno_a, score=8),
-            GradeFactory(evaluation=EvaluationFactory(course=b, max_score=100), student=alumno_b, score=90),
+            GradeFactory(activity=ActivityFactory(course=a, max_score=10), student=alumno_a, score=8),
+            GradeFactory(activity=ActivityFactory(course=b, max_score=100), student=alumno_b, score=90),
         ]
         resultados = results_by_course(notas)
         assert resultados[a.pk].final == 8.0 and resultados[b.pk].final == 90.0
@@ -327,7 +327,7 @@ class TestConModelos:
         notas = []
         for puntaje in (10, 6, 4):
             alumno = StudentRecordFactory(organization=course.organization)
-            notas.append(GradeFactory(evaluation=EvaluationFactory(course=course), student=alumno, score=puntaje))
+            notas.append(GradeFactory(activity=ActivityFactory(course=course), student=alumno, score=puntaje))
         resultados = group_results(notas)
         por_grupo = course_stats(resultados)[course.pk]
         assert por_grupo == GroupStats(average=6.67, students=3, passed=2)
@@ -335,8 +335,8 @@ class TestConModelos:
 
     def test_la_aprobacion_es_por_alumno_y_no_por_calificacion(self, course):
         alumno = StudentRecordFactory(organization=course.organization)
-        malas = [GradeFactory(evaluation=EvaluationFactory(course=course, weight=1), student=alumno, score=2) for _ in range(3)]
-        buena = GradeFactory(evaluation=EvaluationFactory(course=course, weight=20), student=alumno, score=10)
+        malas = [GradeFactory(activity=ActivityFactory(course=course, weight=1), student=alumno, score=2) for _ in range(3)]
+        buena = GradeFactory(activity=ActivityFactory(course=course, weight=20), student=alumno, score=10)
         stats = course_stats(group_results(malas + [buena]))[course.pk]
         assert (stats.students, stats.passed) == (1, 1)  # 3 notas reprobadas pero un final aprobado
 
@@ -345,8 +345,8 @@ class TestConModelos:
         b.scheme.scale_max, b.scheme.pass_mark = 100, 60
         b.scheme.save()
         notas = [
-            GradeFactory(evaluation=EvaluationFactory(course=a), student=StudentRecordFactory(organization=a.organization), score=8),
-            GradeFactory(evaluation=EvaluationFactory(course=b, max_score=100), student=StudentRecordFactory(organization=b.organization), score=60),
+            GradeFactory(activity=ActivityFactory(course=a), student=StudentRecordFactory(organization=a.organization), score=8),
+            GradeFactory(activity=ActivityFactory(course=b, max_score=100), student=StudentRecordFactory(organization=b.organization), score=60),
         ]
         stats = overall_stats(group_results(notas))
         assert (stats.average, stats.students, stats.passed) == (7.0, 2, 2)  # (8 + 6) / 2
@@ -361,7 +361,7 @@ class TestConModelos:
             for _ in range(n):
                 curso = CourseFactory()
                 notas.append(GradeFactory(
-                    evaluation=EvaluationFactory(course=curso),
+                    activity=ActivityFactory(course=curso),
                     student=StudentRecordFactory(organization=curso.organization),
                 ))
             return notas
@@ -393,8 +393,8 @@ def test_un_esquema_general_equivale_al_calculo_anterior():
         for _ in range(rng.randint(1, 8)):
             maximo = rng.choice([5, 10, 20, 50, 100])
             notas.append(grade(s, "General", round(rng.uniform(0, maximo), 1), max_score=maximo, weight=rng.choice([1, 2, 3, 0.5])))
-        peso_total = sum(g.evaluation.weight for g in notas)
-        antes = sum(g.score / g.evaluation.max_score * g.evaluation.weight for g in notas) / peso_total * 10
+        peso_total = sum(g.activity.weight for g in notas)
+        antes = sum(g.score / g.activity.max_score * g.activity.weight for g in notas) / peso_total * 10
         # La escala del esquema es 10, igual que la DISPLAY_SCALE de antes.
         assert final(s, *notas) == pytest.approx(antes, abs=0.0051)
 

@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.grades.factories import EvaluationFactory, GradeFactory
+from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.organizations.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership
@@ -141,8 +141,8 @@ class TestArchivar:
 
 class TestNotasEnGrupoArchivado:
     @pytest.fixture
-    def nota(self, course, evaluation, enrollment):
-        nota = GradeFactory(evaluation=evaluation, student=enrollment.student, score=7)
+    def nota(self, course, activity, enrollment):
+        nota = GradeFactory(activity=activity, student=enrollment.student, score=7)
         archive_course(course)
         return nota
 
@@ -155,17 +155,17 @@ class TestNotasEnGrupoArchivado:
 
     def test_el_formulario_no_ofrece_sus_evaluaciones_ni_alumnos(self, professor_client, nota):
         form = professor_client.get(reverse("grades:create")).context["form"]
-        assert list(form.fields["evaluation"].queryset) == []
+        assert list(form.fields["activity"].queryset) == []
         assert list(form.fields["student"].queryset) == []
 
     def test_sigue_en_el_listado_y_la_exportacion(self, professor_client, nota):
         assert [g.pk for g in professor_client.get(reverse("grades:list")).context["grades"]] == [nota.pk]
         assert nota.student.email in professor_client.get(reverse("grades:export")).content.decode("utf-8-sig")
 
-    def test_la_validacion_del_formulario_rechaza_el_grupo_archivado(self, professor_client, nota, evaluation):
+    def test_la_validacion_del_formulario_rechaza_el_grupo_archivado(self, professor_client, nota, activity):
         # Aunque alguien fabrique la petición, ni el formulario ni el modelo lo aceptan.
         response = professor_client.post(
-            reverse("grades:create"), {"evaluation": evaluation.pk, "student": nota.student.pk, "score": 5},
+            reverse("grades:create"), {"activity": activity.pk, "student": nota.student.pk, "score": 5},
         )
         assert response.status_code == 200 and response.context["form"].errors
         assert Grade.objects.count() == 1
@@ -184,7 +184,7 @@ class TestDuplicar:
         assert list(form.fields["academic_year"].queryset) == [nuevo_ciclo]  # no su propio ciclo
 
     def test_duplica_con_sus_evaluaciones(self, professor_client, course, nuevo_ciclo):
-        EvaluationFactory(course=course, title="Parcial")
+        ActivityFactory(course=course, title="Parcial")
         response = professor_client.post(
             reverse("course_clone", args=[course.pk]),
             {"academic_year": nuevo_ciclo.pk, "name": course.name, "code": course.code},
@@ -192,7 +192,7 @@ class TestDuplicar:
         )
         copia = Course.objects.get(academic_year=nuevo_ciclo)
         assert response.redirect_chain[-1][0] == reverse("course_detail", args=[copia.pk])
-        assert [e.title for e in copia.evaluations.all()] == ["Parcial"]
+        assert [e.title for e in copia.activities.all()] == ["Parcial"]
         assert any("2027–2028" in m for m in _mensajes(response))
 
     def test_codigo_repetido_en_el_destino_muestra_el_error(self, professor_client, course, nuevo_ciclo):

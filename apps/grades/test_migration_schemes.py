@@ -55,7 +55,7 @@ def test_cada_grupo_recibe_un_esquema_general_con_todas_sus_evaluaciones(estado_
 
     nuevo = migrar(hojas())
     Scheme = nuevo.get_model('grades', 'EvaluationScheme')
-    Evaluation = nuevo.get_model('grades', 'Evaluation')
+    Activity = nuevo.get_model('grades', 'Activity')
 
     assert Scheme.objects.count() == 3
     for curso in cursos + [sin_evaluaciones]:
@@ -66,6 +66,6 @@ def test_cada_grupo_recibe_un_esquema_general_con_todas_sus_evaluaciones(estado_
         assert (periodo.weight, criterio.name, criterio.weight) == (100, 'General', 100)
         assert criterio.organization_id == org.pk
         # Todas las evaluaciones del grupo en ese único criterio: el cálculo anterior no cambia.
-        assert {e.criterion_id for e in Evaluation.objects.filter(course_id=curso.pk)} <= {criterio.pk}
-    assert not Evaluation.objects.filter(criterion__isnull=True).exists()
-    assert Evaluation.objects.count() == 6
+        assert {e.criterion_id for e in Activity.objects.filter(course_id=curso.pk)} <= {criterio.pk}
+    assert not Activity.objects.filter(criterion__isnull=True).exists()
+    assert Activity.objects.count() == 6

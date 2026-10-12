@@ -85,7 +85,13 @@ class EvaluationCriterion(TenantModel):
         return f'{self.name} ({self.period})'
 
 
-class Evaluation(TenantModel):
+class Activity(TenantModel):
+    """Algo que el docente califica: tarea, quiz, examen, proyecto o participación.
+
+    Una actividad en borrador (``published=False``) no la ven los alumnos ni cuenta para ninguna
+    calificación final hasta que se publica.
+    """
+
     organization_source = 'course'
 
     class Type(models.TextChoices):
@@ -93,21 +99,40 @@ class Evaluation(TenantModel):
         EXAM = 'exam', 'Examen'
         HOMEWORK = 'homework', 'Tarea'
         PROJECT = 'project', 'Proyecto'
+        PARTICIPATION = 'participation', 'Participación'
 
-    course = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="evaluations")
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    type = models.CharField(max_length=20, choices=Type.choices, default=Type.QUIZ)
-    max_score = models.FloatField(default=10.0, validators=[MinValueValidator(0.01)])
-    weight = models.FloatField(default=1.0, validators=[MinValueValidator(0)])
-    date = models.DateField(null=True, blank=True)
+    # Tipos en los que el alumno entrega algo (archivo, texto o enlace).
+    SUBMISSION_TYPES = (Type.HOMEWORK, Type.PROJECT)
+
+    course = models.ForeignKey("courses.Course", on_delete=models.CASCADE, related_name="activities")
+    title = models.CharField('título', max_length=255)
+    instructions = models.TextField('instrucciones', blank=True)
+    type = models.CharField('tipo', max_length=20, choices=Type.choices, default=Type.HOMEWORK)
+    max_score = models.FloatField('puntos', default=10.0, validators=[MinValueValidator(0.01)])
+    weight = models.FloatField('peso', default=1.0, validators=[MinValueValidator(0)])
+    # Fecha de realización (examen, participación del día…). La apertura y el límite de entrega son aparte.
+    date = models.DateField('fecha', null=True, blank=True)
+
+    published = models.BooleanField('publicada', default=False)
+    opens_at = models.DateTimeField('abre', null=True, blank=True)
+    due_at = models.DateTimeField('fecha límite de entrega', null=True, blank=True)
+    allow_late = models.BooleanField('permite entregas tardías', default=True)
+    late_penalty = models.DecimalField(
+        'penalización por entrega tardía (%)', max_digits=5, decimal_places=2, default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+    )
 
     # Peso relativo (``weight``) dentro de su criterio. Si no se indica, se asigna según el tipo.
-    # PROTECT: no se borra un criterio con evaluaciones; hay que reasignarlas primero.
-    criterion = models.ForeignKey(EvaluationCriterion, on_delete=models.PROTECT, related_name='evaluations', verbose_name='criterio')
+    # PROTECT: no se borra un criterio con actividades; hay que reasignarlas primero.
+    criterion = models.ForeignKey(EvaluationCriterion, on_delete=models.PROTECT, related_name='activities', verbose_name='criterio')
 
     class Meta:
         ordering = ['-date', 'title']
+        verbose_name_plural = 'activities'
+
+    @property
+    def accepts_submissions(self):
+        return self.type in self.SUBMISSION_TYPES
 
     def __str__(self):
         return f"{self.title} · {self.course.name}"
@@ -115,6 +140,8 @@ class Evaluation(TenantModel):
     def clean(self):
         if self.criterion_id and self.course_id and self.criterion.period.scheme.course_id != self.course_id:
             raise ValidationError({'criterion': 'El criterio debe ser del esquema de este grupo.'})
+        if self.opens_at and self.due_at and self.due_at < self.opens_at:
+            raise ValidationError({'due_at': 'La fecha límite no puede ser anterior a la apertura.'})
 
     def save(self, *args, **kwargs):
         from .services.schemes import default_criterion
@@ -127,26 +154,26 @@ class Evaluation(TenantModel):
 
     
 class Grade(TenantModel):
-    organization_source = 'evaluation'
+    organization_source = 'activity'
 
-    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='grades')
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='grades')
     student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='grades')
     score = models.FloatField(validators=[MinValueValidator(0)])
     feedback = models.TextField(blank=True)
     graded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('evaluation', 'student')
+        unique_together = ('activity', 'student')
         ordering = ['-graded_at']
 
     def __str__(self):
-        return f'{self.student} — {self.evaluation.title}: {self.score}'
+        return f'{self.student} — {self.activity.title}: {self.score}'
 
     def clean(self):
-        if self.student_id and self.evaluation_id and self.student.organization_id != self.evaluation.organization_id:
-            raise ValidationError('El alumno y la evaluación deben pertenecer a la misma organización.')
-        if self.evaluation_id:
-            self.evaluation.course.ensure_editable()
+        if self.student_id and self.activity_id and self.student.organization_id != self.activity.organization_id:
+            raise ValidationError('El alumno y la actividad deben pertenecer a la misma organización.')
+        if self.activity_id:
+            self.activity.course.ensure_editable()
 
     def save(self, *args, **kwargs):
         self.clean()

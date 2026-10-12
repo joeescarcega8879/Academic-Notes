@@ -6,7 +6,7 @@ from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.factories import ProfessorFactory
-from apps.grades.factories import EvaluationFactory, GradeFactory
+from apps.grades.factories import ActivityFactory, GradeFactory
 
 from .factories import EnrollmentFactory, CourseFactory
 
@@ -40,11 +40,11 @@ class TestDashboardProfesor:
         course = CourseFactory(professor=professor)
         s1 = EnrollmentFactory(course=course).student
         s2 = EnrollmentFactory(course=course).student
-        e1 = EvaluationFactory(course=course, max_score=10, weight=1)
-        e2 = EvaluationFactory(course=course, max_score=10, weight=3)
-        GradeFactory(evaluation=e1, student=s1, score=10)
-        GradeFactory(evaluation=e2, student=s1, score=6)
-        GradeFactory(evaluation=e1, student=s2, score=4)
+        e1 = ActivityFactory(course=course, max_score=10, weight=1)
+        e2 = ActivityFactory(course=course, max_score=10, weight=3)
+        GradeFactory(activity=e1, student=s1, score=10)
+        GradeFactory(activity=e2, student=s1, score=6)
+        GradeFactory(activity=e1, student=s2, score=4)
         return course
 
     def test_estadisticas_exactas(self, professor_client, escenario):
@@ -54,7 +54,7 @@ class TestDashboardProfesor:
         # Aprueba el alumno cuyo final alcanza el mínimo (6): s1 sí, s2 no -> 1 de 2
         assert context["pass_rate"] == 50
         assert context["total_students"] == 2
-        assert context["total_evaluations"] == 2
+        assert context["total_activities"] == 2
         assert context["graded_count"] == 3
 
     def test_estadisticas_por_materia(self, professor_client, escenario):
@@ -81,9 +81,9 @@ class TestDashboardAlumno:
         profesor = ProfessorFactory()
         a = EnrollmentFactory(student=student, course=CourseFactory(professor=profesor)).course
         b = EnrollmentFactory(student=student, course=CourseFactory(professor=profesor)).course
-        GradeFactory(evaluation=EvaluationFactory(course=a, weight=1), student=student, score=10)
-        GradeFactory(evaluation=EvaluationFactory(course=a, weight=3), student=student, score=6)
-        GradeFactory(evaluation=EvaluationFactory(course=b, weight=1), student=student, score=8)
+        GradeFactory(activity=ActivityFactory(course=a, weight=1), student=student, score=10)
+        GradeFactory(activity=ActivityFactory(course=a, weight=3), student=student, score=6)
+        GradeFactory(activity=ActivityFactory(course=b, weight=1), student=student, score=8)
 
         context = student_client.get(reverse("student_dashboard")).context
         por_materia = {e.course_id: e.course_average for e in context["enrollments"]}
@@ -113,13 +113,13 @@ class TestDetalleDeMateria:
         assert client.get(reverse("course_detail", args=[course.pk])).status_code == 404
 
     def test_alumno_inscrito_ve_evaluaciones_y_promedio(self, student_client, student, course, enrollment):
-        e1 = EvaluationFactory(course=course, weight=1)
-        EvaluationFactory(course=course, weight=1)  # aún sin nota
-        GradeFactory(evaluation=e1, student=student, score=9)
+        e1 = ActivityFactory(course=course, weight=1)
+        ActivityFactory(course=course, weight=1)  # aún sin nota
+        GradeFactory(activity=e1, student=student, score=9)
         response = student_client.get(reverse("course_detail", args=[course.pk]))
         assert response.status_code == 200
         assert response.context["course_average"] == 9.0
-        rows = response.context["evaluation_rows"]
+        rows = response.context["activity_rows"]
         assert len(rows) == 2
         assert sorted(r["grade"] is None for r in rows) == [False, True]
 
