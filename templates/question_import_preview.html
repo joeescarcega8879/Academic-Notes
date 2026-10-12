@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Revisar importación · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Revisar importación</h1>
+  <span class="sub">{{ filename }}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+{% if plan.header_errors %}
+  <div class="card mb-12" style="max-width: 720px">
+    {% for error in plan.header_errors %}<div class="flash flash-error" style="margin-bottom: 8px">{{ error }}</div>{% endfor %}
+    <p class="text-sm text-muted">Revisa los encabezados del archivo o usa la plantilla.</p>
+    <div class="flex-row gap-14">
+      <a class="btn btn-primary" href="{% url 'quizzes:import' %}">Cambiar archivo</a>
+      <a class="btn btn-ghost" href="{% url 'quizzes:import_template' %}">Descargar plantilla</a>
+    </div>
+  </div>
+{% else %}
+  <div class="stat-grid mb-12">
+    <div class="stat"><div class="stat-label">Nuevas</div><div class="stat-value">{{ plan.count_new }}</div></div>
+    <div class="stat"><div class="stat-label">Ya existen</div><div class="stat-value">{{ plan.count_duplicate }}</div></div>
+    <div class="stat"><div class="stat-label">Con errores</div><div class="stat-value">{{ plan.count_error }}</div></div>
+  </div>
+
+  <div class="table-wrap mb-12">
+    <div class="table-head"><h3>Qué pasará con cada fila</h3>
+      <div class="spacer"></div><span class="text-sm text-muted">Las repetidas y las que tienen error se omiten; el resto se guarda.</span></div>
+    <table class="tbl">
+      <thead><tr><th>Fila</th><th>Pregunta</th><th>Tipo</th><th>Tema</th><th>Puntos</th><th>Resultado</th></tr></thead>
+      <tbody>
+        {% for item in preview %}
+          <tr>
+            <td>{{ item.line }}</td>
+            <td>{{ item.text|truncatechars:80 }}
+              {% if item.choices %}<div class="text-xs text-muted">{% for text, correct in item.choices %}{% if correct %}<strong>{{ text|truncatechars:25 }}</strong>{% else %}{{ text|truncatechars:25 }}{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+            </td>
+            <td>{% if item.kind == 'multiple_choice' %}Opción múltiple{% elif item.kind == 'true_false' %}Verdadero/falso{% else %}—{% endif %}</td>
+            <td>{{ item.topic|default:"—" }}</td>
+            <td>{{ item.points|floatformat:"-2" }}</td>
+            <td>
+              {% if item.status == 'error' %}
+                <span class="chip" style="color: var(--bad)">Error</span>
+                {% for error in item.errors %}<div class="text-xs" style="color: var(--bad)">{{ error }}</div>{% endfor %}
+              {% elif item.status == 'duplicate' %}
+                <span class="chip">Ya existe</span>
+                <div class="text-xs text-muted">{% if item.duplicate == 'banco' %}está en el banco{% else %}repetida en el archivo{% endif %}</div>
+              {% else %}<span class="chip ok">Nueva</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if hidden %}<p class="text-sm text-muted" style="padding: 10px 14px">… y {{ hidden }} filas más (se importan igual).</p>{% endif %}
+  </div>
+
+  <form method="post" class="flex-row gap-14">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary"{% if not can_confirm %} disabled{% endif %}>Confirmar importación</button>
+    <a class="btn btn-ghost" href="{% url 'quizzes:import' %}">Cambiar archivo</a>
+    <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Cancelar</a>
+  </form>
+{% endif %}
+{% endblock %}

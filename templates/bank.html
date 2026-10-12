@@ -8,6 +8,7 @@
   <div class="spacer"></div>
   <a class="btn btn-primary" href="{% url 'quizzes:question_create' 'multiple_choice' %}">Nueva opción múltiple</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}">Nueva verdadero/falso</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:import' %}">Importar</a>
   {% include 'partials/notifications.html' %}
 </header>
 {% endblock %}

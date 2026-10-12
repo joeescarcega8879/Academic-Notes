@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import builder_views, results_views, take_views, views
+from . import builder_views, import_views, results_views, take_views, views
 
 app_name = 'quizzes'
 
@@ -14,6 +14,9 @@ urlpatterns = [
     path('intentos/<int:pk>/guardar/', take_views.QuizAutosaveView.as_view(), name='autosave'),
     path('intentos/<int:pk>/resultado/', take_views.QuizResultView.as_view(), name='result'),
     path('banco/', views.BankView.as_view(), name='bank'),
+    path('banco/importar/', import_views.QuestionImportView.as_view(), name='import'),
+    path('banco/importar/vista-previa/', import_views.QuestionImportPreviewView.as_view(), name='import_preview'),
+    path('banco/importar/plantilla.csv', import_views.QuestionImportTemplateView.as_view(), name='import_template'),
     path('banco/nueva/<str:kind>/', views.QuestionCreateView.as_view(), name='question_create'),
     path('banco/<int:pk>/', views.QuestionDetailView.as_view(), name='question_detail'),
     path('banco/<int:pk>/editar/', views.QuestionUpdateView.as_view(), name='question_update'),
