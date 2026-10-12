@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Calificar · {{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Calificar</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="table-wrap mb-12">
+    <div class="table-head">
+      <h3>Calificaciones sobre {{ activity.max_score|floatformat:"-2" }}</h3>
+      <div class="spacer"></div>
+      <span class="text-sm text-muted">Las filas sin nota no se modifican.</span>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          {% if activity.accepts_submissions %}<th>Entrega</th>{% endif %}
+          <th style="width: 120px">Nota</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></td>
+            {% if activity.accepts_submissions %}
+              <td>
+                {% if row.submission %}
+                  <a href="{% url 'grades:submission_detail' row.submission.pk %}" target="_blank" rel="noopener">Ver entrega</a>
+                  {% if row.submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% endif %}
+                {% else %}<span class="text-muted">Sin entrega</span>{% endif %}
+              </td>
+            {% endif %}
+            <td>
+              <input class="input" type="text" inputmode="decimal" name="score_{{ row.student.pk }}"
+                     value="{% if row.input %}{{ row.input.score }}{% elif row.grade %}{{ row.grade.raw_score|floatformat:'-2' }}{% endif %}">
+              {% if row.error %}<div style="color: var(--bad); font-size: 12px">{{ row.error }}</div>{% endif %}
+              {% if row.grade and row.grade.late_penalty %}
+                <div class="text-xs text-muted">Con penalización de {{ row.grade.late_penalty|floatformat:"-2" }} %: {{ row.grade.score|floatformat:"-2" }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <input class="input" type="text" name="feedback_{{ row.student.pk }}"
+                     value="{% if row.input %}{{ row.input.feedback }}{% else %}{{ row.grade.feedback }}{% endif %}">
+              {% if row.penalizable %}
+                <label class="text-xs text-muted">
+                  <input type="checkbox" name="waive_{{ row.student.pk }}"{% if row.input.waive or row.grade and not row.grade.late_penalty %} checked{% endif %}>
+                  Sin penalización ({{ activity.late_penalty|floatformat:"-2" }} % por entrega tardía)
+                </label>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="flex-row gap-14">
+    <button type="submit" class="btn btn-primary">Guardar calificaciones</button>
+    <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

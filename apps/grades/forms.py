@@ -25,6 +25,10 @@ class GradeForm(forms.ModelForm):
 
         # Etiquetas legibles en los selects
         self.fields['student'].label_from_instance = str
+        if self.instance.pk:
+            # Editar una calificación no la mueve a otro alumno ni a otra actividad.
+            self.fields['activity'].disabled = True
+            self.fields['student'].disabled = True
         self.fields['activity'].label_from_instance = lambda e: e.title
 
         courses = Course.objects.for_organization(self.organization).filter(

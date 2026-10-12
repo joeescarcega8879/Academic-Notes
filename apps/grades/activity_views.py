@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import FileResponse, Http404
 from django.utils.functional import cached_property
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,7 +13,8 @@ from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.courses.models import Course, Student
 
 from .activity_forms import ActivityForm
-from .models import Activity, Grade, Submission
+from .models import Activity, Grade, GradeHistory, Submission
+from .services.gradebook import grade_activity
 from .services.submissions import submission_state, submit
 from .submission_forms import SubmissionForm
 
@@ -213,3 +215,90 @@ class SubmissionFileView(SubmissionAccessMixin, View):
         response['X-Content-Type-Options'] = 'nosniff'
         response['Cache-Control'] = 'private, no-store'
         return response
+
+
+class GradingView(OwnActiveCourseMixin, View):
+    """Calificar a todo el grupo en una sola tabla: nota y comentario por alumno.
+
+    Sirve para tareas (con su entrega a la vista) y para la calificación rápida de participación. Una fila
+    sin nota no se toca; si alguna fila es inválida no se guarda ninguna.
+    """
+
+    template_name = 'grading.html'
+
+    def get_activity(self, pk):
+        return get_object_or_404(self.activities(), pk=pk)
+
+    def rows(self, activity):
+        grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
+        submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
+        rows = []
+        for enrollment in activity.course.enrollments.select_related('student').order_by(
+            'student__last_name', 'student__first_name',
+        ):
+            submission = submissions.get(enrollment.student_id)
+            rows.append({
+                'student': enrollment.student, 'grade': grades.get(enrollment.student_id), 'submission': submission,
+                'penalizable': bool(submission and submission.is_late and activity.allow_late and activity.late_penalty),
+            })
+        return rows
+
+    def get(self, request, pk):
+        activity = self.get_activity(pk)
+        return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': self.rows(activity)})
+
+    def post(self, request, pk):
+        activity = self.get_activity(pk)
+        rows, entries, errors = self.rows(activity), [], {}
+
+        for row in rows:
+            sid = row['student'].pk
+            raw = request.POST.get(f'score_{sid}', '').strip().replace(',', '.')
+            row['input'] = {
+                'score': request.POST.get(f'score_{sid}', ''), 'feedback': request.POST.get(f'feedback_{sid}', ''),
+                'waive': request.POST.get(f'waive_{sid}') == 'on',
+            }
+            if raw == '':
+                continue  # sin nota no se toca (ni se borra la que hubiera)
+            try:
+                score = float(raw)
+            except ValueError:
+                errors[sid] = 'Escribe un número.'
+                continue
+            if not 0 <= score <= activity.max_score:
+                errors[sid] = f'Debe estar entre 0 y {activity.max_score:g}.'
+                continue
+            entries.append((row['student'], score, row['input']))
+
+        if errors:
+            for row in rows:
+                row['error'] = errors.get(row['student'].pk)
+            messages.error(request, 'Corrige las filas marcadas: no se guardó nada.')
+            return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': rows})
+
+        try:
+            with transaction.atomic():
+                for student, score, data in entries:
+                    grade_activity(
+                        activity, student, score=score, feedback=data['feedback'], by=request.user,
+                        waive_penalty=data['waive'],
+                    )
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': rows})
+
+        messages.success(request, f'Se guardaron {len(entries)} calificaciones.' if entries else 'No había notas que guardar.')
+        return redirect(activity)
+
+
+class GradeHistoryView(TeacherRequiredMixin, View):
+    """Bitácora de calificaciones de una actividad: quién cambió qué y cuándo."""
+
+    def get(self, request, pk):
+        activity = get_object_or_404(
+            Activity.objects.for_organization(request.organization).filter(course__professor=request.user)
+            .select_related('course'),
+            pk=pk,
+        )
+        history = GradeHistory.objects.for_organization(request.organization).filter(activity=activity).select_related('changed_by')
+        return render(request, 'grade_history.html', {'activity': activity, 'course': activity.course, 'history': history})

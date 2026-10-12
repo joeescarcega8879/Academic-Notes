@@ -1,6 +1,8 @@
 import os
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator, URLValidator
 from django.db import models
@@ -161,12 +163,27 @@ class Activity(TenantModel):
         super().save(*args, **kwargs)
 
     
+def apply_late_penalty(raw_score, penalty_percent):
+    """Calificación tras la penalización por entrega tardía, redondeada a 2 decimales (mitad hacia arriba)."""
+    factor = 1 - Decimal(str(penalty_percent)) / 100
+    return float((Decimal(str(raw_score)) * factor).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+
+
 class Grade(TenantModel):
+    """Calificación de un alumno en una actividad.
+
+    ``raw_score`` es lo que escribió el docente; ``score`` es la calificación efectiva, ya con la penalización
+    por entrega tardía (``late_penalty``, en %), y la que usa todo el cálculo. Al editar se cambia ``raw_score``:
+    ``score`` se recalcula al guardar, de modo que la penalización nunca se aplica dos veces.
+    """
+
     organization_source = 'activity'
 
     activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='grades')
     student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='grades')
     score = models.FloatField(validators=[MinValueValidator(0)])
+    raw_score = models.FloatField(validators=[MinValueValidator(0)])
+    late_penalty = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     feedback = models.TextField(blank=True)
     graded_at = models.DateTimeField(auto_now_add=True)
 
@@ -185,7 +202,49 @@ class Grade(TenantModel):
 
     def save(self, *args, **kwargs):
         self.clean()
+        if self.raw_score is None:
+            self.raw_score = self.score  # creada sin pasar por el servicio: sin penalización
+        else:
+            self.score = apply_late_penalty(self.raw_score, self.late_penalty)
         super().save(*args, **kwargs)
+
+
+class GradeHistory(TenantModel):
+    """Bitácora de cambios en las calificaciones: quién, qué y cuándo.
+
+    Se llena con señales, así que cubre cualquier alta, cambio o baja (vistas, admin o scripts), salvo las
+    operaciones masivas de consulta (``update()``). Guarda copias del nombre del alumno y de la actividad
+    para que el historial sobreviva si se borran.
+    """
+
+    class Action(models.TextChoices):
+        CREATED = 'created', 'Calificó'
+        UPDATED = 'updated', 'Cambió la calificación'
+        DELETED = 'deleted', 'Eliminó la calificación'
+
+    organization_source = None
+    organization = models.ForeignKey('organizations.Organization', on_delete=models.PROTECT, related_name='+')
+
+    grade = models.ForeignKey(Grade, null=True, on_delete=models.SET_NULL, related_name='history')
+    activity = models.ForeignKey(Activity, null=True, on_delete=models.SET_NULL, related_name='grade_history')
+    student = models.ForeignKey('courses.Student', null=True, on_delete=models.SET_NULL, related_name='grade_history')
+    activity_title = models.CharField(max_length=255)
+    student_name = models.CharField(max_length=300)
+    action = models.CharField(max_length=10, choices=Action.choices)
+    old_score = models.FloatField(null=True, blank=True)
+    new_score = models.FloatField(null=True, blank=True)
+    old_feedback = models.TextField(blank=True)
+    new_feedback = models.TextField(blank=True)
+    late_penalty = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-changed_at', '-id']
+        verbose_name_plural = 'grade history'
+
+    def __str__(self):
+        return f'{self.get_action_display()}: {self.student_name} — {self.activity_title}'
 
 
 # ── Entregas ──────────────────────────────────────────────────────────

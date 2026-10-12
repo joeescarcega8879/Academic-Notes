@@ -1,7 +1,9 @@
 import csv
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
@@ -12,6 +14,7 @@ from apps.courses.models import Enrollment, Course
 
 from .models import Grade
 from .forms import GradeForm
+from .services.gradebook import grade_activity, remove_grade
 from .services.grading import overall_average
 
 def visible_grades(request):
@@ -52,10 +55,9 @@ class GradeListView(OrganizationMemberMixin, ListView):
             )
         return context
 
-class GradeCreateView(TeacherRequiredMixin, CreateView):
-    model = Grade
-    template_name = 'calificacion_form.html'
-    form_class = GradeForm
+class GradeSaveMixin:
+    """Guarda la calificación por el servicio: aplica la penalización por entrega tardía y deja bitácora."""
+
     success_url = reverse_lazy('grades:list')
 
     def get_form_kwargs(self):
@@ -64,17 +66,37 @@ class GradeCreateView(TeacherRequiredMixin, CreateView):
         kwargs['organization'] = self.request.organization
         return kwargs
 
-class GradeUpdateView(TeacherRequiredMixin, UpdateView):
+    def form_valid(self, form):
+        data = form.cleaned_data
+        try:
+            self.object = grade_activity(
+                data['activity'], data['student'], score=data['score'], feedback=data['feedback'], by=self.request.user,
+            )
+        except ValidationError as error:
+            form.add_error(None, error)
+            return self.form_invalid(form)
+        return redirect(self.get_success_url())
+
+
+class GradeCreateView(GradeSaveMixin, TeacherRequiredMixin, CreateView):
     model = Grade
     template_name = 'calificacion_form.html'
     form_class = GradeForm
-    success_url = reverse_lazy('grades:list')
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        kwargs['organization'] = self.request.organization
-        return kwargs
+    def get_initial(self):
+        # Desde la pantalla de una actividad se llega con el alumno y la actividad ya elegidos.
+        initial = super().get_initial()
+        for name in ('activity', 'student'):
+            value = self.request.GET.get(name, '')
+            if value.isdigit():
+                initial[name] = int(value)
+        return initial
+
+
+class GradeUpdateView(GradeSaveMixin, TeacherRequiredMixin, UpdateView):
+    model = Grade
+    template_name = 'calificacion_form.html'
+    form_class = GradeForm
 
     def get_queryset(self):
         # solo calificaciones de sus materias activas, en la organización activa
@@ -150,3 +172,7 @@ class GradeDeleteView(TeacherRequiredMixin, DeleteView):
     def get_queryset(self):
         # Un grupo archivado es de solo lectura.
         return visible_grades(self.request).filter(activity__course__status='active')
+
+    def form_valid(self, form):
+        remove_grade(self.object, by=self.request.user)
+        return redirect(self.get_success_url())

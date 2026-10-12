@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
-from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, Submission
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, GradeHistory, Submission
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.django_db
 
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
-    Activity, Submission, Grade, Conversation, Message,
+    Activity, Submission, Grade, GradeHistory, Conversation, Message,
 ]
 
 
