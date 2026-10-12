@@ -37,7 +37,7 @@
   <div class="stat">
     <div class="stat-label"><span class="i"><i data-icon="check-circle"></i></span> Tasa de aprobación</div>
     <div class="stat-value">{% if pass_rate is not None %}{{ pass_rate }}%{% else %}—{% endif %}</div>
-    <div class="stat-trend">60% del puntaje máximo</div>
+    <div class="stat-trend">alumnos con final aprobatorio</div>
   </div>
   <div class="stat">
     <div class="stat-label"><span class="i"><i data-icon="bookmark"></i></span> Departamento</div>
@@ -76,7 +76,7 @@
         <div class="eval-row">
           <div>
             <div class="ev-name">Tasa de aprobación</div>
-            <div class="ev-date">60% del puntaje máximo</div>
+            <div class="ev-date">alumnos con final aprobatorio</div>
           </div>
           <span class="grade style-pill ok">{% if course.pass_rate is not None %}{{ course.pass_rate }}%{% else %}—{% endif %}</span>
         </div>

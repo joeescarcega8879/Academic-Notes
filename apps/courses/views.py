@@ -10,7 +10,9 @@ from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
-from apps.grades.services.grading import grade_stats, stats_by_course
+from apps.grades.services.grading import (
+    course_stats, group_results, overall_stats, results_by_course, student_average,
+)
 
 from apps.organizations.services import SESSION_KEY
 
@@ -46,13 +48,14 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
             .select_related('evaluation')
         )
 
-        per_course = stats_by_course(grades)
+        results = group_results(grades)
+        per_course = course_stats(results)
         for course in courses:
             stats = per_course.get(course.pk)
             course.average = stats.average if stats else None
             course.pass_rate = stats.pass_rate if stats else None
 
-        overall = grade_stats(grades)
+        overall = overall_stats(results)
         context['courses'] = courses
         context['archived_courses'] = list(own.filter(status=Course.Status.ARCHIVED))
         context['total_evaluations'] = (
@@ -61,7 +64,7 @@ class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
             .filter(course__professor=user, course__status=active)
             .count()
         )
-        context['graded_count'] = overall.count
+        context['graded_count'] = len(grades)
         context['group_average'] = overall.average
         context['pass_rate'] = overall.pass_rate
 
@@ -96,17 +99,21 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
 
         # Promedio ponderado del alumno (general y por materia)
         grades = list(
-            Grade.objects.for_organization(organization).filter(student__user=user).select_related('evaluation')
+            Grade.objects
+            .for_organization(organization)
+            .filter(student__user=user, evaluation__course__status=Course.Status.ACTIVE)
+            .select_related('evaluation')
         )
 
-        per_course = stats_by_course(grades)
+        results = results_by_course(grades)
         for e in enrollments:
-            stats = per_course.get(e.course_id)
-            e.course_average = stats.average if stats else None
+            result = results.get(e.course_id)
+            e.course_average = result.final if result else None
+            e.result = result
 
         context['enrollments'] = enrollments
         context['archived_enrollments'] = list(mine.filter(course__status=Course.Status.ARCHIVED))
-        context['average'] = grade_stats(grades).average
+        context['average'] = student_average(results)
         return context
 
 
@@ -126,13 +133,22 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        context['enrollments'] = self.object.enrollments.select_related('student')
+        from apps.grades.models import Grade
+
+        enrollments = list(self.object.enrollments.select_related('student'))
         context['my_enrollment'] = self.object.enrollments.filter(student__user=user).first()
+
+        # Vista docente: calificación final de cada alumno según el esquema del grupo
+        if self.request.membership.is_teacher:
+            results = group_results(
+                Grade.objects.filter(evaluation__course=self.object).select_related('evaluation')
+            )
+            for enrollment in enrollments:
+                enrollment.result = results.get((self.object.pk, enrollment.student_id))
+        context['enrollments'] = enrollments
 
         # Vista alumno: evaluaciones de la materia + su calificación
         if self.request.membership.is_student:
-            from apps.grades.models import Grade
-
             my_grades = {
                 g.evaluation_id: g
                 for g in Grade.objects.filter(student__user=user, evaluation__course=self.object).select_related('evaluation')
@@ -142,8 +158,10 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
                 for evaluation in self.object.evaluations.all()
             ]
 
+            result = results_by_course(my_grades.values()).get(self.object.pk)
             context['evaluation_rows'] = rows
-            context['course_average'] = grade_stats(my_grades.values()).average
+            context['course_result'] = result
+            context['course_average'] = result.final if result else None
         return context
 
 

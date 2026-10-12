@@ -1,5 +1,23 @@
 from django.contrib import admin
-from .models import Evaluation, Grade
+from .models import Evaluation, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade
+
+class PeriodInline(admin.TabularInline):
+    model = EvaluationPeriod
+    extra = 0
+
+
+@admin.register(EvaluationScheme)
+class EvaluationSchemeAdmin(admin.ModelAdmin):
+    list_display = ('course', 'scale_max', 'pass_mark', 'rounding_decimals')
+    search_fields = ('course__name',)
+    inlines = [PeriodInline]
+
+
+@admin.register(EvaluationCriterion)
+class EvaluationCriterionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'period', 'weight', 'default_type')
+    search_fields = ('name', 'period__scheme__course__name')
+
 
 @admin.register(Evaluation)
 class EvaluationAdmin(admin.ModelAdmin):

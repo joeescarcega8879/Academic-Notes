@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Esquema de evaluación · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Esquema de evaluación</h1>
+  <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12">
+  <p class="text-sm text-muted" style="margin: 0">
+    La calificación final de cada alumno sale de aquí: cada evaluación se calcula sobre su máximo, se promedia
+    dentro de su <strong>criterio</strong> (según el peso de cada evaluación), los criterios forman el
+    <strong>periodo</strong> y los periodos forman la final. Solo cuentan los criterios y periodos que ya
+    tienen calificaciones, así que el promedio no baja por lo que aún no has evaluado. Los pesos son
+    relativos: normalmente suman 100 %.
+  </p>
+</div>
+
+<!-- 1. Ajustes -->
+<div class="card mb-12" style="max-width: 640px">
+  <h3 class="section-title">Escala y aprobación</h3>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="settings">
+    {% include 'partials/form_fields.html' with form=settings_form %}
+    <button type="submit" class="btn btn-primary" style="margin-top: 14px">Guardar ajustes</button>
+  </form>
+</div>
+
+<!-- 2. Periodos -->
+<div class="card mb-12">
+  <div class="flex-row items-baseline gap-14">
+    <h3 class="section-title" style="margin: 0">Periodos</h3>
+    <span class="chip {% if periods_total == 100 %}ok{% endif %}">Suman {{ periods_total|floatformat:"-2" }} %</span>
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="periods">
+    {{ period_formset.management_form }}
+    {% if period_formset.non_form_errors %}<div class="flash flash-error" style="margin: 10px 0">{{ period_formset.non_form_errors }}</div>{% endif %}
+    <table class="tbl">
+      <thead><tr><th>Nombre</th><th>Peso (%)</th><th>Borrar</th></tr></thead>
+      <tbody>
+        {% for form in period_formset %}
+          <tr>
+            <td>{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}{{ form.name }}{{ form.name.errors }}</td>
+            <td>{{ form.weight }}{{ form.weight.errors }}</td>
+            <td>{{ form.DELETE }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs text-muted">La última fila vacía agrega un periodo nuevo.</p>
+    <button type="submit" class="btn btn-primary">Guardar periodos</button>
+  </form>
+</div>
+
+<!-- 3. Criterios -->
+<div class="card mb-12">
+  <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+    <h3 class="section-title" style="margin: 0">Criterios</h3>
+    {% for period, total in period_totals %}
+      <span class="chip {% if total == 100 %}ok{% endif %}">{{ period.name }}: {{ total|floatformat:"-2" }} %</span>
+    {% endfor %}
+  </div>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="criteria">
+    {{ criterion_formset.management_form }}
+    {% if criterion_formset.non_form_errors %}<div class="flash flash-error" style="margin: 10px 0">{{ criterion_formset.non_form_errors }}</div>{% endif %}
+    <table class="tbl">
+      <thead><tr><th>Periodo</th><th>Nombre</th><th>Peso (%)</th><th>Evaluaciones nuevas de tipo</th><th>Borrar</th></tr></thead>
+      <tbody>
+        {% for form in criterion_formset %}
+          <tr>
+            <td>{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}{{ form.period }}{{ form.period.errors }}</td>
+            <td>{{ form.name }}{{ form.name.errors }}</td>
+            <td>{{ form.weight }}{{ form.weight.errors }}</td>
+            <td>{{ form.default_type }}{{ form.default_type.errors }}</td>
+            <td>{{ form.DELETE }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs text-muted">La última fila vacía agrega un criterio nuevo. Una evaluación nueva se asigna sola al criterio de su tipo.</p>
+    <button type="submit" class="btn btn-primary">Guardar criterios</button>
+  </form>
+</div>
+
+<!-- 4. Evaluaciones -->
+<div class="card">
+  <h3 class="section-title">Evaluaciones del grupo</h3>
+  {% if assignment_formset.forms %}
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="evals">
+      {{ assignment_formset.management_form }}
+      <table class="tbl">
+        <thead><tr><th>Evaluación</th><th>Tipo</th><th>Peso</th><th>Criterio</th></tr></thead>
+        <tbody>
+          {% for form in assignment_formset %}
+            <tr>
+              <td>{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}{{ form.instance.title }}</td>
+              <td>{{ form.instance.get_type_display }}</td>
+              <td>{{ form.instance.weight }}</td>
+              <td>{{ form.criterion }}{{ form.criterion.errors }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <button type="submit" class="btn btn-primary" style="margin-top: 14px">Guardar asignación</button>
+    </form>
+  {% else %}
+    <p class="text-muted" style="margin: 0">Aún no hay evaluaciones en este grupo.</p>
+  {% endif %}
+</div>
+{% endblock %}
