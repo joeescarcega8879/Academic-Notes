@@ -14,9 +14,11 @@ from apps.grades.services.grading import grade_stats, stats_by_course
 
 from apps.organizations.services import SESSION_KEY
 
-from .forms import AcademicYearForm, CloneCourseForm, CourseForm, JoinCourseForm
-from .models import AcademicYear, Course, Enrollment
-from .services import importing
+from .forms import (
+    AcademicYearForm, CloneCourseForm, CourseForm, EnrollExistingForm, JoinCourseForm, StudentForm,
+)
+from .models import AcademicYear, Course, Enrollment, Student
+from .services import importing, roster
 from .services.courses import archive_course, clone_course, unarchive_course
 from .services.invitations import (
     InvitationError, disable_invite_code, redeem_invitation, regenerate_invite_code,
@@ -265,6 +267,100 @@ class AcademicYearCurrentView(TeacherRequiredMixin, View):
         year.save()
         messages.success(request, f'{year} es ahora el ciclo actual.')
         return redirect('academic_years')
+
+
+# ── Lista editable ────────────────────────────────────────────────────
+
+class RosterMixin(OwnCourseMixin):
+    """Editar la lista solo aplica a grupos activos propios; los archivados son de solo lectura."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(status=Course.Status.ACTIVE)
+
+    def get_course(self, pk):
+        return get_object_or_404(self.get_queryset(), pk=pk)
+
+    def get_student(self, course, student_pk):
+        """Alumno inscrito en el grupo (así se acota a la organización y al docente)."""
+        return get_object_or_404(Student.objects.for_organization(course.organization), pk=student_pk, enrollments__course=course)
+
+
+class StudentAddView(RosterMixin, View):
+    """Agregar un alumno nuevo a la lista o inscribir uno que ya está en la organización."""
+
+    template_name = 'student_add.html'
+
+    def render_page(self, request, course, new_form=None, existing_form=None):
+        return render(request, self.template_name, {
+            'course': course,
+            'new_form': new_form or StudentForm(organization=course.organization),
+            'existing_form': existing_form or EnrollExistingForm(course=course),
+        })
+
+    def get(self, request, pk):
+        return self.render_page(request, self.get_course(pk))
+
+    def post(self, request, pk):
+        course = self.get_course(pk)
+        if request.POST.get('action') == 'existing':
+            form = EnrollExistingForm(request.POST, course=course)
+            if form.is_valid():
+                roster.enroll_existing(course, form.cleaned_data['student'])
+                messages.success(request, f'{form.cleaned_data["student"]} quedó inscrito en el grupo.')
+                return redirect(course)
+            return self.render_page(request, course, existing_form=form)
+
+        form = StudentForm(request.POST, organization=course.organization)
+        if form.is_valid():
+            student = roster.add_student(course, **form.cleaned_data)
+            messages.success(request, f'{student} se agregó al grupo.')
+            return redirect(course)
+        return self.render_page(request, course, new_form=form)
+
+
+class StudentEditView(RosterMixin, View):
+    template_name = 'student_edit.html'
+
+    def get(self, request, pk, student_pk):
+        course = self.get_course(pk)
+        student = self.get_student(course, student_pk)
+        form = StudentForm(instance=student, organization=course.organization)
+        return render(request, self.template_name, {'course': course, 'student': student, 'form': form})
+
+    def post(self, request, pk, student_pk):
+        course = self.get_course(pk)
+        student = self.get_student(course, student_pk)
+        form = StudentForm(request.POST, instance=student, organization=course.organization)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Se guardaron los datos de {student}.')
+            return redirect(course)
+        return render(request, self.template_name, {'course': course, 'student': student, 'form': form})
+
+
+class StudentRemoveView(RosterMixin, View):
+    def post(self, request, pk, student_pk):
+        course = self.get_course(pk)
+        student = self.get_student(course, student_pk)
+        try:
+            roster.remove_from_course(course, student)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+        else:
+            messages.success(request, f'{student} se quitó del grupo.')
+        return redirect(course)
+
+
+class StudentUnlinkView(RosterMixin, View):
+    def post(self, request, pk, student_pk):
+        course = self.get_course(pk)
+        student = self.get_student(course, student_pk)
+        if student.user_id is None:
+            messages.error(request, f'{student} no tiene una cuenta vinculada.')
+        else:
+            roster.unlink_student(student)
+            messages.success(request, f'Se desvinculó la cuenta de {student}. Puede volver a enlazarse con el código.')
+        return redirect(course)
 
 
 # ── Código de invitación ──────────────────────────────────────────────

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Agregar alumno · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Agregar alumno</h1>
+  <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12" style="max-width: 640px">
+  <h3 class="section-title">Alumno nuevo</h3>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="new">
+    {% include 'partials/form_fields.html' with form=new_form %}
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Agregar al grupo</button>
+      <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<div class="card" style="max-width: 640px">
+  <h3 class="section-title">Inscribir a alguien que ya está en la organización</h3>
+  <p class="text-sm text-muted" style="margin-top: 0">Útil cuando el alumno ya cursó otro grupo contigo: conserva su matrícula y su cuenta.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="action" value="existing">
+    {% include 'partials/form_fields.html' with form=existing_form %}
+    <button type="submit" class="btn btn-ghost" style="margin-top: 14px">Inscribir</button>
+  </form>
+</div>
+{% endblock %}

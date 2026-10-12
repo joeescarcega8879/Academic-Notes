@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import AcademicYear, Course
+from .models import AcademicYear, Course, Student
 
 
 def _style(form):
@@ -85,6 +85,44 @@ class AcademicYearForm(forms.ModelForm):
         if commit:
             year.save()
         return year
+
+
+class StudentForm(forms.ModelForm):
+    """Datos de un alumno de la lista. La matrícula es única dentro de la organización."""
+
+    class Meta:
+        model = Student
+        fields = ['student_number', 'first_name', 'last_name', 'email']
+
+    def __init__(self, *args, organization, **kwargs):
+        self.organization = organization
+        super().__init__(*args, **kwargs)
+        _style(self)
+
+    def clean_student_number(self):
+        number = self.cleaned_data['student_number'].strip()
+        if number:
+            holder = (
+                Student.objects.for_organization(self.organization)
+                .filter(student_number=number).exclude(pk=self.instance.pk).first()
+            )
+            if holder is not None:
+                raise forms.ValidationError(f'La matrícula {number} ya pertenece a {holder}.')
+        return number
+
+
+class EnrollExistingForm(forms.Form):
+    """Inscribir en el grupo a un alumno que ya está en la organización."""
+
+    student = forms.ModelChoiceField(queryset=Student.objects.none(), label='Alumno de la organización')
+
+    def __init__(self, *args, course, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['student'].queryset = (
+            Student.objects.for_organization(course.organization).exclude(enrollments__course=course)
+        )
+        self.fields['student'].label_from_instance = lambda s: f'{s} ({s.student_number})' if s.student_number else str(s)
+        _style(self)
 
 
 class JoinCourseForm(forms.Form):
