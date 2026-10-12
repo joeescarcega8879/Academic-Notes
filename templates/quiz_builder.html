@@ -6,6 +6,7 @@
   <h1>Armar quiz</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>
   <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
 </header>
 {% endblock %}

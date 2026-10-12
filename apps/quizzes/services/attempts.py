@@ -16,6 +16,7 @@ from django.utils import timezone
 from apps.courses.models import Enrollment
 
 from ..models import Answer, Question, QuizAttempt
+from . import results
 
 # Margen por latencia de red: un envío que llega unos segundos tarde se acepta; más allá, no.
 GRACE_SECONDS = 5
@@ -107,6 +108,10 @@ def finalize_attempt(attempt, *, expired=False, now=None):
     # Un intento cerrado por tiempo termina en su plazo, no en el momento en que alguien lo descubre.
     attempt.submitted_at = attempt.deadline if expired and attempt.deadline else now
     attempt.save()
+    try:
+        results.sync_grade(attempt.quiz, attempt.student)
+    except ValidationError:
+        pass  # p. ej. el grupo se archivó mientras respondía: el intento queda calificado, la libreta no cambia
     return attempt
 
 

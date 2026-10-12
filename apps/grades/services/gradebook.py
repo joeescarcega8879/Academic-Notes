@@ -19,12 +19,13 @@ def late_penalty_for(activity, student):
 
 
 @transaction.atomic
-def grade_activity(activity, student, *, score, feedback='', by=None, waive_penalty=False):
+def grade_activity(activity, student, *, score, feedback='', by=None, waive_penalty=False, source=Grade.Source.MANUAL):
     """Crea o actualiza la calificación de ``student`` en ``activity``.
 
     ``score`` es lo que escribe el docente (sobre ``activity.max_score``). Si la entrega fue tardía se le
     aplica la penalización de la actividad, salvo que se ``waive_penalty``. ``by`` es quien califica y queda
-    en la bitácora. Lanza ``ValidationError`` con un mensaje para el docente.
+    en la bitácora (None = el sistema). ``source`` distingue lo fijado por el docente de la calificación
+    automática de un quiz. Lanza ``ValidationError`` con un mensaje para el docente.
     """
     activity.course.ensure_editable()
     if score is None or score < 0:
@@ -39,6 +40,7 @@ def grade_activity(activity, student, *, score, feedback='', by=None, waive_pena
     grade.raw_score = score
     grade.late_penalty = penalty
     grade.feedback = feedback.strip()
+    grade.source = source
     grade._changed_by = by
     grade.save()
     return grade

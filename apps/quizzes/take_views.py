@@ -9,10 +9,11 @@ from django.views import View
 
 from apps.accounts.mixins import OrganizationMemberMixin
 from apps.courses.models import Student
-from apps.grades.models import Activity
+from apps.grades.models import Activity, Grade
 
 from .models import QuizAttempt, QuizConfig
 from .services import attempts as service
+from .services import results
 
 
 def parse_selections(post):
@@ -161,7 +162,12 @@ class QuizResultView(StudentQuizMixin, View):
         attempt = self.load_attempt(request, pk)
         if not attempt.is_finished:
             return redirect('quizzes:take', pk=attempt.pk)
+        activity = attempt.quiz.activity
+        review_available = results.can_review(attempt)
         return render(request, self.template_name, {
-            'attempt': attempt, 'activity': attempt.quiz.activity, 'course': attempt.quiz.activity.course,
+            'attempt': attempt, 'quiz': attempt.quiz, 'activity': activity, 'course': activity.course,
             'percent': round(float(attempt.score) * 100 / float(attempt.max_points)) if attempt.max_points else 0,
+            'grade': Grade.objects.filter(activity=activity, student=attempt.student).first(),
+            'review_available': review_available,
+            'review': results.review_rows(attempt) if review_available else None,
         })

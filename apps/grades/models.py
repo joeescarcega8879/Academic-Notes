@@ -182,10 +182,16 @@ class Grade(TenantModel):
     ``score`` se recalcula al guardar, de modo que la penalización nunca se aplica dos veces.
     """
 
+    class Source(models.TextChoices):
+        MANUAL = 'manual', 'Docente'
+        QUIZ = 'quiz', 'Quiz (automática)'
+
     organization_source = 'activity'
 
     activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='grades')
     student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='grades')
+    # De dónde viene: lo que el docente fija a mano manda sobre la calificación automática de un quiz.
+    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
     score = models.FloatField(validators=[MinValueValidator(0)])
     raw_score = models.FloatField(validators=[MinValueValidator(0)])
     late_penalty = models.DecimalField(max_digits=5, decimal_places=2, default=0)

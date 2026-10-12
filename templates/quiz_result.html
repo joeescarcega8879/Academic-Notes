@@ -11,12 +11,28 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 640px">
+<div class="card mb-12" style="max-width: 640px">
   {% if attempt.status == 'expired' %}
     <div class="flash mb-12">Se acabó el tiempo: se calificó lo que alcanzaste a responder.</div>
   {% endif %}
   <p style="font-size: 2em; margin: 0">{{ attempt.score|floatformat:"-2" }} <span class="text-muted" style="font-size: 0.5em">de {{ attempt.max_points|floatformat:"-2" }} puntos</span></p>
   <p class="text-muted">{{ percent }} % de aciertos</p>
+  {% if grade %}
+    <p style="margin-bottom: 4px">Tu calificación en la libreta: <strong>{{ grade.score|floatformat:"-2" }} / {{ activity.max_score|floatformat:"-2" }}</strong>
+      {% if quiz.attempts_allowed > 1 and grade.source == 'quiz' %}<span class="text-sm text-muted">(cuenta {{ quiz.get_attempt_policy_display|lower }})</span>{% endif %}</p>
+  {% endif %}
   <p class="text-sm text-muted" style="margin-bottom: 0">Enviado el {{ attempt.submitted_at|date:"d/m/Y H:i" }}.</p>
 </div>
+
+{% if review is not None %}
+  <h3 class="section-title">Revisión</h3>
+  {% include 'partials/attempt_rows.html' with rows=review %}
+{% elif not review_available %}
+  <div class="card" style="max-width: 640px">
+    <p class="text-muted" style="margin: 0">
+      {% if quiz.feedback_mode == 'after_close' %}Las respuestas correctas y las explicaciones se mostrarán cuando cierre el quiz.
+      {% else %}Este quiz solo muestra la calificación.{% endif %}
+    </p>
+  </div>
+{% endif %}
 {% endblock %}

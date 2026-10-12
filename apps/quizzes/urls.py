@@ -1,11 +1,14 @@
 from django.urls import path
 
-from . import builder_views, take_views, views
+from . import builder_views, results_views, take_views, views
 
 app_name = 'quizzes'
 
 urlpatterns = [
     path('actividades/<int:pk>/quiz/', builder_views.BuilderView.as_view(), name='builder'),
+    path('actividades/<int:pk>/quiz/resultados/', results_views.QuizResultsView.as_view(), name='results'),
+    path('intentos/<int:pk>/revision/', results_views.AttemptReviewView.as_view(), name='review'),
+    path('intentos/<int:pk>/eliminar/', results_views.AttemptDeleteView.as_view(), name='attempt_delete'),
     path('actividades/<int:pk>/resolver/', take_views.QuizOverviewView.as_view(), name='overview'),
     path('intentos/<int:pk>/', take_views.QuizTakeView.as_view(), name='take'),
     path('intentos/<int:pk>/guardar/', take_views.QuizAutosaveView.as_view(), name='autosave'),
