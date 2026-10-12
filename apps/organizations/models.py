@@ -64,6 +64,10 @@ class Membership(models.Model):
     def is_teacher(self):
         return self.role in self.TEACHING_ROLES
 
+    @property
+    def is_student(self):
+        return self.role == self.Role.STUDENT
+
 
 class TenantModel(models.Model):
     """Base de los modelos que pertenecen a una organización.

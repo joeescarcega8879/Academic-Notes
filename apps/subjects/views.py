@@ -1,35 +1,30 @@
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Count
-from django.shortcuts import redirect
 from django.views.generic import TemplateView, DetailView
 
+from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
 from apps.grades.services.grading import grade_stats, stats_by_subject
 
 from .models import Subject, Enrollment
 
-class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
 
     template_name = "dashboard-profesor.html"
-
-    def test_func(self):
-        return self.request.user.role == 'professor'
-
-    def handle_no_permission(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return super().handle_no_permission()
-        if user.role == 'student':
-            return redirect('student_dashboard')
-        return redirect('profile')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from apps.grades.models import Evaluation, Grade
 
         user = self.request.user
-        subjects = list(user.subjects.annotate(student_count=Count('enrollments')))
+        organization = self.request.organization
+        subjects = list(
+            Subject.objects
+            .for_organization(organization)
+            .filter(professor=user)
+            .annotate(student_count=Count('enrollments'))
+        )
         grades = list(
             Grade.objects
+            .for_organization(organization)
             .filter(evaluation__subject__professor=user)
             .select_related('evaluation')
         )
@@ -42,13 +37,16 @@ class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
         overall = grade_stats(grades)
         context['subjects'] = subjects
-        context['total_evaluations'] = Evaluation.objects.filter(subject__professor=user).count()
+        context['total_evaluations'] = (
+            Evaluation.objects.for_organization(organization).filter(subject__professor=user).count()
+        )
         context['graded_count'] = overall.count
         context['group_average'] = overall.average
         context['pass_rate'] = overall.pass_rate
 
         context['total_students'] = (
             Enrollment.objects
+            .for_organization(organization)
             .filter(subject__professor=user)
             .values('student')
             .distinct()
@@ -56,32 +54,27 @@ class ProfessorDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         )
         return context
 
-class StudentDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+class StudentDashboardView(StudentRequiredMixin, TemplateView):
 
     template_name = 'dashboard-alumno.html'
-
-    def test_func(self):
-        return self.request.user.role == 'student'
-
-    def handle_no_permission(self):
-        user = self.request.user
-        if not user.is_authenticated:
-            return super().handle_no_permission()
-        if user.role == 'professor':
-            return redirect('professor_dashboard')
-        return redirect('profile')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         from apps.grades.models import Grade
 
+        user = self.request.user
+        organization = self.request.organization
         enrollments = list(
-            self.request.user.enrollments
+            Enrollment.objects
+            .for_organization(organization)
+            .filter(student=user)
             .select_related('subject', 'subject__professor')
         )
 
         # Promedio ponderado del alumno (general y por materia)
-        grades = list(Grade.objects.filter(student=self.request.user).select_related('evaluation'))
+        grades = list(
+            Grade.objects.for_organization(organization).filter(student=user).select_related('evaluation')
+        )
 
         per_subject = stats_by_subject(grades)
         for e in enrollments:
@@ -92,16 +85,16 @@ class StudentDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView
         context['average'] = grade_stats(grades).average
         return context
 
-class SubjectDetailView(LoginRequiredMixin, DetailView):
+class SubjectDetailView(OrganizationMemberMixin, DetailView):
 
     model = Subject
     template_name = 'materia.html'
     context_object_name = 'subject'
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = Subject.objects.for_organization(self.request.organization)
         user = self.request.user
-        if user.role == 'professor':
+        if self.request.membership.is_teacher:
             return qs.filter(professor=user)
         return qs.filter(enrollments__student=user)
 
@@ -112,7 +105,7 @@ class SubjectDetailView(LoginRequiredMixin, DetailView):
         context['my_enrollment'] = self.object.enrollments.filter(student=user).first()
 
         # Vista alumno: evaluaciones de la materia + su calificación
-        if user.role == 'student':
+        if self.request.membership.is_student:
             from apps.grades.models import Grade
 
             my_grades = {

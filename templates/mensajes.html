@@ -5,7 +5,7 @@
 {% block topbar %}
 <header class="topbar">
   <h1>Mensajes</h1>
-  <span class="sub">{% if user.role == 'professor' %}Conversaciones con tus alumnos{% else %}Conversaciones con tus profesores{% endif %}</span>
+  <span class="sub">{% if is_teacher %}Conversaciones con tus alumnos{% else %}Conversaciones con tus profesores{% endif %}</span>
   <div class="spacer"></div>
   {% include 'partials/notifications.html' %}
 </header>

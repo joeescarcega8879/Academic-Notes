@@ -17,7 +17,7 @@ pytestmark = pytest.mark.django_db
 # ── Login / logout ────────────────────────────────────────────────────
 
 class TestLogin:
-    def test_login_con_email(self, client, student):
+    def test_login_con_email(self, client, student, enrollment):
         response = client.post(reverse("login"), {"username": student.email, "password": PASSWORD})
         assert response.status_code == 302
         assert response.url == reverse("student_dashboard")
@@ -45,8 +45,28 @@ class TestLogin:
         assert response.context["error"]
         assert "_auth_user_id" not in client.session
 
-    def test_usuario_autenticado_en_login_va_a_su_dashboard(self, student_client):
+    def test_usuario_autenticado_en_login_va_a_su_dashboard(self, student_client, enrollment):
         assert student_client.get(reverse("login")).url == reverse("student_dashboard")
+
+    def test_alumno_sin_organizacion_entra_a_su_perfil(self, client, student):
+        response = client.post(
+            reverse("login"), {"username": student.email, "password": PASSWORD, "role": "student"}
+        )
+        assert response.status_code == 302
+        assert response.url == reverse("profile")
+
+    def test_el_rol_elegido_fija_la_organizacion_activa(self, client, professor, subject):
+        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.models import Membership
+
+        # Alumno en la organización de otro profesor y profesor en la suya.
+        MembershipFactory(user=professor, organization=EnrollmentFactory().subject.organization)
+        response = client.post(
+            reverse("login"), {"username": professor.email, "password": PASSWORD, "role": "student"}
+        )
+        assert response.url == reverse("student_dashboard")
+        asignada = Membership.objects.get(user=professor, role=Membership.Role.STUDENT)
+        assert client.session["organization_id"] == asignada.organization_id
 
     def test_logout_cierra_la_sesion(self, student_client):
         response = student_client.get(reverse("logout"))

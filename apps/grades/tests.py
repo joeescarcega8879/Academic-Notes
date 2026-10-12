@@ -87,7 +87,7 @@ class TestPermisos:
         assert response.status_code == 200
         assert Grade.objects.count() == 0
 
-    def test_alumno_no_puede_crear(self, student_client):
+    def test_alumno_no_puede_crear(self, student_client, enrollment):
         response = student_client.get(reverse("grades:create"))
         assert response.status_code == 302
         assert response.url == reverse("student_dashboard")

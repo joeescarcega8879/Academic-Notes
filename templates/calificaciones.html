@@ -5,11 +5,11 @@
 <header class="topbar">
   <h1>Calificaciones</h1>
   <span class="sub"
-    >{% if user.role == 'professor' %}Panel del profesor{% else %}Mis
+    >{% if is_teacher %}Panel del profesor{% else %}Mis
     calificaciones{% endif %}</span
   >
   <div class="spacer"></div>
-  {% if user.role == 'professor' %}
+  {% if is_teacher %}
   <a class="btn btn-primary" href="{% url 'grades:create' %}"
     ><i data-icon="plus"></i> Nueva calificación</a>
   {% endif %}
@@ -24,10 +24,10 @@
     <div class="stat-label">
       <span class="i"
         ><i
-          data-icon="{% if user.role == 'professor' %}book-open{% else %}clipboard{% endif %}"
+          data-icon="{% if is_teacher %}book-open{% else %}clipboard{% endif %}"
         ></i
       ></span>
-      {% if user.role == 'professor' %}Materias activas{% else %}Materias
+      {% if is_teacher %}Materias activas{% else %}Materias
       inscritas{% endif %}
     </div>
     <div class="stat-value">{{ subjects|length }}</div>
@@ -36,7 +36,7 @@
   <div class="stat">
     <div class="stat-label">
       <span class="i"><i data-icon="trending-up"></i></span>
-      Promedio {% if user.role == 'professor' %}del grupo{% else %}general{% endif %}
+      Promedio {% if is_teacher %}del grupo{% else %}general{% endif %}
     </div>
     <div class="stat-value">{{ average|floatformat:2|default:"—" }}</div>
     <div class="stat-trend">según calificaciones</div>
@@ -54,12 +54,12 @@
 <div class="table-wrap">
   <div class="table-head">
     <h3>
-      {% if user.role == 'professor' %}Calificaciones de tus materias{% else %}Tus calificaciones{% endif %}
+      {% if is_teacher %}Calificaciones de tus materias{% else %}Tus calificaciones{% endif %}
     </h3>
     <span class="grade style-pill ok">{{ grades|length }}</span>
     <div class="spacer"></div>
     <form class="export-bar" method="get" action="{% url 'grades:export' %}">
-      {% if user.role == 'professor' %}
+      {% if is_teacher %}
       <select class="select" name="materia" title="Materia">
         <option value="">Todas las materias</option>
         {% for s in subjects %}
@@ -75,14 +75,14 @@
   <table class="tbl">
     <thead>
       <tr>
-        {% if user.role == 'professor' %}
+        {% if is_teacher %}
         <th>Alumno</th>
         {% endif %}
         <th>Materia</th>
         <th>Evaluación</th>
         <th>Calificación</th>
         <th>Comentario</th>
-        {% if user.role == 'professor' %}
+        {% if is_teacher %}
         <th>Acciones</th>
         {% endif %}
       </tr>
@@ -90,7 +90,7 @@
     <tbody>
       {% for grade in grades %}
       <tr>
-        {% if user.role == 'professor' %}
+        {% if is_teacher %}
         <td>{{ grade.student.get_full_name|default:grade.student.email }}</td>
         {% endif %}
         <td>{{ grade.evaluation.subject.name }}</td>
@@ -103,7 +103,7 @@
         <td class="text-muted">
           {{ grade.feedback|default:"—"|truncatewords:10 }}
         </td>
-        {% if user.role == 'professor' %}
+        {% if is_teacher %}
         <td>
           <a class="btn btn-ghost" href="{% url 'grades:update' grade.pk %}"
             >Editar</a
@@ -117,10 +117,10 @@
       {% empty %}
       <tr>
         <td
-          colspan="{% if user.role == 'professor' %}6{% else %}4{% endif %}"
+          colspan="{% if is_teacher %}6{% else %}4{% endif %}"
           class="text-muted"
         >
-          {% if user.role == 'professor' %} Aún no has registrado
+          {% if is_teacher %} Aún no has registrado
           calificaciones. Pulsa "Nueva calificación". {% else %} Todavía no
           tienes calificaciones publicadas. {% endif %}
         </td>

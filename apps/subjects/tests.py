@@ -22,11 +22,11 @@ class TestAccesoPorRol:
             assert response.status_code == 302
             assert response.url.startswith("/login/?next=")
 
-    def test_cada_rol_ve_su_dashboard(self, professor_client, student_client):
+    def test_cada_rol_ve_su_dashboard(self, professor_client, student_client, enrollment):
         assert professor_client.get(reverse("professor_dashboard")).status_code == 200
         assert student_client.get(reverse("student_dashboard")).status_code == 200
 
-    def test_cruce_de_roles_redirige_al_dashboard_propio(self, professor_client, student_client):
+    def test_cruce_de_roles_redirige_al_dashboard_propio(self, professor_client, student_client, enrollment):
         assert professor_client.get(reverse("student_dashboard")).url == reverse("professor_dashboard")
         assert student_client.get(reverse("professor_dashboard")).url == reverse("student_dashboard")
 
@@ -78,8 +78,9 @@ class TestDashboardProfesor:
 
 class TestDashboardAlumno:
     def test_promedio_general_y_por_materia(self, student_client, student):
-        a = EnrollmentFactory(student=student).subject
-        b = EnrollmentFactory(student=student).subject
+        profesor = ProfessorFactory()
+        a = EnrollmentFactory(student=student, subject=SubjectFactory(professor=profesor)).subject
+        b = EnrollmentFactory(student=student, subject=SubjectFactory(professor=profesor)).subject
         GradeFactory(evaluation=EvaluationFactory(subject=a, weight=1), student=student, score=10)
         GradeFactory(evaluation=EvaluationFactory(subject=a, weight=3), student=student, score=6)
         GradeFactory(evaluation=EvaluationFactory(subject=b, weight=1), student=student, score=8)
@@ -122,8 +123,9 @@ class TestDetalleDeMateria:
         assert len(rows) == 2
         assert sorted(r["grade"] is None for r in rows) == [False, True]
 
-    def test_alumno_no_inscrito_recibe_404(self, student_client, subject):
-        assert student_client.get(reverse("subject_detail", args=[subject.pk])).status_code == 404
+    def test_alumno_no_inscrito_recibe_404(self, student_client, subject, enrollment):
+        otra = SubjectFactory(professor=subject.professor)  # misma organización, sin inscripción
+        assert student_client.get(reverse("subject_detail", args=[otra.pk])).status_code == 404
 
     def test_anonimo_va_al_login(self, client, subject):
         assert client.get(reverse("subject_detail", args=[subject.pk])).status_code == 302

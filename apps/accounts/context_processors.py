@@ -7,7 +7,7 @@ from django.utils import timezone
 def notifications(request):
     """Notificaciones del usuario para la campana del topbar.
 
-    - Mensajes sin leer: siempre (ambos roles).
+    - Mensajes sin leer: siempre (ambos roles), solo de la organización activa.
     - Calificaciones recientes: solo alumnos y solo si notify_grades está activo.
       notify_weekly / notify_sms son preferencias de canales externos (email/SMS)
       y no afectan a este panel.
@@ -23,7 +23,7 @@ def notifications(request):
 
     unread_count = unread_count_for_request(request)
     recent_messages = (
-        unread_messages_for(user)
+        unread_messages_for(user, request.membership)
         .select_related('conversation__subject', 'sender')
         .order_by('-created_at')[:5]
     )
@@ -38,13 +38,15 @@ def notifications(request):
         })
 
     grades_count = 0
-    if user.role == 'student' and user.notify_grades:
+    membership = request.membership
+    if membership is not None and membership.is_student and user.notify_grades:
         # Ventana de 7 dias, o desde que el usuario marco sus notificaciones como leidas.
         cutoff = timezone.now() - timedelta(days=7)
         if user.notifications_read_at and user.notifications_read_at > cutoff:
             cutoff = user.notifications_read_at
         recent_grades = (
             Grade.objects
+            .for_organization(request.organization)
             .filter(student=user, graded_at__gt=cutoff)
             .select_related('evaluation__subject')
             .order_by('-graded_at')

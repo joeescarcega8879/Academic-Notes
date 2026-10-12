@@ -3,6 +3,27 @@
 from .models import Membership, Organization
 
 
+SESSION_KEY = 'organization_id'
+
+
+def active_memberships(user):
+    """Membresías de ``user`` en organizaciones activas, la más antigua primero."""
+    return list(
+        Membership.objects
+        .filter(user=user, organization__is_active=True)
+        .select_related('organization')
+        .order_by('id')
+    )
+
+
+def pick_membership(memberships, wanted_organization_id=None):
+    """La membresía de ``wanted_organization_id`` si el usuario sigue en ella; si no, la primera."""
+    return next(
+        (m for m in memberships if m.organization_id == wanted_organization_id),
+        memberships[0] if memberships else None,
+    )
+
+
 def teaching_organization(user):
     """Primera organización donde ``user`` da clase, o None."""
     membership = (

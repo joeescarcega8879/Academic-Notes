@@ -8,7 +8,7 @@
     <div class="meta">
       <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
       <div class="role">
-        {% if user.role == 'professor' %}
+        {% if is_teacher %}
           Profesor(a){% if user.professor_profile.department %}
             · {{ user.professor_profile.department }}
           {% endif %}
@@ -18,8 +18,18 @@
       </div>
     </div>
   </div>
+  {% if memberships|length > 1 %}
+    <form method="post" action="{% url 'organizations:switch' %}" class="org-switch">
+      {% csrf_token %}
+      <select name="organization" class="select" aria-label="Organización activa" onchange="this.form.submit()">
+        {% for m in memberships %}
+          <option value="{{ m.organization_id }}"{% if m.organization_id == organization.id %} selected{% endif %}>{{ m.organization.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  {% endif %}
   <nav class="nav">
-    {% if user.role == 'professor' %}
+    {% if is_teacher %}
       <a href="{% url 'professor_dashboard' %}" class="{% if request.resolver_match.url_name == 'professor_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis Materias</a>
       <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i> Calificaciones</a>
       <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.app_name == 'messaging' %}is-active{% endif %}">

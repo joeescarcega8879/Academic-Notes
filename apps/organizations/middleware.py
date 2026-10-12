@@ -1,13 +1,12 @@
-from .models import Membership
-
-SESSION_KEY = 'organization_id'
+from .services import SESSION_KEY, active_memberships, pick_membership
 
 
 class OrganizationMiddleware:
-    """Expone ``request.organization`` y ``request.membership`` (la organización activa).
+    """Expone la organización activa: ``request.organization``, ``request.membership``
+    y ``request.memberships`` (todas las del usuario, para el selector).
 
     La activa es la guardada en sesión si el usuario sigue siendo miembro; si no,
-    la primera membresía. Sin sesión o sin membresías ambas son None.
+    la primera membresía. Sin sesión o sin membresías quedan en None / [].
     """
 
     def __init__(self, get_response):
@@ -16,20 +15,12 @@ class OrganizationMiddleware:
     def __call__(self, request):
         request.membership = None
         request.organization = None
+        request.memberships = []
 
         user = getattr(request, 'user', None)
         if user is not None and user.is_authenticated:
-            memberships = list(
-                Membership.objects
-                .filter(user=user, organization__is_active=True)
-                .select_related('organization')
-                .order_by('id')
-            )
-            wanted = request.session.get(SESSION_KEY)
-            request.membership = next(
-                (m for m in memberships if m.organization_id == wanted),
-                memberships[0] if memberships else None,
-            )
+            request.memberships = active_memberships(user)
+            request.membership = pick_membership(request.memberships, request.session.get(SESSION_KEY))
             if request.membership:
                 request.organization = request.membership.organization
 

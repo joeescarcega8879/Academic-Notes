@@ -168,6 +168,9 @@ button { font: inherit; cursor: pointer; }
 .profile .meta .name { color: #fff; font-weight: 500; font-size: 14px; }
 .profile .meta .role { color: #8c9bb3; font-size: 12px; }
 
+.org-switch { padding: 0 6px; }
+.org-switch .select { width: 100%; height: 34px; font-size: 13px; }
+
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav a {
   display: flex; align-items: center; gap: 12px;
