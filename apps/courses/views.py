@@ -1,6 +1,7 @@
 import csv
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.http import HttpResponse
@@ -11,10 +12,15 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
 from apps.grades.services.grading import grade_stats, stats_by_course
 
-from .forms import AcademicYearForm, CloneCourseForm, CourseForm
+from apps.organizations.services import SESSION_KEY
+
+from .forms import AcademicYearForm, CloneCourseForm, CourseForm, JoinCourseForm
 from .models import AcademicYear, Course, Enrollment
 from .services import importing
 from .services.courses import archive_course, clone_course, unarchive_course
+from .services.invitations import (
+    InvitationError, disable_invite_code, redeem_invitation, regenerate_invite_code,
+)
 
 
 class ProfessorDashboardView(TeacherRequiredMixin, TemplateView):
@@ -259,6 +265,46 @@ class AcademicYearCurrentView(TeacherRequiredMixin, View):
         year.save()
         messages.success(request, f'{year} es ahora el ciclo actual.')
         return redirect('academic_years')
+
+
+# ── Código de invitación ──────────────────────────────────────────────
+
+class CourseInviteView(OwnCourseMixin, View):
+    """El docente regenera, desactiva o activa el código de su grupo."""
+
+    def post(self, request, pk):
+        course = get_object_or_404(self.get_queryset().filter(status=Course.Status.ACTIVE), pk=pk)
+        action = request.POST.get('action')
+        if action == 'disable':
+            disable_invite_code(course)
+            messages.success(request, 'Se desactivó el código: nadie podrá usarlo hasta que lo actives de nuevo.')
+        elif action in ('regenerate', 'enable'):
+            regenerate_invite_code(course)
+            messages.success(request, f'Nuevo código del grupo: {course.invite_code}. El anterior ya no funciona.')
+        return redirect(course)
+
+
+class JoinCourseView(LoginRequiredMixin, View):
+    """El alumno enlaza su cuenta con su lugar en la lista de un grupo."""
+
+    template_name = 'join_course.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {'form': JoinCourseForm()})
+
+    def post(self, request):
+        form = JoinCourseForm(request.POST)
+        if form.is_valid():
+            try:
+                student = redeem_invitation(request.user, **form.cleaned_data)
+            except InvitationError as error:
+                form.add_error(None, str(error))
+            else:
+                # Pasa a ver la organización del grupo al que se unió.
+                request.session[SESSION_KEY] = student.organization_id
+                messages.success(request, 'Listo: tu cuenta quedó enlazada con tu lugar en la lista.')
+                return redirect('student_dashboard')
+        return render(request, self.template_name, {'form': form})
 
 
 # ── Importar la lista de un grupo ─────────────────────────────────────

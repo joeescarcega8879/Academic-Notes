@@ -13,7 +13,6 @@ matrícula, se busca por correo y, en último caso, por nombre entre los alumnos
 import csv
 import io
 import re
-import unicodedata
 from dataclasses import dataclass, field
 
 from django.core.exceptions import ValidationError
@@ -21,6 +20,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 
 from ..models import Enrollment, Student
+from .text import normalize_text
 
 MAX_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 2000
@@ -53,11 +53,6 @@ class ImportFileError(ValueError):
 
 
 # ── Lectura ───────────────────────────────────────────────────────────
-
-def _normalize(text):
-    text = unicodedata.normalize('NFKD', str(text)).encode('ascii', 'ignore').decode()
-    return re.sub(r'[^a-z0-9]+', ' ', text.lower()).strip()
-
 
 def _cell_text(value, number_format='General'):
     """Texto de una celda de Excel. Un número entero conserva sus ceros si la celda tenía formato 00000."""
@@ -145,7 +140,7 @@ def detect_mapping(headers):
     """{campo: índice de columna} según los encabezados reconocidos; los demás campos quedan en None."""
     mapping = {key: None for key in FIELDS}
     for index, header in enumerate(headers):
-        normalized = _normalize(header)
+        normalized = normalize_text(header)
         for key, aliases in ALIASES.items():
             if mapping[key] is None and normalized in aliases:
                 mapping[key] = index
@@ -214,7 +209,7 @@ class ImportPlan:
 
 
 def _name_key(first, last):
-    return (_normalize(first), _normalize(last))
+    return (normalize_text(first), normalize_text(last))
 
 
 def analyze(course, rows, mapping):

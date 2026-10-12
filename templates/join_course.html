@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Unirme a un grupo · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Unirme a un grupo</h1>
+  <span class="sub">Enlaza tu cuenta con tu lugar en la lista</span>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 560px">
+  <p class="text-sm text-muted" style="margin-top: 0">
+    Tu docente te dará el código del grupo. Para confirmar que eres tú, escribe también tu matrícula y tus
+    apellidos tal como aparecen en la lista.
+  </p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include 'partials/form_fields.html' %}
+    <div class="flex-row gap-14" style="margin-top: 18px">
+      <button type="submit" class="btn btn-primary">Unirme</button>
+      <a class="btn btn-ghost" href="{% url 'student_dashboard' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

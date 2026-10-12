@@ -1,4 +1,5 @@
 import datetime
+import secrets
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,6 +8,16 @@ from django.utils import timezone
 
 from apps.organizations.models import Organization, TenantModel
 from apps.organizations.services import ensure_individual_organization, ensure_student_membership
+
+
+# Sin 0/O ni 1/I/L: el código se dicta y se teclea a mano.
+INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+INVITE_LENGTH = 8
+
+
+def generate_invite_code():
+    """Código de invitación aleatorio (8 caracteres sin ambigüedades)."""
+    return ''.join(secrets.choice(INVITE_ALPHABET) for _ in range(INVITE_LENGTH))
 
 
 class AcademicYear(TenantModel):
@@ -99,10 +110,16 @@ class Course(TenantModel):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     archived_at = models.DateTimeField(null=True, blank=True)
 
+    # Código para que los alumnos de la lista enlacen su cuenta. Vacío = invitaciones desactivadas.
+    invite_code = models.CharField(max_length=12, blank=True, default='')
+
     class Meta:
         ordering = ['name']
         constraints = [
             models.UniqueConstraint(fields=['organization', 'academic_year', 'code'], name='unique_course_code_per_year'),
+            models.UniqueConstraint(
+                fields=['invite_code'], condition=~models.Q(invite_code=''), name='unique_course_invite_code',
+            ),
         ]
 
     def get_absolute_url(self):
@@ -130,7 +147,17 @@ class Course(TenantModel):
             self.academic_year = AcademicYear.current_for(self.organization)
         elif self.academic_year.organization_id != self.organization_id:
             raise ValidationError('El ciclo y el grupo deben pertenecer a la misma organización.')
+        if self._state.adding and not self.invite_code:
+            self.invite_code = self.new_invite_code()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def new_invite_code(cls):
+        """Un código que ningún grupo usa todavía."""
+        while True:
+            code = generate_invite_code()
+            if not cls.objects.filter(invite_code=code).exists():
+                return code
 
 
 class Student(TenantModel):

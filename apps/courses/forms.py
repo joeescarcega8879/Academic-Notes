@@ -87,6 +87,19 @@ class AcademicYearForm(forms.ModelForm):
         return year
 
 
+class JoinCourseForm(forms.Form):
+    """Datos para enlazar la cuenta con el alumno de una lista (ver services/invitations.py)."""
+
+    code = forms.CharField(label='Código del grupo', max_length=20)
+    student_number = forms.CharField(label='Tu matrícula', max_length=30)
+    last_name = forms.CharField(label='Tus apellidos', max_length=150)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style(self)
+        self.fields['code'].widget.attrs.update({'autocomplete': 'off', 'style': 'text-transform: uppercase'})
+
+
 class CloneCourseForm(forms.Form):
     """Datos del grupo duplicado: el ciclo destino y, si hace falta, otro nombre o código."""
 

@@ -47,6 +47,7 @@
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}
       </a>
+      <a href="{% url 'join_course' %}" class="{% if request.resolver_match.view_name == 'join_course' %}is-active{% endif %}"><i data-icon="users"></i> Unirme a un grupo</a>
       <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i> Perfil</a>
       <div class="nav-sep"></div>
       <a href="#"><i data-icon="help-circle"></i> Ayuda</a>

@@ -46,6 +46,31 @@
 </div>
 
 {% if is_teacher %}
+  {% if not course.is_archived %}
+    <div class="card mb-12">
+      <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+        <h3 class="section-title" style="margin: 0">Código de invitación</h3>
+        {% if course.invite_code %}
+          <code style="font-size: 1.3em; letter-spacing: 3px">{{ course.invite_code }}</code>
+          <span class="text-sm text-muted">Tus alumnos lo usan en «Unirme a un grupo» con su matrícula y apellidos.</span>
+        {% else %}
+          <span class="text-sm text-muted">Desactivado: nadie puede enlazar su cuenta a este grupo.</span>
+        {% endif %}
+        <div class="spacer"></div>
+        <form method="post" action="{% url 'course_invite' course.pk %}" class="inline-form">
+          {% csrf_token %}
+          {% if course.invite_code %}
+            <button type="submit" name="action" value="regenerate" class="btn btn-ghost"
+                    onclick="return confirm('El código actual dejará de funcionar. ¿Generar uno nuevo?')">Regenerar</button>
+            <button type="submit" name="action" value="disable" class="btn btn-ghost">Desactivar</button>
+          {% else %}
+            <button type="submit" name="action" value="enable" class="btn btn-ghost">Activar</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Vista PROFESOR: lista de alumnos inscritos -->
   <div class="table-wrap">
     <div class="table-head">
