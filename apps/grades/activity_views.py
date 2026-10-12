@@ -1,16 +1,20 @@
 """Actividades: el docente las crea y publica; el alumno las consulta."""
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.http import FileResponse, Http404
 from django.utils.functional import cached_property
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
-from apps.courses.models import Course
+from apps.courses.models import Course, Student
 
 from .activity_forms import ActivityForm
-from .models import Activity, Grade
+from .models import Activity, Grade, Submission
+from .services.submissions import submission_state, submit
+from .submission_forms import SubmissionForm
 
 
 class OwnActiveCourseMixin(TeacherRequiredMixin):
@@ -100,7 +104,7 @@ class ActivityDeleteView(OwnActiveCourseMixin, View):
 
 
 class ActivityDetailView(OrganizationMemberMixin, View):
-    """El docente ve la actividad con sus alumnos; el alumno, la actividad publicada con su nota."""
+    """El docente ve la actividad con sus alumnos; el alumno, la actividad publicada con su entrega y su nota."""
 
     def get_activity(self, request, pk):
         activities = Activity.objects.for_organization(request.organization).select_related('course', 'criterion__period')
@@ -111,15 +115,101 @@ class ActivityDetailView(OrganizationMemberMixin, View):
         )
 
     def get(self, request, pk):
-        activity = self.get_activity(request, pk)
+        return self.render_page(request, self.get_activity(request, pk))
+
+    def render_page(self, request, activity, form=None):
         context = {'activity': activity, 'course': activity.course}
         if request.membership.is_teacher:
             grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
+            submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
             enrollments = list(activity.course.enrollments.select_related('student'))
             for enrollment in enrollments:
                 enrollment.grade = grades.get(enrollment.student_id)
-            context['enrollments'] = enrollments
-            context['graded_count'] = len(grades)
+                enrollment.submission = submissions.get(enrollment.student_id)
+            context.update(
+                enrollments=enrollments, graded_count=len(grades), submitted_count=len(submissions),
+                late_count=sum(1 for s in submissions.values() if s.is_late),
+            )
         else:
-            context['grade'] = Grade.objects.filter(activity=activity, student__user=request.user).first()
+            grade = Grade.objects.filter(activity=activity, student__user=request.user).first()
+            submission = Submission.objects.filter(activity=activity, student__user=request.user).first()
+            state = submission_state(activity)
+            context.update(
+                grade=grade, submission=submission, submission_state=state,
+                # Una entrega calificada ya no se cambia; fuera de la ventana tampoco se puede entregar.
+                can_submit=activity.accepts_submissions and grade is None and state in ('open', 'late')
+                and not activity.course.is_archived,
+                submission_form=form or SubmissionForm(existing=submission),
+            )
         return render(request, 'activity_detail.html', context)
+
+
+class SubmitActivityView(ActivityDetailView):
+    """El alumno entrega o actualiza su entrega."""
+
+    def get(self, request, pk):
+        return redirect('grades:activity_detail', pk=pk)
+
+    def post(self, request, pk):
+        activity = self.get_activity(request, pk)
+        if not request.membership.is_student:
+            raise Http404
+        student = get_object_or_404(
+            Student.objects.for_organization(request.organization), user=request.user, enrollments__course=activity.course,
+        )
+        existing = Submission.objects.filter(activity=activity, student=student).first()
+        form = SubmissionForm(request.POST, request.FILES, existing=existing)
+        if form.is_valid():
+            try:
+                submission = submit(
+                    activity, student, text=form.cleaned_data['text'], link=form.cleaned_data['link'],
+                    file=form.cleaned_data['file'],
+                )
+            except ValidationError as error:
+                form.add_error(None, error)
+            else:
+                if submission.is_late:
+                    messages.success(request, 'Tu entrega quedó registrada, pero fuera de la fecha límite.')
+                else:
+                    messages.success(request, 'Tu entrega quedó registrada.')
+                return redirect(activity)
+        return self.render_page(request, activity, form=form)
+
+
+class SubmissionAccessMixin(OrganizationMemberMixin):
+    def get_submission(self, request, pk):
+        submissions = Submission.objects.for_organization(request.organization).select_related(
+            'activity__course', 'activity__criterion__period', 'student',
+        )
+        if request.membership.is_teacher:
+            return get_object_or_404(submissions.filter(activity__course__professor=request.user), pk=pk)
+        return get_object_or_404(submissions.filter(student__user=request.user, activity__published=True), pk=pk)
+
+
+class SubmissionDetailView(SubmissionAccessMixin, View):
+    """El docente revisa una entrega."""
+
+    def get(self, request, pk):
+        if not request.membership.is_teacher:
+            raise Http404
+        submission = self.get_submission(request, pk)
+        return render(request, 'submission_detail.html', {
+            'submission': submission, 'activity': submission.activity, 'course': submission.activity.course,
+        })
+
+
+class SubmissionFileView(SubmissionAccessMixin, View):
+    """Descarga del archivo de una entrega: solo el docente del grupo y el propio alumno."""
+
+    def get(self, request, pk):
+        submission = self.get_submission(request, pk)
+        if not submission.file:
+            raise Http404
+        response = FileResponse(
+            submission.file.open('rb'), as_attachment=True,
+            filename=submission.original_name or 'entrega', content_type='application/octet-stream',
+        )
+        # Lo subido por un alumno nunca se interpreta en el navegador ni se guarda en cachés compartidas.
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Cache-Control'] = 'private, no-store'
+        return response

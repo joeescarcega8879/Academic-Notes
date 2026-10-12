@@ -22,6 +22,13 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 # Los archivos subidos en pruebas no deben ensuciar el `media/` del proyecto.
 MEDIA_ROOT = Path(tempfile.gettempdir()) / "gradelink-test-media"
+STORAGES = {
+    **STORAGES,  # noqa: F405
+    "submissions": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(Path(tempfile.gettempdir()) / "gradelink-test-submissions")},
+    },
+}
 
 # Silencia el ruido de las migraciones durante los tests.
 LOGGING["root"]["level"] = "ERROR"  # noqa: F405

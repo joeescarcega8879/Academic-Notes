@@ -1,9 +1,10 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from apps.courses.models import Course
 from apps.courses.signals import course_cloned
 
+from .models import Submission
 from .services.schemes import copy_scheme, create_default_scheme
 
 
@@ -12,6 +13,13 @@ def create_scheme_for_new_course(sender, instance, created, raw=False, **kwargs)
     """Todo grupo nuevo nace con el esquema de plantilla: nunca una pantalla vacía."""
     if created and not raw:
         create_default_scheme(instance)
+
+
+@receiver(post_delete, sender=Submission)
+def delete_submission_file(sender, instance, **kwargs):
+    """Al borrar una entrega (o su actividad o grupo) se borra su archivo del almacenamiento."""
+    if instance.file:
+        instance.file.storage.delete(instance.file.name)
 
 
 @receiver(course_cloned)

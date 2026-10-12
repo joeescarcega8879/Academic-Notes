@@ -152,6 +152,19 @@ STATICFILES_DIRS = [STATIC_DIR]
 MEDIA_URL = "media/"
 MEDIA_ROOT = MEDIA_DIR
 
+# Entregas de alumnos: privadas. Nunca cuelgan de MEDIA_URL; solo se sirven por una vista con permisos.
+# En desarrollo van a disco; para pasar a S3 o MinIO basta cambiar el BACKEND de "submissions".
+PRIVATE_MEDIA_ROOT = BASE_DIR / "private_media"
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "submissions": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT)},
+    },
+}
+
 
 # ── Correo ────────────────────────────────────────────────────────────
 EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")

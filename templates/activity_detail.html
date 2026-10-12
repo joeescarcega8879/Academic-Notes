@@ -55,14 +55,32 @@
     <div class="table-head">
       <h3>Alumnos</h3>
       <span class="grade style-pill ok">{{ graded_count }} / {{ enrollments|length }} calificados</span>
+      {% if activity.accepts_submissions %}
+        <span class="grade style-pill ok">{{ submitted_count }} entregas{% if late_count %} ({{ late_count }} tardías){% endif %}</span>
+      {% endif %}
     </div>
     <table class="tbl">
-      <thead><tr><th>Alumno</th><th>Matrícula</th><th>Calificación</th><th>Comentario</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Alumno</th><th>Matrícula</th>
+          {% if activity.accepts_submissions %}<th>Entrega</th>{% endif %}
+          <th>Calificación</th><th>Comentario</th>
+        </tr>
+      </thead>
       <tbody>
         {% for enrollment in enrollments %}
           <tr>
             <td>{{ enrollment.student }}</td>
             <td>{{ enrollment.student.student_number }}</td>
+            {% if activity.accepts_submissions %}
+              <td>
+                {% if enrollment.submission %}
+                  <a href="{% url 'grades:submission_detail' enrollment.submission.pk %}">Ver entrega</a>
+                  {% if enrollment.submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% endif %}
+                  <div class="text-xs text-muted">{{ enrollment.submission.submitted_at|date:"d/m/Y H:i" }}</div>
+                {% else %}<span class="text-muted">Sin entrega</span>{% endif %}
+              </td>
+            {% endif %}
             <td>
               {% if enrollment.grade %}
                 <span class="grade style-pill ok">{{ enrollment.grade.score|floatformat:"-2" }}</span>
@@ -72,12 +90,49 @@
             <td class="text-muted">{{ enrollment.grade.feedback|default:"—" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="4" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
+          <tr><td colspan="5" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 {% else %}
+  {% if activity.accepts_submissions %}
+    <div class="card mb-12" style="max-width: 720px">
+      <h3 class="section-title">Tu entrega</h3>
+
+      {% if submission %}
+        <p class="text-sm" style="margin-top: 0">
+          Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
+          {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Fuera de la fecha límite</span>{% endif %}
+        </p>
+        {% if submission.text %}<p style="white-space: pre-line">{{ submission.text }}</p>{% endif %}
+        {% if submission.link %}<p><a href="{{ submission.link }}" target="_blank" rel="noopener noreferrer nofollow">{{ submission.link }}</a></p>{% endif %}
+        {% if submission.file %}<p><a href="{% url 'grades:submission_file' submission.pk %}">{{ submission.original_name|default:"Descargar archivo" }}</a></p>{% endif %}
+      {% else %}
+        <p class="text-muted" style="margin-top: 0">Todavía no has entregado.</p>
+      {% endif %}
+
+      {% if grade %}
+        <p class="text-sm text-muted">Tu entrega ya fue calificada y no se puede cambiar.</p>
+      {% elif submission_state == 'not_open' %}
+        <p class="text-sm text-muted">Esta actividad abre el {{ activity.opens_at|date:"d/m/Y H:i" }}.</p>
+      {% elif submission_state == 'closed' %}
+        <p class="text-sm text-muted">La fecha límite ya pasó y esta actividad no acepta entregas tardías.</p>
+      {% elif can_submit %}
+        {% if submission_state == 'late' %}
+          <div class="flash" style="margin: 10px 0">
+            Ya pasó la fecha límite: tu entrega se marcará como tardía{% if activity.late_penalty %} y tendrá una penalización de {{ activity.late_penalty|floatformat:"-2" }} %{% endif %}.
+          </div>
+        {% endif %}
+        <form method="post" action="{% url 'grades:activity_submit' activity.pk %}" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include 'partials/form_fields.html' with form=submission_form %}
+          <button type="submit" class="btn btn-primary" style="margin-top: 14px">{% if submission %}Actualizar entrega{% else %}Entregar{% endif %}</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div class="card">
     <h3 class="section-title">Tu calificación</h3>
     {% if grade %}

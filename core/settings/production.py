@@ -37,9 +37,9 @@ MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STATIC_ROOT = BASE_DIR / "staticfiles"  # noqa: F405
 
 STORAGES = {
-    # Fase 1: cuando existan entregas de alumnos, el `default` pasa a S3/MinIO.
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    **STORAGES,  # noqa: F405 - conserva "default" y "submissions" de base.py
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    # Antes del primer despliegue real: "submissions" debe apuntar a S3/MinIO (o a un volumen persistente).
 }
 
 # ── Correo real ───────────────────────────────────────────────────────

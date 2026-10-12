@@ -33,6 +33,17 @@ def activity(course):
     return ActivityFactory(course=course)
 
 
+@pytest.fixture(scope='session', autouse=True)
+def limpiar_archivos_de_prueba():
+    """Las entregas de las pruebas van a un directorio temporal que se borra al terminar la sesión."""
+    yield
+    import shutil
+    import tempfile
+    from pathlib import Path
+
+    shutil.rmtree(Path(tempfile.gettempdir()) / 'gradelink-test-submissions', ignore_errors=True)
+
+
 def _client_for(user):
     client = Client()
     client.force_login(user)

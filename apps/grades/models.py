@@ -1,5 +1,8 @@
+import os
+import uuid
+
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, URLValidator
 from django.db import models
 
 from apps.organizations.models import TenantModel
@@ -177,6 +180,77 @@ class Grade(TenantModel):
     def clean(self):
         if self.student_id and self.activity_id and self.student.organization_id != self.activity.organization_id:
             raise ValidationError('El alumno y la actividad deben pertenecer a la misma organización.')
+        if self.activity_id:
+            self.activity.course.ensure_editable()
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+# ── Entregas ──────────────────────────────────────────────────────────
+
+MAX_SUBMISSION_BYTES = 10 * 1024 * 1024
+# Lista blanca: nada que un navegador pueda ejecutar (html, svg, js…) si alguien abre el archivo.
+ALLOWED_SUBMISSION_EXTENSIONS = (
+    '.pdf', '.doc', '.docx', '.odt', '.rtf', '.txt', '.csv', '.xls', '.xlsx', '.ods', '.ppt', '.pptx', '.odp',
+    '.png', '.jpg', '.jpeg', '.gif', '.zip',
+)
+
+
+def get_submission_storage():
+    """Almacenamiento privado de entregas (``STORAGES["submissions"]``): disco hoy, S3 mañana."""
+    from django.core.files.storage import storages
+
+    return storages['submissions']
+
+
+def submission_upload_to(instance, filename):
+    # El nombre en disco no es el del alumno: evita colisiones y rutas manipuladas.
+    extension = os.path.splitext(filename)[1].lower()
+    activity = instance.activity
+    return f'{activity.organization_id}/{activity.course_id}/{activity.pk}/{instance.student_id}/{uuid.uuid4().hex}{extension}'
+
+
+def validate_submission_file(file):
+    extension = os.path.splitext(file.name)[1].lower()
+    if extension not in ALLOWED_SUBMISSION_EXTENSIONS:
+        raise ValidationError(
+            'Tipo de archivo no permitido. Sube un PDF, documento de Office, imagen, texto o ZIP.', code='extension',
+        )
+    if file.size > MAX_SUBMISSION_BYTES:
+        raise ValidationError('El archivo pesa más de 10 MB.', code='size')
+
+
+class Submission(TenantModel):
+    """Lo que un alumno entrega en una actividad: texto, enlace y/o archivo. Una por alumno y actividad."""
+
+    organization_source = 'activity'
+
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey('courses.Student', on_delete=models.CASCADE, related_name='submissions')
+    text = models.TextField('respuesta', blank=True)
+    link = models.CharField('enlace', max_length=500, blank=True, validators=[URLValidator(schemes=['http', 'https'])])
+    file = models.FileField(
+        'archivo', upload_to=submission_upload_to, storage=get_submission_storage, blank=True, max_length=300,
+        validators=[validate_submission_file],
+    )
+    original_name = models.CharField(max_length=255, blank=True)
+    submitted_at = models.DateTimeField()
+    is_late = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('activity', 'student')
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f'{self.student} → {self.activity.title}'
+
+    def clean(self):
+        if self.student_id and self.activity_id and self.student.organization_id != self.activity.organization_id:
+            raise ValidationError('El alumno y la actividad deben pertenecer a la misma organización.')
+        if not (self.text.strip() or self.link or self.file):
+            raise ValidationError('La entrega necesita una respuesta, un enlace o un archivo.')
         if self.activity_id:
             self.activity.course.ensure_editable()
 

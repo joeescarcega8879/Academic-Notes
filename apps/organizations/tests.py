@@ -6,10 +6,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, transaction
 from django.test import Client, RequestFactory
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
-from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, Submission
 from apps.messaging.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
@@ -25,7 +26,7 @@ pytestmark = pytest.mark.django_db
 
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
-    Activity, Grade, Conversation, Message,
+    Activity, Submission, Grade, Conversation, Message,
 ]
 
 
@@ -212,6 +213,9 @@ def dos_organizaciones():
         alumno = EnrollmentFactory(course=materia).student.user
         evaluacion = ActivityFactory(course=materia)
         GradeFactory(activity=evaluacion, student=alumno)
+        Submission.objects.create(
+            activity=evaluacion, student=materia.enrollments.get().student, text="Mi entrega", submitted_at=timezone.now(),
+        )
         conversacion = Conversation.objects.get(course=materia, student=alumno)
         MessageFactory(conversation=conversacion, sender=alumno)
         datos.append({"profesor": profesor, "alumno": alumno, "materia": materia, "org": materia.organization})

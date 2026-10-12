@@ -20,6 +20,8 @@ db.sqlite3-journal
 
 # Archivos subidos por usuarios (avatares, etc.)
 media/
+# Entregas de alumnos (privadas)
+private_media/
 
 # Sistema operativo / editores
 .DS_Store
