@@ -1,11 +1,15 @@
 from django.urls import path
 
-from . import builder_views, views
+from . import builder_views, take_views, views
 
 app_name = 'quizzes'
 
 urlpatterns = [
     path('actividades/<int:pk>/quiz/', builder_views.BuilderView.as_view(), name='builder'),
+    path('actividades/<int:pk>/resolver/', take_views.QuizOverviewView.as_view(), name='overview'),
+    path('intentos/<int:pk>/', take_views.QuizTakeView.as_view(), name='take'),
+    path('intentos/<int:pk>/guardar/', take_views.QuizAutosaveView.as_view(), name='autosave'),
+    path('intentos/<int:pk>/resultado/', take_views.QuizResultView.as_view(), name='result'),
     path('banco/', views.BankView.as_view(), name='bank'),
     path('banco/nueva/<str:kind>/', views.QuestionCreateView.as_view(), name='question_create'),
     path('banco/<int:pk>/', views.QuestionDetailView.as_view(), name='question_detail'),

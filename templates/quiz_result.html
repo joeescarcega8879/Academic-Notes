@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Resultado · {{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Resultado</h1>
+  <span class="sub">{{ activity.title }} · intento {{ attempt.number }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'quizzes:overview' activity.pk %}">Volver al quiz</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 640px">
+  {% if attempt.status == 'expired' %}
+    <div class="flash mb-12">Se acabó el tiempo: se calificó lo que alcanzaste a responder.</div>
+  {% endif %}
+  <p style="font-size: 2em; margin: 0">{{ attempt.score|floatformat:"-2" }} <span class="text-muted" style="font-size: 0.5em">de {{ attempt.max_points|floatformat:"-2" }} puntos</span></p>
+  <p class="text-muted">{{ percent }} % de aciertos</p>
+  <p class="text-sm text-muted" style="margin-bottom: 0">Enviado el {{ attempt.submitted_at|date:"d/m/Y H:i" }}.</p>
+</div>
+{% endblock %}
