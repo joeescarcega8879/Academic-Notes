@@ -3,9 +3,9 @@ from .models import Subject, Enrollment
 
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'professor', 'schedule')
+    list_display = ('name', 'code', 'organization', 'professor', 'schedule')
     search_fields = ('name', 'code')
-    list_filter = ('professor',)
+    list_filter = ('organization', 'professor')
 
 
 @admin.register(Enrollment)

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements/local.txt
+      - run: ruff check .
+
+  tests:
+    name: Pruebas y migraciones
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gradelink_test
+          POSTGRES_USER: gradelink
+          POSTGRES_PASSWORD: gradelink
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gradelink"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: core.settings.test
+      DJANGO_SECRET_KEY: ci-secret-key-solo-para-pruebas
+      DATABASE_URL: postgres://gradelink:gradelink@localhost:5432/gradelink_test
+      REDIS_URL: redis://localhost:6379/1
+      CELERY_BROKER_URL: redis://localhost:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "True"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements/local.txt
+      - name: ¿Faltan migraciones por generar?
+        run: python manage.py makemigrations --check --dry-run
+      - name: Aplicar migraciones
+        run: python manage.py migrate
+      - name: Comprobaciones del sistema
+        run: python manage.py check
+      - name: Pruebas
+        run: pytest

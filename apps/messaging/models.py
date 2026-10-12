@@ -1,7 +1,11 @@
 from django.db import models
 from django.conf import settings
 
-class Conversation(models.Model):
+from apps.organizations.models import TenantModel
+
+class Conversation(TenantModel):
+    organization_source = 'subject'
+
     subject = models.ForeignKey("subjects.Subject", 
                                 on_delete=models.CASCADE, 
                                 related_name="conversations"
@@ -25,7 +29,9 @@ class Conversation(models.Model):
     def counterpart(self, user):
         return self.subject.professor if user == self.student else self.student
 
-class Message(models.Model):
+class Message(TenantModel):
+    organization_source = 'conversation'
+
     conversation = models.ForeignKey(Conversation,
                                      on_delete=models.CASCADE,
                                      related_name="messages"

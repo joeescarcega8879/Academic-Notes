@@ -1,11 +1,17 @@
 <div class="notif" data-notif>
   <button class="icon-btn" type="button" data-notif-toggle title="Notificaciones" aria-label="Notificaciones">
-    <i data-icon="bell"></i>{% if notifications_count %}<span class="pip"></span>{% endif %}
+    <i data-icon="bell"></i>{% if notifications_count %}<span class="notif-count">{% if notifications_count > 99 %}99+{% else %}{{ notifications_count }}{% endif %}</span>{% endif %}
   </button>
   <div class="notif-panel" data-notif-panel>
     <div class="notif-head">
       <span>Notificaciones</span>
-      {% if notifications_count %}<span class="nav-badge">{{ notifications_count }}</span>{% endif %}
+      {% if notifications_count %}
+      <form class="notif-mark" method="post" action="{% url 'notifications_read' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}" />
+        <button type="submit" class="btn-link">Marcar leídas</button>
+      </form>
+      {% endif %}
     </div>
     <div class="notif-body">
       {% for n in notifications %}

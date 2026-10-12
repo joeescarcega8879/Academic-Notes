@@ -1,37 +1,27 @@
 from django.shortcuts import get_object_or_404, redirect
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, View
 from django.db.models import Count, Max, Q
 from django.utils import timezone
 
+from apps.accounts.mixins import OrganizationMemberMixin
+
 from .forms import MessageForm
 from .models import Conversation, Message
 
-class MessagingAccessMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.role in ('professor', 'student')
-
-    def handle_no_permission(self):
-        user = self.request.user
-
-        if not user.is_authenticated:
-            return super().handle_no_permission()
-        if user.role == 'student':
-            return redirect('student_dashboard')
-        if user.role == 'professor':
-            return redirect('professor_dashboard')
-        return redirect('profile')
-
 class ConversationQuerysetMixin:
 
-    def base_queryset(self, user):
-        qs = Conversation.objects.select_related('subject', 'student', 'subject__professor')
-        if user.role == 'student':
+    def base_queryset(self):
+        """Conversaciones del usuario en la organización activa."""
+        user = self.request.user
+        qs = Conversation.objects.for_organization(self.request.organization).select_related(
+            'subject', 'student', 'subject__professor',
+        )
+        if self.request.membership.is_student:
             return qs.filter(student=user)
         return qs.filter(subject__professor=user)
 
     def conversations_for(self, user):
-        return self.base_queryset(user).annotate(
+        return self.base_queryset().annotate(
             last_message_at=Max('messages__created_at'),
             unread=Count(
                 'messages',
@@ -63,7 +53,7 @@ class ConversationQuerysetMixin:
         }
 
 
-class ConversationListView(MessagingAccessMixin, ConversationQuerysetMixin, ListView):
+class ConversationListView(OrganizationMemberMixin, ConversationQuerysetMixin, ListView):
     template_name = 'mensajes.html'
     context_object_name = 'conversations'
 
@@ -78,15 +68,16 @@ class ConversationListView(MessagingAccessMixin, ConversationQuerysetMixin, List
         return context
 
     def pick_active(self, conversations):
+        """Devuelve la conversacion indicada en ?c=; sin parametro no preselecciona ninguna."""
         pk = self.request.GET.get('c')
         if pk:
             for conversation in conversations:
                 if str(conversation.pk) == pk:
                     return conversation
-        return conversations[0] if conversations else None
+        return None
 
 
-class ConversationDetailView(MessagingAccessMixin, ConversationQuerysetMixin, DetailView):
+class ConversationDetailView(OrganizationMemberMixin, ConversationQuerysetMixin, DetailView):
     template_name = 'mensajes.html'
     context_object_name = 'active_conversation'
 
@@ -106,10 +97,10 @@ class ConversationDetailView(MessagingAccessMixin, ConversationQuerysetMixin, De
         ).exclude(sender=user).update(read_at=timezone.now())
 
 
-class MessageCreateView(MessagingAccessMixin, ConversationQuerysetMixin, View):
+class MessageCreateView(OrganizationMemberMixin, ConversationQuerysetMixin, View):
 
     def post(self, request, pk):
-        conversation = get_object_or_404(self.base_queryset(request.user), pk=pk)
+        conversation = get_object_or_404(self.base_queryset(), pk=pk)
         form = MessageForm(request.POST)
         if form.is_valid():
             message = form.save(commit=False)
