@@ -54,10 +54,11 @@ def criterion(spec, name):
     return next(c for p in spec.periods for c in p.criteria if c.name == name)
 
 
-def grade(spec, name, score, max_score=10, weight=1, student_id=1):
+def grade(spec, name, score, max_score=10, weight=1, student_id=1, published=True):
     """Calificación en el criterio ``name`` del esquema ``spec``."""
     activity = SimpleNamespace(
         max_score=max_score, weight=weight, criterion_id=criterion(spec, name).id, course_id=spec.course_id,
+        published=published,
     )
     return SimpleNamespace(score=score, student_id=student_id, activity=activity)
 

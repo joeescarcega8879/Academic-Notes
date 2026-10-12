@@ -130,6 +130,11 @@ class Activity(TenantModel):
         ordering = ['-date', 'title']
         verbose_name_plural = 'activities'
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse('grades:activity_detail', args=[self.pk])
+
     @property
     def accepts_submissions(self):
         return self.type in self.SUBMISSION_TYPES

@@ -21,7 +21,8 @@ def visible_grades(request):
     """
     grades = Grade.objects.for_organization(request.organization).select_related('student', 'activity__course')
     if request.membership.is_student:
-        return grades.filter(student__user=request.user)
+        # Un alumno no ve las actividades en borrador ni sus notas.
+        return grades.filter(student__user=request.user, activity__published=True)
     return grades.filter(activity__course__professor=request.user)
 
 

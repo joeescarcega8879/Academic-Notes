@@ -101,7 +101,7 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
         grades = list(
             Grade.objects
             .for_organization(organization)
-            .filter(student__user=user, activity__course__status=Course.Status.ACTIVE)
+            .filter(student__user=user, activity__course__status=Course.Status.ACTIVE, activity__published=True)
             .select_related('activity')
         )
 
@@ -146,16 +146,21 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
             for enrollment in enrollments:
                 enrollment.result = results.get((self.object.pk, enrollment.student_id))
         context['enrollments'] = enrollments
+        context['activities'] = list(
+            self.object.activities.select_related('criterion').annotate(graded=Count('grades'))
+        )
 
         # Vista alumno: evaluaciones de la materia + su calificación
         if self.request.membership.is_student:
             my_grades = {
                 g.activity_id: g
-                for g in Grade.objects.filter(student__user=user, activity__course=self.object).select_related('activity')
+                for g in Grade.objects.filter(
+                    student__user=user, activity__course=self.object, activity__published=True,
+                ).select_related('activity')
             }
             rows = [
                 {'activity': activity, 'grade': my_grades.get(activity.id)}
-                for activity in self.object.activities.all()
+                for activity in self.object.activities.filter(published=True)
             ]
 
             result = results_by_course(my_grades.values()).get(self.object.pk)

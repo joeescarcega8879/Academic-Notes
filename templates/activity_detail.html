@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.title }} · Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>{{ activity.title }}</h1>
+  <span class="sub">· {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12">
+  <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+    <h2 style="margin: 0">{{ activity.title }}</h2>
+    <span class="chip">{{ activity.get_type_display }}</span>
+    {% if is_teacher %}
+      {% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}
+      <div class="spacer"></div>
+      {% if not course.is_archived %}
+        <form method="post" action="{% url 'grades:activity_publish' activity.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">{% if activity.published %}Pasar a borrador{% else %}Publicar{% endif %}</button>
+        </form>
+        <a class="btn btn-ghost" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>
+        <form method="post" action="{% url 'grades:activity_delete' activity.pk %}" class="inline-form"
+              onsubmit="return confirm('¿Eliminar esta actividad? No se puede deshacer.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost">Eliminar</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="kv-row"><div class="k">Puntos</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
+  <div class="kv-row"><div class="k">Criterio</div><div class="v">{{ activity.criterion.name }} · {{ activity.criterion.period.name }}</div></div>
+  {% if is_teacher %}<div class="kv-row"><div class="k">Peso en el criterio</div><div class="v">{{ activity.weight|floatformat:"-2" }}</div></div>{% endif %}
+  {% if activity.date %}<div class="kv-row"><div class="k">Fecha</div><div class="v">{{ activity.date|date:"d/m/Y" }}</div></div>{% endif %}
+  {% if activity.opens_at %}<div class="kv-row"><div class="k">Abre</div><div class="v">{{ activity.opens_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
+  {% if activity.due_at %}
+    <div class="kv-row"><div class="k">Fecha límite</div><div class="v">{{ activity.due_at|date:"d/m/Y H:i" }}</div></div>
+    <div class="kv-row"><div class="k">Entregas tardías</div>
+      <div class="v">{% if activity.allow_late %}Se aceptan{% if activity.late_penalty %} con {{ activity.late_penalty|floatformat:"-2" }} % de penalización{% endif %}{% else %}No se aceptan{% endif %}</div>
+    </div>
+  {% endif %}
+  {% if activity.instructions %}
+    <h3 class="section-title" style="margin-top: 14px">Instrucciones</h3>
+    <p style="white-space: pre-line">{{ activity.instructions }}</p>
+  {% endif %}
+</div>
+
+{% if is_teacher %}
+  <div class="table-wrap">
+    <div class="table-head">
+      <h3>Alumnos</h3>
+      <span class="grade style-pill ok">{{ graded_count }} / {{ enrollments|length }} calificados</span>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Alumno</th><th>Matrícula</th><th>Calificación</th><th>Comentario</th></tr></thead>
+      <tbody>
+        {% for enrollment in enrollments %}
+          <tr>
+            <td>{{ enrollment.student }}</td>
+            <td>{{ enrollment.student.student_number }}</td>
+            <td>
+              {% if enrollment.grade %}
+                <span class="grade style-pill ok">{{ enrollment.grade.score|floatformat:"-2" }}</span>
+                <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span>
+              {% else %}<span class="text-muted">Sin calificar</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ enrollment.grade.feedback|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="card">
+    <h3 class="section-title">Tu calificación</h3>
+    {% if grade %}
+      <p><span class="grade style-pill ok">{{ grade.score|floatformat:"-2" }}</span>
+        <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span></p>
+      {% if grade.feedback %}<p style="white-space: pre-line">{{ grade.feedback }}</p>{% endif %}
+    {% else %}
+      <p class="text-muted" style="margin: 0">Todavía no está calificada.</p>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

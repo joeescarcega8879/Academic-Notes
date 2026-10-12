@@ -11,8 +11,8 @@ Cómo se calcula la calificación final de un alumno en un grupo (según el ``Ev
 4. **Final**: media de los periodos ponderada por el peso del periodo, expresada en la escala del esquema.
 
 En cada nivel solo cuenta lo que ya tiene calificaciones: un criterio sin notas no hunde el promedio, y
-los pesos de los demás se reescalan. Se ignoran las evaluaciones sin máximo válido y las de peso cero,
-que no aportan información. El redondeo es "mitad hacia arriba" (7.125 → 7.13), no el del par más
+los pesos de los demás se reescalan. Se ignoran las actividades en borrador, las que no tienen máximo válido
+y las de peso cero, que no aportan información. El redondeo es "mitad hacia arriba" (7.125 → 7.13), no el del par más
 cercano de Python, y se hace una sola vez, al final. Se aprueba con la calificación ya redondeada, que es
 la que ve el alumno.
 
@@ -138,6 +138,8 @@ class CourseResult:
 def _usable(grade):
     """(proporción, peso) de una calificación, o None si no aporta información."""
     activity = grade.activity
+    if not activity.published:  # un borrador no cuenta para ninguna calificación
+        return None
     max_score, weight = _dec(activity.max_score), _dec(activity.weight)
     if max_score <= 0 or weight <= 0:
         return None

@@ -49,7 +49,7 @@ class TestAcceso:
         response = professor_client.get(url(course))
         assert response.status_code == 200
         html = response.content.decode()
-        for titulo in ("Escala y aprobación", "Periodos", "Criterios", "Evaluaciones del grupo"):
+        for titulo in ("Escala y aprobación", "Periodos", "Criterios", "Actividades del grupo"):
             assert titulo in html
 
     def test_grupo_de_otro_docente_es_404(self, professor_client):
@@ -149,7 +149,7 @@ class TestPeriodos:
         EvaluationPeriod.objects.create(scheme=course.scheme, name="Otro", weight=0, position=1)
         pagina = professor_client.get(url(course)).context
         response = professor_client.post(url(course), datos(pagina["period_formset"], "periods", **{"0-DELETE": "on"}), follow=True)
-        assert any("evaluaciones asignadas" in str(m) for m in response.context["messages"])
+        assert any("actividades asignadas" in str(m) for m in response.context["messages"])
         assert course.scheme.periods.count() == 2
 
     def test_peso_fuera_de_rango(self, professor_client, course, pagina):
@@ -190,7 +190,7 @@ class TestCriterios:
         evaluacion = ActivityFactory(course=course, type=Activity.Type.EXAM)
         pagina = professor_client.get(url(course)).context
         response = professor_client.post(url(course), datos(pagina["criterion_formset"], "criteria", **{"0-DELETE": "on"}), follow=True)
-        assert any("evaluaciones asignadas" in str(m) for m in response.context["messages"])
+        assert any("actividades asignadas" in str(m) for m in response.context["messages"])
         evaluacion.refresh_from_db()
         assert course.scheme.criteria().count() == 4
 
@@ -248,7 +248,7 @@ class TestAsignacion:
         assert despues == 7.0
 
     def test_sin_evaluaciones_lo_dice(self, professor_client, course):
-        assert "Aún no hay evaluaciones" in professor_client.get(url(course)).content.decode()
+        assert "Aún no hay actividades" in professor_client.get(url(course)).content.decode()
 
 
 # ── Calificación final en el detalle ──────────────────────────────────

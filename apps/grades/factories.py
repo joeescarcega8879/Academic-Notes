@@ -14,6 +14,7 @@ class ActivityFactory(factory.django.DjangoModelFactory):
     type = Activity.Type.EXAM
     max_score = 10.0
     weight = 1.0
+    published = True  # las pruebas tratan a las actividades como normales; el borrador se pide explícitamente
 
 
 class GradeFactory(factory.django.DjangoModelFactory):
