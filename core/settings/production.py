@@ -20,6 +20,10 @@ if not env("DATABASE_URL", default=""):
 
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
+# Los enlaces de los correos (confirmar correo, restablecer contraseña) se arman con SITE_URL.
+if SITE_URL.startswith("http://localhost"):  # noqa: F405
+    raise ImproperlyConfigured("Define SITE_URL con la dirección pública (https://…) en producción.")
+
 # ── Endurecimiento HTTP ───────────────────────────────────────────────
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

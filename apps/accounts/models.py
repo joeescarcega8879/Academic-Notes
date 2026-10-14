@@ -40,6 +40,9 @@ class User(AbstractUser):
     # Marca de tiempo de la ultima vez que el usuario leyo sus notificaciones.
     notifications_read_at = models.DateTimeField(null=True, blank=True)
 
+    # Cuándo confirmó que el correo es suyo (con el enlace que se le envía). Vacío = sin confirmar.
+    email_verified_at = models.DateTimeField(null=True, blank=True)
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'

@@ -26,7 +26,7 @@
         } catch (e) { }
       })();
     </script>
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=13" />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=15" />
 
   </head>
   <body data-grade-style="pill">
@@ -45,6 +45,7 @@
         {% endblock %}
         
         <div class="content">
+          {% include 'partials/email_banner.html' %}
           {% if messages %}
             <div class="flash-list">
               {% for message in messages %}

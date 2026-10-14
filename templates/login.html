@@ -45,6 +45,10 @@
             Accede con tu cuenta institucional de la Universidad del Plata Sur.
           </p>
 
+          {% for message in messages %}
+          <div class="flash flash-{{ message.level_tag }}" role="status" style="margin-bottom: var(--pad-2)">{{ message }}</div>
+          {% endfor %}
+
           {% if error %}
           <div
             class="alert alert-error"
@@ -100,9 +104,9 @@
             <label class="checkbox">
               <input type="checkbox" checked /> Mantener sesión iniciada
             </label>
-            <button type="button" class="btn-link">
+            <a class="btn-link" href="{% url 'password_reset' %}">
               ¿Olvidaste tu contraseña?
-            </button>
+            </a>
           </div>
 
           <button
@@ -115,7 +119,8 @@
 
           <p class="sub mt-22 text-center">
             ¿No tienes cuenta?
-            <button type="button" class="btn-link">Solicita acceso</button>
+            <a class="btn-link" href="{% url 'register' %}">Crea tu cuenta de docente</a>
+            · <a class="btn-link" href="{% url 'register_student' %}">Soy alumno</a>
           </p>
         </form>
       </div>

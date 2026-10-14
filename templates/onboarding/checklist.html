@@ -1,0 +1,25 @@
+{% if onboarding %}
+  <section class="card mb-12 checklist" aria-label="Primeros pasos">
+    <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
+      <h3 class="section-title" style="margin: 0">Primeros pasos</h3>
+      <span class="text-sm text-muted">{{ onboarding.done }} de {{ onboarding.total }}</span>
+      <div class="spacer"></div>
+      <form method="post" action="{% url 'onboarding_dismiss' %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost">Ocultar</button>
+      </form>
+    </div>
+    <ol class="checklist-steps">
+      {% for step in onboarding.steps %}
+        <li class="{% if step.done %}is-done{% endif %}">
+          <span class="checklist-mark" aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+          <div class="checklist-text">
+            <strong>{{ step.title }}</strong>
+            <div class="text-xs text-muted">{{ step.hint }}</div>
+          </div>
+          {% if not step.done %}<a class="btn btn-primary" href="{{ step.url }}">{{ step.action }}</a>{% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+{% endif %}

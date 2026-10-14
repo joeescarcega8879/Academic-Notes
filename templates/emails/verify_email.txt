@@ -1,0 +1,10 @@
+{% autoescape off %}Hola {{ user.first_name|default:user.username }},
+
+Confirma que este correo es tuyo para poder recuperar tu cuenta si olvidas la contraseña:
+
+{{ verify_url }}
+
+El enlace vale 7 días. Si no creaste una cuenta en {{ site_name }}, ignora este mensaje.
+
+¿Dudas? Escríbenos a {{ support_email }}.
+{% endautoescape %}

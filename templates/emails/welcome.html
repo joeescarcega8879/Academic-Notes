@@ -1,0 +1,20 @@
+{% extends "emails/base.html" %}
+{% block body %}
+<p>Hola {{ user.first_name|default:user.username }},</p>
+{% if teacher %}
+  <p>Tu cuenta de docente en {{ site_name }} ya está lista. Para dejar tu primer grupo funcionando:</p>
+  <ol>
+    <li>Crea tu grupo.</li>
+    <li>Importa tu lista de alumnos desde Excel o CSV.</li>
+    <li>Crea una actividad y califica en la libreta.</li>
+  </ol>
+  <p><a href="{{ site_url }}" style="display:inline-block;background:#1e3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">Entrar a {{ site_name }}</a></p>
+{% else %}
+  <p>Tu cuenta de alumno en {{ site_name }} ya está lista. Entra, abre «Unirme a un grupo» y escribe el código que te dio tu docente para ver tus calificaciones.</p>
+  <p><a href="{{ site_url }}" style="display:inline-block;background:#1e3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">Entrar a {{ site_name }}</a></p>
+{% endif %}
+{% if verify_url %}
+  <p>Confirma también tu correo para poder recuperar tu cuenta si olvidas la contraseña:</p>
+  <p><a href="{{ verify_url }}" style="color:#1e3a5f">Confirmar mi correo</a> <span style="color:#6b7788">(el enlace vale 7 días)</span></p>
+{% endif %}
+{% endblock %}

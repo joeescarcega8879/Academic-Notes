@@ -12,6 +12,7 @@ from django.views.generic import CreateView, DetailView, ListView, TemplateView,
 from apps.accounts.forms import ProfessorProfileForm, ProfileForm, StudentProfileForm
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
 from apps.accounts.models import User
+from apps.accounts.services import queue_verification_email
 from core.utils import parse_id
 from apps.grades.services.grading import (
     course_stats, group_results, overall_stats, results_by_course, student_average,
@@ -595,7 +596,13 @@ class ProfileView(LoginRequiredMixin, View):
     def post(self, request):
         profile_form, extra_form = self.forms(request, request.POST, request.FILES)
         if profile_form.is_valid() and extra_form.is_valid():
-            profile_form.save()
+            email_changed = 'email' in profile_form.changed_data
+            user = profile_form.save()
+            if email_changed:
+                # El correo nuevo aún no es de confianza: hay que confirmarlo otra vez.
+                user.email_verified_at = None
+                user.save(update_fields=['email_verified_at'])
+                queue_verification_email(user)
             extra = extra_form.save(commit=False)
             extra.user = request.user
             extra.save()

@@ -1,22 +1,19 @@
-from django.contrib.auth import login, logout
+from django.contrib import messages
+from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import PasswordChangeView, PasswordResetCompleteView, PasswordResetConfirmView
 from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
 from django.views import View
 
 from apps.organizations.services import SESSION_KEY, active_memberships, pick_membership
+from core import throttle
 from core.utils import safe_next_url
 
-from .forms import LoginForm
+from . import services
+from .forms import ChangePasswordForm, LoginForm, NewPasswordForm, PasswordResetRequestForm
 from .mixins import home_url_name
 from .models import User
-
-
-class HomeView(View):
-    """La raíz del sitio: cada quien va a su inicio, y quien no ha entrado, al login."""
-
-    def get(self, request):
-        if not request.user.is_authenticated:
-            return redirect('login')
-        return redirect(home_url_name(request.membership))
 
 
 class LoginView(View):
@@ -82,3 +79,77 @@ class LogoutView(View):
     def post(self, request):
         logout(request)
         return redirect('login')
+
+
+# ── Correo confirmado ─────────────────────────────────────────────────
+
+class VerifyEmailView(View):
+    """El enlace del correo de confirmación. Sirve con o sin sesión iniciada."""
+
+    def get(self, request, token):
+        user = services.confirm_email(token)
+        if user is None:
+            messages.error(request, 'El enlace de confirmación no es válido o ya venció. Pide uno nuevo desde tu cuenta.')
+        else:
+            messages.success(request, 'Listo, confirmamos tu correo.')
+        return redirect('home' if request.user.is_authenticated else 'login')
+
+
+class ResendVerificationView(LoginRequiredMixin, View):
+    def post(self, request):
+        user = request.user
+        if user.email_verified_at is not None:
+            return redirect(safe_next_url(request) or 'home')
+        if throttle.allow('resend-verification', user.pk, limit=3, window=3600):
+            services.queue_verification_email(user)
+            messages.success(request, f'Te enviamos un correo a {user.email}. Revisa también la carpeta de spam.')
+        else:
+            messages.error(request, 'Ya pediste varios correos. Espera un rato antes de pedir otro.')
+        return redirect(safe_next_url(request) or 'home')
+
+
+# ── Contraseñas ───────────────────────────────────────────────────────
+
+class ForgotPasswordView(View):
+    """Pide el correo y manda el enlace. La respuesta es la misma exista o no la cuenta, para no revelar quién está registrado."""
+
+    template_name = 'auth/forgot_password.html'
+
+    def get(self, request):
+        return render(request, self.template_name, {'form': PasswordResetRequestForm()})
+
+    def post(self, request):
+        form = PasswordResetRequestForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {'form': form})
+        email = form.cleaned_data['email'].strip()
+        if not throttle.allow('forgot-ip', throttle.client_ip(request), limit=10, window=3600):
+            form.add_error(None, 'Demasiados intentos desde tu conexión. Intenta de nuevo en un rato.')
+            return render(request, self.template_name, {'form': form}, status=429)
+        if throttle.allow('forgot-email', email, limit=3, window=3600):
+            user = get_user_model().objects.filter(email__iexact=email, is_active=True).first()
+            if user is not None:
+                services.queue_password_reset_email(user)
+        return redirect('password_reset_sent')
+
+
+class PasswordResetConfirm(PasswordResetConfirmView):
+    template_name = 'auth/reset_password.html'
+    form_class = NewPasswordForm
+    success_url = reverse_lazy('password_reset_complete')
+
+
+class PasswordResetComplete(PasswordResetCompleteView):
+    template_name = 'auth/reset_complete.html'
+
+
+class ChangePasswordView(PasswordChangeView):
+    """Cambiar la contraseña desde el perfil; la sesión actual sigue abierta."""
+
+    template_name = 'auth/change_password.html'
+    form_class = ChangePasswordForm
+    success_url = reverse_lazy('profile')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Cambiamos tu contraseña.')
+        return super().form_valid(form)
