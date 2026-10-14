@@ -15,6 +15,7 @@ from apps.courses.models import Course, Student
 from .activity_forms import ActivityForm
 from .models import Activity, Grade, GradeHistory, Submission
 from .services.gradebook import grade_activity
+from .services.gradesheet import parse_score
 from .services.submissions import submission_state, submit
 from .submission_forms import SubmissionForm
 
@@ -257,21 +258,17 @@ class GradingView(OwnActiveCourseMixin, View):
 
         for row in rows:
             sid = row['student'].pk
-            raw = request.POST.get(f'score_{sid}', '').strip().replace(',', '.')
             row['input'] = {
                 'score': request.POST.get(f'score_{sid}', ''), 'feedback': request.POST.get(f'feedback_{sid}', ''),
                 'waive': request.POST.get(f'waive_{sid}') == 'on',
             }
-            if raw == '':
-                continue  # sin nota no se toca (ni se borra la que hubiera)
             try:
-                score = float(raw)
-            except ValueError:
-                errors[sid] = 'Escribe un número.'
+                score = parse_score(request.POST.get(f'score_{sid}', ''), activity.max_score)
+            except ValidationError as error:
+                errors[sid] = error.messages[0]
                 continue
-            if not 0 <= score <= activity.max_score:
-                errors[sid] = f'Debe estar entre 0 y {activity.max_score:g}.'
-                continue
+            if score is None:
+                continue  # sin nota no se toca (ni se borra la que hubiera)
             entries.append((row['student'], score, row['input']))
 
         if errors:

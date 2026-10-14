@@ -1659,3 +1659,63 @@ body.splash-view { display: grid; place-items: center; background: #f7f8fb; }
   .nav-toggle { display: grid; }
   .chat-back { display: inline-grid; }
 }
+
+/* ===========================================================
+   Libreta (alumnos x actividades)
+   =========================================================== */
+.gs-toolbar { flex-wrap: wrap; }
+.gs-filter { max-width: 240px; }
+.gs-hint { margin: 0; padding: 8px var(--pad-4); border-bottom: 1px solid var(--border); }
+.gs-wrap { overflow: auto; max-height: calc(100vh - 260px); }
+table.gs { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+table.gs th, table.gs td { background: var(--surface); border-bottom: 1px solid var(--border); }
+table.gs thead th {
+  position: sticky; z-index: 3; height: 44px; padding: 6px 10px; text-align: center;
+  background: var(--surface-2); vertical-align: middle;
+}
+table.gs thead .gs-h-criterion th, table.gs thead .gs-h-criterion .gs-group { top: 0; }
+table.gs thead .gs-h-activity th { top: 44px; }
+table.gs.gs-multi thead .gs-h-period th { top: 0; }
+table.gs.gs-multi thead .gs-h-criterion th { top: 44px; }
+table.gs.gs-multi thead .gs-h-activity th { top: 88px; }
+table.gs thead .gs-corner { top: 0; z-index: 5; }
+.gs-activity { min-width: 110px; max-width: 150px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.gs-activity a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-draft { color: var(--warn); }
+table.gs .gs-name {
+  position: sticky; left: 0; z-index: 2; min-width: 200px; max-width: 200px; padding: 8px 14px;
+  text-align: left; font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 14px;
+}
+table.gs thead .gs-name, table.gs thead .gs-final { z-index: 5; }
+table.gs .gs-final {
+  position: sticky; left: 200px; z-index: 2; min-width: 90px; text-align: center; padding: 8px 10px;
+  border-right: 1px solid var(--border-strong);
+}
+table.gs .gs-name { border-right: 0; }
+.gs-final-value { font-weight: 700; font-variant-numeric: tabular-nums; }
+.gs-final[data-passed="false"] .gs-final-value { color: var(--bad); }
+.gs-final[data-passed="true"] .gs-final-value { color: var(--ok); }
+tr.gs-risk > .gs-name { box-shadow: inset 3px 0 0 var(--bad); }
+.gs-cell { padding: 4px 6px; text-align: center; min-width: 96px; vertical-align: top; }
+.gs-input {
+  width: 72px; padding: 7px 6px; text-align: center; font: inherit; font-variant-numeric: tabular-nums;
+  color: var(--text); background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+}
+.gs-input:hover:not(:disabled) { border-color: var(--border-strong); }
+.gs-input:focus { outline: none; border-color: var(--accent, var(--ok)); background: var(--surface-2); }
+.gs-input:disabled { opacity: 1; cursor: default; }
+.gs-note { font-size: 11px; line-height: 1.3; color: var(--text-muted); }
+.gs-note:empty { display: none; }
+.gs-cell.is-auto .gs-input { font-style: italic; }
+.gs-cell.is-saving .gs-input { opacity: 0.5; }
+.gs-cell.is-saved { background: var(--ok-bg); transition: background 0.9s; }
+.gs-cell.is-error { background: var(--bad-bg); }
+.gs-cell.is-error .gs-input { border-color: var(--bad); }
+.gs-cell.is-error .gs-note { color: var(--bad); }
+table.gs tfoot td, table.gs tfoot th { border-top: 1px solid var(--border-strong); border-bottom: 0; text-align: center; padding: 8px 6px; }
+table.gs tfoot .gs-name { text-align: left; }
+/* Los dos renglones de totales se quedan a la vista al desplazarse. */
+table.gs tfoot td, table.gs tfoot th { height: 36px; position: sticky; bottom: 0; z-index: 2; }
+table.gs tfoot tr:first-child td, table.gs tfoot tr:first-child th { bottom: 37px; }
+table.gs tfoot .gs-name, table.gs tfoot .gs-final { z-index: 4; }
+.gs-stat { font-variant-numeric: tabular-nums; color: var(--text-muted); }

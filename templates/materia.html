@@ -34,6 +34,7 @@
           <button type="submit" class="btn btn-ghost">Archivar</button>
         </form>
       {% endif %}
+      <a class="btn btn-primary" href="{% url 'grades:gradesheet' course.pk %}">Libreta</a>
       {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
     {% endif %}

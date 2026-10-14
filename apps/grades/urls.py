@@ -1,5 +1,5 @@
 from django.urls import path
-from . import activity_views, scheme_views, views
+from . import activity_views, gradesheet_views, scheme_views, views
 
 app_name = 'grades'
 
@@ -8,6 +8,8 @@ urlpatterns = [
     path('calificaciones/nueva/', views.GradeCreateView.as_view(), name='create'),
     path('calificaciones/exportar/', views.GradeExportView.as_view(), name='export'),
     path('calificaciones/esquema/<int:pk>/', scheme_views.SchemeView.as_view(), name='scheme'),
+    path('materia/<int:course_pk>/libreta/', gradesheet_views.GradesheetView.as_view(), name='gradesheet'),
+    path('materia/<int:course_pk>/libreta/celda/', gradesheet_views.GradesheetCellView.as_view(), name='gradesheet_cell'),
     path('materia/<int:course_pk>/actividades/nueva/', activity_views.ActivityCreateView.as_view(), name='activity_create'),
     path('actividades/<int:pk>/', activity_views.ActivityDetailView.as_view(), name='activity_detail'),
     path('actividades/<int:pk>/calificar/', activity_views.GradingView.as_view(), name='activity_grading'),
