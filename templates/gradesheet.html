@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Libreta · {{ course.name }} - Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Libreta</h1>
+  <span class="sub">{{ course.name }} · {{ course.code }}</span>
+  <div class="spacer"></div>
+  {% if editable %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
+  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
+</header>
+{% endblock %}
+
+{% block content %}
+{% if course.is_archived %}
+  <div class="flash flash-info" role="status">Este grupo está archivado: la libreta es de solo lectura.</div>
+{% endif %}
+
+{% if not sheet.rows %}
+  <div class="card">
+    <p class="text-muted" style="margin: 0">El grupo no tiene alumnos todavía. <a href="{% url 'student_import' course.pk %}">Importa tu lista</a> o <a href="{% url 'student_add' course.pk %}">agrégalos uno por uno</a> para calificarlos aquí.</p>
+  </div>
+{% elif not sheet.columns %}
+  <div class="card">
+    <p class="text-muted" style="margin: 0">Aún no hay actividades. {% if editable %}<a href="{% url 'grades:activity_create' course.pk %}">Crea la primera</a> para empezar a calificar.{% endif %}</p>
+  </div>
+{% else %}
+  <div class="table-wrap">
+    <div class="table-head gs-toolbar">
+      <h3>Alumnos × actividades</h3>
+      <span class="grade style-pill ok">{{ sheet.rows|length }}</span>
+      <input id="gs-filter" class="input gs-filter" type="search" placeholder="Buscar alumno…" aria-label="Buscar alumno" autocomplete="off">
+      <div class="spacer"></div>
+      <span id="gs-status" class="text-sm text-muted" role="status" aria-live="polite"></span>
+      {% if editable %}<a class="btn btn-primary" href="{% url 'grades:activity_create' course.pk %}">Nueva actividad</a>{% endif %}
+    </div>
+    {% if editable %}
+      <p class="text-xs text-muted gs-hint">
+        Escribe la nota y presiona Enter (o cambia de celda) para guardarla; deja la celda vacía para quitar la calificación.
+        Los cambios quedan en la bitácora de cada actividad.
+      </p>
+    {% endif %}
+    <div id="gs-csrf" hidden>{% csrf_token %}</div>
+    <div class="gs-wrap">
+      <table class="tbl gs{% if sheet.multiple_periods %} gs-multi{% endif %}" id="gradesheet"
+             data-cell-url="{% url 'grades:gradesheet_cell' course.pk %}">
+        <thead>
+          {% if sheet.multiple_periods %}
+            <tr class="gs-h-period">
+              <th class="gs-name gs-corner" rowspan="3">Alumno</th>
+              <th class="gs-final gs-corner" rowspan="3">Final</th>
+              {% for group in sheet.periods %}
+                <th colspan="{{ group.span }}" class="gs-group">{{ group.period.name }} <span class="text-xs">({{ group.period.weight|floatformat:"-2" }} %)</span></th>
+              {% endfor %}
+            </tr>
+          {% endif %}
+          <tr class="gs-h-criterion">
+            {% if not sheet.multiple_periods %}
+              <th class="gs-name gs-corner" rowspan="2">Alumno</th>
+              <th class="gs-final gs-corner" rowspan="2">Final</th>
+            {% endif %}
+            {% for group in sheet.periods %}
+              {% for criterion_group in group.criteria %}
+                <th colspan="{{ criterion_group.columns|length }}" class="gs-group">{{ criterion_group.criterion.name }} <span class="text-xs">({{ criterion_group.criterion.weight|floatformat:"-2" }} %)</span></th>
+              {% endfor %}
+            {% endfor %}
+          </tr>
+          <tr class="gs-h-activity">
+            {% for column in sheet.columns %}
+              <th class="gs-activity" title="{{ column.activity.title }}">
+                <a href="{{ column.activity.get_absolute_url }}">{{ column.activity.title }}</a>
+                <div class="text-xs">/ {{ column.activity.max_score|floatformat:"-2" }}{% if not column.activity.published %} · <span class="gs-draft">Borrador</span>{% endif %}</div>
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in sheet.rows %}
+            <tr data-student="{{ row.student.pk }}" data-name="{{ row.student }} {{ row.student.student_number }}"{% if row.final.passed is False %} class="gs-risk"{% endif %}>
+              <th scope="row" class="gs-name">{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></th>
+              <td class="gs-final" data-passed="{% if row.final.passed is True %}true{% elif row.final.passed is False %}false{% endif %}">
+                <span class="gs-final-value">{{ row.final.text|default:"—" }}</span>
+              </td>
+              {% for cell in row.cells %}
+                <td class="gs-cell{% if cell.auto %} is-auto{% endif %}">
+                  <input class="gs-input" type="text" inputmode="decimal" autocomplete="off" maxlength="20"
+                         data-activity="{{ cell.activity_id }}" value="{{ cell.raw }}" data-original="{{ cell.raw }}"
+                         aria-label="Calificación de {{ row.student }}"{% if not editable %} disabled{% endif %}>
+                  <div class="gs-note">{{ cell.note }}</div>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th class="gs-name">Promedio</th>
+            <td class="gs-final"><span class="gs-final-value" data-group-average>{{ sheet.group.average|default:"—" }}</span></td>
+            {% for column in sheet.columns %}
+              <td class="gs-stat" data-avg="{{ column.activity.pk }}">{{ column.average|default:"—" }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <th class="gs-name">Calificadas</th>
+            <td class="gs-final text-xs"><span data-group-passed>{{ sheet.group.passed }}</span> de <span data-group-students>{{ sheet.group.students }}</span> aprobados</td>
+            {% for column in sheet.columns %}
+              <td class="gs-stat text-xs"><span data-count="{{ column.activity.pk }}">{{ column.graded }}</span> / {{ sheet.rows|length }}</td>
+            {% endfor %}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <p class="text-xs text-muted" style="margin-top: 8px">
+    La final usa el esquema del grupo (mínimo aprobatorio {{ sheet.scheme.pass_mark|floatformat:"-2" }} de {{ sheet.scheme.scale_max }}) y solo cuenta
+    las actividades publicadas. Las filas con un borde rojo van por debajo del mínimo.
+  </p>
+  <script src="{% static 'js/gradesheet.js' %}?v=1"></script>
+{% endif %}
+{% endblock %}
