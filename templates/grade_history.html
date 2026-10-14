@@ -21,7 +21,7 @@
       {% for item in history %}
         <tr>
           <td>{{ item.changed_at|date:"d/m/Y H:i" }}</td>
-          <td>{{ item.changed_by.get_full_name|default:item.changed_by.email|default:"Sistema" }}</td>
+          <td>{% if item.changed_by %}{{ item.changed_by.get_full_name|default:item.changed_by.email }}{% else %}Sistema{% endif %}</td>
           <td>{{ item.student_name }}</td>
           <td>{{ item.get_action_display }}</td>
           <td>
