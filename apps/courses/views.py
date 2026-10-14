@@ -9,7 +9,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView, TemplateView, UpdateView
 
+from apps.accounts.forms import ProfessorProfileForm, ProfileForm, StudentProfileForm
 from apps.accounts.mixins import OrganizationMemberMixin, StudentRequiredMixin, TeacherRequiredMixin
+from apps.accounts.models import User
 from core.utils import parse_id
 from apps.grades.services.grading import (
     course_stats, group_results, overall_stats, results_by_course, student_average,
@@ -23,6 +25,7 @@ from .forms import (
 from .models import AcademicYear, Course, Enrollment, Student
 from .services import importing, roster
 from .services.courses import archive_course, clone_course, unarchive_course
+from .services.summary import student_summary
 from .services.invitations import (
     InvitationError, disable_invite_code, redeem_invitation, regenerate_invite_code,
 )
@@ -98,7 +101,7 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
         )
         enrollments = list(mine.filter(course__status=Course.Status.ACTIVE))
 
-        # Promedio ponderado del alumno (general y por materia)
+        # Promedio ponderado del alumno (general y por grupo)
         grades = list(
             Grade.objects
             .for_organization(organization)
@@ -121,7 +124,7 @@ class StudentDashboardView(StudentRequiredMixin, TemplateView):
 class CourseDetailView(OrganizationMemberMixin, DetailView):
 
     model = Course
-    template_name = 'materia.html'
+    template_name = 'course_detail.html'
     context_object_name = 'course'
 
     def get_queryset(self):
@@ -151,7 +154,7 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
             self.object.activities.select_related('criterion').annotate(graded=Count('grades'))
         )
 
-        # Vista alumno: evaluaciones de la materia + su calificación
+        # Vista alumno: evaluaciones del grupo + su calificación
         if self.request.membership.is_student:
             my_grades = {
                 g.activity_id: g
@@ -555,3 +558,46 @@ class StudentImportTemplateView(TeacherRequiredMixin, View):
         writer.writerow(list(importing.FIELDS.values()))
         writer.writerow(['00123', 'Ana María', 'Pérez López', 'ana@ejemplo.com'])
         return response
+
+
+# ── Perfil ────────────────────────────────────────────────────────────
+
+class ProfileView(LoginRequiredMixin, View):
+    """Datos personales y preferencias de la cuenta, con el resumen académico si es alumno."""
+
+    template_name = 'perfil.html'
+
+    @staticmethod
+    def forms(request, data=None, files=None):
+        user = request.user
+        if user.role == User.Role.STUDENT:
+            extra = StudentProfileForm(data, instance=getattr(user, 'student_profile', None))
+        else:
+            extra = ProfessorProfileForm(data, instance=getattr(user, 'professor_profile', None))
+        return ProfileForm(data, files, instance=user), extra
+
+    def get(self, request):
+        return render(request, self.template_name, self.context(request, *self.forms(request)))
+
+    @staticmethod
+    def context(request, profile_form, extra_form):
+        # La matrícula pertenece a la organización activa, no a la cuenta.
+        student = Student.objects.for_organization(request.organization).filter(user=request.user).first()
+        membership = request.membership
+        summary = student_summary(request.user, request.organization) if membership and membership.is_student else None
+        return {
+            'profile_form': profile_form,
+            'extra_form': extra_form,
+            'student_number': student.student_number if student else '',
+            'summary': summary,
+        }
+
+    def post(self, request):
+        profile_form, extra_form = self.forms(request, request.POST, request.FILES)
+        if profile_form.is_valid() and extra_form.is_valid():
+            profile_form.save()
+            extra = extra_form.save(commit=False)
+            extra.user = request.user
+            extra.save()
+            return redirect('profile')
+        return render(request, self.template_name, self.context(request, profile_form, extra_form))

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} materia · Academic Notes{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Nuevo{% endif %} grupo · Academic Notes{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
-  <h1>{% if object %}Editar materia{% else %}Nueva materia{% endif %}</h1>
+  <h1>{% if object %}Editar grupo{% else %}Nuevo grupo{% endif %}</h1>
   <span class="sub">{% if object %}{{ object.name }}{% else %}Crear un grupo{% endif %}</span>
 </header>
 {% endblock %}

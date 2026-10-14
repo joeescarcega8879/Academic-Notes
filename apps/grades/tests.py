@@ -153,7 +153,7 @@ class TestExportacionCsv:
         GradeFactory(activity=activity, student=student)
         GradeFactory(activity=activity, student=EnrollmentFactory(course=activity.course).student)
         rows = parse_csv(student_client.get(reverse(self.url)))
-        assert rows[0][0] == "Materia"
+        assert rows[0][0] == "Grupo"
         assert "Alumno" not in rows[0]
         assert len(rows) == 2  # cabecera + su única calificación
 

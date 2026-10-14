@@ -91,7 +91,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "apps.organizations.context_processors.active_organization",
                 "apps.messaging.context_processors.unread_messages",
-                "apps.accounts.context_processors.notifications",
+                "apps.messaging.context_processors.notifications",
             ],
         },
     },

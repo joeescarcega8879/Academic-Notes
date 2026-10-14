@@ -21,7 +21,7 @@ from .services.grading import overall_average
 def visible_grades(request):
     """Calificaciones que el usuario puede ver en la organización activa.
 
-    El alumno ve las suyas; quien da clase, las de sus materias.
+    El alumno ve las suyas; quien da clase, las de sus grupos.
     """
     grades = Grade.objects.for_organization(request.organization).select_related('student', 'activity__course')
     if request.membership.is_student:
@@ -100,7 +100,7 @@ class GradeUpdateView(GradeSaveMixin, TeacherRequiredMixin, UpdateView):
     form_class = GradeForm
 
     def get_queryset(self):
-        # solo calificaciones de sus materias activas, en la organización activa
+        # solo calificaciones de sus grupos activos, en la organización activa
         return visible_grades(self.request).filter(activity__course__status='active')
 
 class GradeExportView(OrganizationMemberMixin, View):
@@ -109,11 +109,12 @@ class GradeExportView(OrganizationMemberMixin, View):
     def get(self, request):
         grades = visible_grades(request)
 
-        course_id = request.GET.get('materia', '').strip()
+        # ``materia`` era el nombre del parámetro antes de llamarle «grupo»: los enlaces viejos siguen sirviendo.
+        course_id = (request.GET.get('grupo') or request.GET.get('materia') or '').strip()
         if course_id:
             course_id = parse_id(course_id)
             if course_id is None:
-                return HttpResponseBadRequest('El parámetro "materia" debe ser un número.')
+                return HttpResponseBadRequest('El parámetro "grupo" debe ser un número.')
             grades = grades.filter(activity__course_id=course_id)
 
         for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
@@ -138,7 +139,7 @@ class GradeExportView(OrganizationMemberMixin, View):
 
         writer = csv.writer(response)
         show_student = request.membership.is_teacher
-        header = ['Materia', 'Evaluación', 'Tipo', 'Fecha', 'Peso', 'Calificación', 'Máximo', 'Comentario']
+        header = ['Grupo', 'Evaluación', 'Tipo', 'Fecha', 'Peso', 'Calificación', 'Máximo', 'Comentario']
         if show_student:
             header = ['Matrícula', 'Alumno', 'Email'] + header
         writer.writerow(header)

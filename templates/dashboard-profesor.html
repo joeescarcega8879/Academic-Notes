@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Mis Materias · Academic Notes{% endblock  %}
+{% block title %}Mis grupos · Academic Notes{% endblock  %}
 
 {% block topbar %}
 <header class="topbar">
-    <h1>Mis Materias</h1>
+    <h1>Mis grupos</h1>
     <span class="sub"> Panel del profesor</span>
     <div class="spacer"></div>
-    <a class="btn btn-primary" href="{% url 'course_create' %}">Nueva materia</a>
+    <a class="btn btn-primary" href="{% url 'course_create' %}">Nuevo grupo</a>
     {% include 'partials/notifications.html' %}
 </header>
 {% endblock  %}
@@ -15,7 +15,7 @@
 <!-- Fila de estadísticas -->
 <div class="stat-grid">
   <div class="stat">
-    <div class="stat-label"><span class="i"><i data-icon="book-open"></i></span> Materias activas</div>
+    <div class="stat-label"><span class="i"><i data-icon="book-open"></i></span> Grupos activos</div>
     <div class="stat-value">{{ courses|length }}</div>
     <div class="stat-trend">este período</div>
   </div>
@@ -46,19 +46,19 @@
   </div>
 </div>
 
-<!-- Grid de materias -->
-<div class="subject-grid">
+<!-- Grid de grupos -->
+<div class="group-grid">
   {% for course in courses %}
-    <a class="subject-card" href="{% url 'course_detail' course.pk %}"
+    <a class="group-card" href="{% url 'course_detail' course.pk %}"
        style="border-top: 3px solid {{ course.color }}">
-      <div class="subject-head">
+      <div class="group-head">
         <div>
           <h3>{{ course.name }}</h3>
           <div class="prof">{{ course.schedule|default:"Horario por asignar" }}</div>
         </div>
         <span class="code">{{ course.code }}</span>
       </div>
-      <div class="subject-evals">
+      <div class="group-evals">
         <div class="eval-row">
           <div>
             <div class="ev-name">Alumnos inscritos</div>
@@ -84,19 +84,19 @@
     </a>
   {% empty %}
     <div class="card" style="grid-column: 1 / -1">
-      <h3>No tienes materias activas</h3>
-      <p>Crea tu primera materia para empezar a inscribir alumnos y calificar.</p>
-      <a class="btn btn-primary" href="{% url 'course_create' %}">Crear materia</a>
+      <h3>No tienes grupos activos</h3>
+      <p>Crea tu primer grupo para empezar a inscribir alumnos y calificar.</p>
+      <a class="btn btn-primary" href="{% url 'course_create' %}">Crear grupo</a>
     </div>
   {% endfor %}
 </div>
 
 {% if archived_courses %}
   <details class="archived-list">
-    <summary>Materias archivadas ({{ archived_courses|length }})</summary>
+    <summary>Grupos archivados ({{ archived_courses|length }})</summary>
     <div class="table-wrap" style="margin-top: 10px">
       <table class="tbl">
-        <thead><tr><th>Materia</th><th>Código</th><th>Ciclo</th></tr></thead>
+        <thead><tr><th>Grupo</th><th>Código</th><th>Ciclo</th></tr></thead>
         <tbody>
           {% for course in archived_courses %}
             <tr>

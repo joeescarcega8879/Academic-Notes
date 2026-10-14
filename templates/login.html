@@ -39,6 +39,7 @@
       <div class="login-form">
         <form method="post" class="login-card">
           {% csrf_token %}
+          {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
           <h1>Iniciar sesión</h1>
           <p class="sub">
             Accede con tu cuenta institucional de la Universidad del Plata Sur.
@@ -69,7 +70,7 @@
             >
               <i data-icon="users"></i>
               <span class="label">Soy Profesor</span>
-              <span class="desc">Gestiono materias y calificaciones</span>
+              <span class="desc">Gestiono grupos y calificaciones</span>
             </button>
             <button type="button" class="role-card" data-role="student">
               <i data-icon="graduation"></i>

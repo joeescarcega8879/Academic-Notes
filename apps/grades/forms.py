@@ -12,7 +12,7 @@ class GradeForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        # Ambos son obligatorios: el formulario solo ofrece datos de las materias del docente
+        # Ambos son obligatorios: el formulario solo ofrece datos de los grupos del docente
         # en su organización activa (sin organización, no ofrece nada).
         self.user = kwargs.pop('user')
         self.organization = kwargs.pop('organization')
@@ -34,11 +34,11 @@ class GradeForm(forms.ModelForm):
         courses = Course.objects.for_organization(self.organization).filter(
             professor=self.user, status=Course.Status.ACTIVE,  # un grupo archivado es de solo lectura
         )
-        # Solo las evaluaciones de las materias del profesor
+        # Solo las evaluaciones de los grupos del profesor
         self.fields['activity'].queryset = (
             Activity.objects.for_organization(self.organization).filter(course__in=courses).select_related('course')
         )
-        # Solo alumnos inscritos en alguna materia del profesor
+        # Solo alumnos inscritos en algún grupo del profesor
         self.fields['student'].queryset = (
             Student.objects.for_organization(self.organization).filter(enrollments__course__in=courses).distinct()
         )
@@ -53,7 +53,7 @@ class GradeForm(forms.ModelForm):
             if not Enrollment.objects.for_organization(self.organization).filter(
                 student=student, course=activity.course,
             ).exists():
-                raise forms.ValidationError('El alumno no está inscrito en la materia de esta evaluación.')
+                raise forms.ValidationError('El alumno no está inscrito en el grupo de esta evaluación.')
         if activity and score is not None and score > activity.max_score:
             raise forms.ValidationError(f'La calificación no puede superar el máximo de {activity.max_score}.')
         return cleaned

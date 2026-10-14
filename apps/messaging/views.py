@@ -1,9 +1,12 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.views.generic import ListView, DetailView, View
 from django.db.models import Count, Max, Q
 from django.utils import timezone
 
 from apps.accounts.mixins import OrganizationMemberMixin
+from core.utils import safe_next_url
 
 from .forms import MessageForm
 from .models import Conversation, Message
@@ -109,3 +112,18 @@ class MessageCreateView(OrganizationMemberMixin, ConversationQuerysetMixin, View
             message.save()
         return redirect('messaging:detail', pk=pk)
         
+
+
+class NotificationsReadView(LoginRequiredMixin, View):
+    """Marca como leidas las notificaciones del usuario."""
+
+    def post(self, request):
+        from .services import mark_all_read
+
+        now = timezone.now()
+        mark_all_read(request.user, request.membership, now)
+
+        request.user.notifications_read_at = now
+        request.user.save(update_fields=['notifications_read_at'])
+
+        return redirect(safe_next_url(request) or reverse('profile'))

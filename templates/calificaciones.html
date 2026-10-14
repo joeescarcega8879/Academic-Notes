@@ -27,8 +27,8 @@
           data-icon="{% if is_teacher %}book-open{% else %}clipboard{% endif %}"
         ></i
       ></span>
-      {% if is_teacher %}Materias activas{% else %}Materias
-      inscritas{% endif %}
+      {% if is_teacher %}Grupos activos{% else %}Grupos
+      inscritos{% endif %}
     </div>
     <div class="stat-value">{{ courses|length }}</div>
     <div class="stat-trend">este período</div>
@@ -54,14 +54,14 @@
 <div class="table-wrap">
   <div class="table-head">
     <h3>
-      {% if is_teacher %}Calificaciones de tus materias{% else %}Tus calificaciones{% endif %}
+      {% if is_teacher %}Calificaciones de tus grupos{% else %}Tus calificaciones{% endif %}
     </h3>
     <span class="grade style-pill ok">{{ grades|length }}</span>
     <div class="spacer"></div>
     <form class="export-bar" method="get" action="{% url 'grades:export' %}">
       {% if is_teacher %}
-      <select class="select" name="materia" title="Materia">
-        <option value="">Todas las materias</option>
+      <select class="select" name="grupo" title="Grupo">
+        <option value="">Todos los grupos</option>
         {% for s in courses %}
         <option value="{{ s.pk }}">{{ s.name }}</option>
         {% endfor %}
@@ -78,7 +78,7 @@
         {% if is_teacher %}
         <th>Alumno</th>
         {% endif %}
-        <th>Materia</th>
+        <th>Grupo</th>
         <th>Evaluación</th>
         <th>Calificación</th>
         <th>Comentario</th>

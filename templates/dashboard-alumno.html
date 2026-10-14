@@ -15,7 +15,7 @@
 <div class="stat-grid">
   <div class="stat">
     <div class="stat-label">
-      <span class="i"><i data-icon="book-open"></i></span> Materias inscritas
+      <span class="i"><i data-icon="book-open"></i></span> Grupos inscritos
     </div>
     <div class="stat-value">{{ enrollments|length }}</div>
     <div class="stat-trend">este período</div>
@@ -36,22 +36,22 @@
   </div>
 </div>
 
-<!-- Grid de materias inscritas -->
-<div class="subject-grid">
+<!-- Grid de grupos inscritos -->
+<div class="group-grid">
   {% for enrollment in enrollments %}
   <a
-    class="subject-card"
+    class="group-card"
     href="{% url 'course_detail' enrollment.course.pk %}"
     style="border-top: 3px solid {{ enrollment.course.color }}">
 
-    <div class="subject-head">
+    <div class="group-head">
       <div>
         <h3>{{ enrollment.course.name }}</h3>
         <div class="prof">{{ enrollment.course.professor.get_full_name }}</div>
       </div>
       <span class="code">{{ enrollment.course.code }}</span>
     </div>
-    <div class="subject-evals">
+    <div class="group-evals">
       <div class="eval-row">
         <div>
           <div class="ev-name">Horario</div>
@@ -62,7 +62,7 @@
       </div>
       <div class="eval-row">
         <div>
-          <div class="ev-name">Promedio de la materia</div>
+          <div class="ev-name">Promedio del grupo</div>
           <div class="ev-date">según calificaciones registradas</div>
         </div>
         <span class="grade style-pill ok">{{ enrollment.course_average|floatformat:2|default:"—" }}</span>
@@ -71,9 +71,9 @@
   </a>
   {% empty %}
   <div class="card" style="grid-column: 1 / -1">
-    <h3>Aún no estás inscrito en ninguna materia</h3>
+    <h3>Aún no estás inscrito en ningún grupo</h3>
     <p>
-      Cuando un profesor te inscriba, verás aquí tus materias y calificaciones.
+      Cuando un profesor te inscriba, verás aquí tus grupos y calificaciones.
     </p>
   </div>
   {% endfor %}
@@ -81,10 +81,10 @@
 
 {% if archived_enrollments %}
   <details class="archived-list">
-    <summary>Materias de ciclos anteriores ({{ archived_enrollments|length }})</summary>
+    <summary>Grupos de ciclos anteriores ({{ archived_enrollments|length }})</summary>
     <div class="table-wrap" style="margin-top: 10px">
       <table class="tbl">
-        <thead><tr><th>Materia</th><th>Profesor</th><th>Ciclo</th></tr></thead>
+        <thead><tr><th>Grupo</th><th>Profesor</th><th>Ciclo</th></tr></thead>
         <tbody>
           {% for enrollment in archived_enrollments %}
             <tr>
