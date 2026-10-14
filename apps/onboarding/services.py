@@ -50,8 +50,11 @@ def _create_user(*, first_name, last_name, email, password, role):
 
 
 @transaction.atomic
-def register_teacher(*, first_name, last_name, email, password, school_name='', today=None):
-    """Alta de un docente: su cuenta, su organización individual (con su nombre o el de su escuela) y el ciclo actual."""
+def register_teacher(*, first_name, last_name, email, password, school_name='', today=None, notify=True):
+    """Alta de un docente: su cuenta, su organización individual (con su nombre o el de su escuela) y el ciclo actual.
+
+    ``notify=False`` omite el correo de bienvenida (datos de ejemplo, importaciones).
+    """
     user = _create_user(first_name=first_name, last_name=last_name, email=email, password=password, role=User.Role.PROFESSOR)
     organization = ensure_individual_organization(user)
     if school_name.strip():
@@ -59,15 +62,17 @@ def register_teacher(*, first_name, last_name, email, password, school_name='', 
         organization.save(update_fields=['name'])
     name, start, end = default_cycle(today or datetime.date.today())
     AcademicYear.objects.create(organization=organization, name=name, start_date=start, end_date=end, is_current=True)
-    queue_welcome_email(user)
+    if notify:
+        queue_welcome_email(user)
     return user
 
 
 @transaction.atomic
-def register_student(*, first_name, last_name, email, password):
+def register_student(*, first_name, last_name, email, password, notify=True):
     """Alta de un alumno. Sin organización todavía: la tendrá al unirse a un grupo con el código de su docente."""
     user = _create_user(first_name=first_name, last_name=last_name, email=email, password=password, role=User.Role.STUDENT)
-    queue_welcome_email(user)
+    if notify:
+        queue_welcome_email(user)
     return user
 
 
