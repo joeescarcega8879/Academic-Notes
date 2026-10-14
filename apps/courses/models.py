@@ -95,7 +95,7 @@ class Course(TenantModel):
     schedule = models.CharField(max_length=200, blank=True)
     color = models.CharField(max_length=7, default='#1e3a5f')  # Hex color code
 
-    # A diferencia de sus hijos, la materia sí elige su organización (en el admin).
+    # A diferencia de sus hijos, el grupo sí elige su organización (en el admin).
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
 
     professor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='courses', limit_choices_to={'role': 'professor'})
@@ -115,6 +115,8 @@ class Course(TenantModel):
 
     class Meta:
         ordering = ['name']
+        verbose_name = 'grupo'
+        verbose_name_plural = 'grupos'
         constraints = [
             models.UniqueConstraint(fields=['organization', 'academic_year', 'code'], name='unique_course_code_per_year'),
             models.UniqueConstraint(
@@ -140,7 +142,7 @@ class Course(TenantModel):
         return f"{self.name} ({self.code})"
 
     def save(self, *args, **kwargs):
-        # Sin organización explícita, la materia pertenece a donde da clase su profesor.
+        # Sin organización explícita, el grupo pertenece a donde da clase su profesor.
         if self.organization_id is None:
             self.organization = ensure_individual_organization(self.professor)
         if self.academic_year_id is None:
@@ -168,7 +170,7 @@ class Student(TenantModel):
     cuando el alumno usa el código de invitación.
     """
 
-    # Como la materia, el alumno sí elige su organización.
+    # Como el grupo, el alumno sí elige su organización.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
 
     # Matrícula: texto, nunca entero (ceros a la izquierda y letras). Vacía = sin matrícula.

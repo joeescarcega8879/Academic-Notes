@@ -12,13 +12,13 @@
 
 {% block content %}
 
-<!-- Presentación de la materia -->
+<!-- Presentación del grupo -->
 <div class="card mb-12" style="border-top: 3px solid {{ course.color }}">
   <div class="flex-row items-baseline gap-14">
     <h2 style="margin: 0">{{ course.name }}</h2>
     <span class="text-xs text-muted">{{ course.code }}</span>
     <span class="chip">{{ course.academic_year }}</span>
-    {% if course.is_archived %}<span class="chip">Archivada</span>{% endif %}
+    {% if course.is_archived %}<span class="chip">Archivado</span>{% endif %}
     {% if is_teacher %}
       <div class="spacer"></div>
       {% if course.is_archived %}
@@ -29,7 +29,7 @@
       {% else %}
         <a class="btn btn-ghost" href="{% url 'course_update' course.pk %}">Editar</a>
         <form method="post" action="{% url 'course_archive' course.pk %}" class="inline-form"
-              onsubmit="return confirm('¿Archivar esta materia? Seguirá consultable, pero ya no admitirá cambios.')">
+              onsubmit="return confirm('¿Archivar este grupo? Seguirá consultable, pero ya no admitirá cambios.')">
           {% csrf_token %}
           <button type="submit" class="btn btn-ghost">Archivar</button>
         </form>
@@ -168,7 +168,7 @@
 {% else %}
   <!-- Vista ALUMNO: información de su inscripción -->
   <div class="card">
-    <h3 class="section-title mb-12">Información de la materia</h3>
+    <h3 class="section-title mb-12">Información del grupo</h3>
     <div class="kv-row">
       <div class="k">Profesor</div>
       <div class="v">{{ course.professor.get_full_name }}</div>
@@ -187,7 +187,7 @@
     </div>
   </div>
 
-  <!-- Vista ALUMNO: evaluaciones y calificaciones de la materia -->
+  <!-- Vista ALUMNO: evaluaciones y calificaciones del grupo -->
   <div class="table-wrap" style="margin-top: 14px">
     <div class="table-head">
       <h3>Evaluaciones y calificaciones</h3>
@@ -226,7 +226,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6" class="text-muted">Aún no hay evaluaciones registradas en esta materia.</td>
+            <td colspan="6" class="text-muted">Aún no hay evaluaciones registradas en este grupo.</td>
           </tr>
         {% endfor %}
       </tbody>

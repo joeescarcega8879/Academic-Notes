@@ -41,6 +41,7 @@ class StudentProfileForm(forms.ModelForm):
     class Meta:
         model = StudentProfile
         fields = ['program', 'semester']
+        labels = {'program': 'Programa', 'semester': 'Semestre'}
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,6 +52,7 @@ class ProfessorProfileForm(forms.ModelForm):
     class Meta:
         model = ProfessorProfile
         fields = ['department']
+        labels = {'department': 'Departamento'}
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

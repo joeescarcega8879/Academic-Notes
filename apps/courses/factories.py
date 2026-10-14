@@ -14,7 +14,7 @@ class CourseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Course
 
-    name = factory.Sequence(lambda n: f"Materia {n}")
+    name = factory.Sequence(lambda n: f"Grupo {n}")
     code = factory.Sequence(lambda n: f"MAT{n:03d}")
     professor = factory.SubFactory(ProfessorFactory)
 

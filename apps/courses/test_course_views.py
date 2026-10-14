@@ -126,7 +126,7 @@ class TestArchivar:
     def test_el_detalle_archivado_sigue_siendo_consultable_y_ofrece_desarchivar(self, professor_client, course, enrollment):
         archive_course(course)
         html = professor_client.get(reverse("course_detail", args=[course.pk])).content.decode()
-        assert "Archivada" in html
+        assert "Archivado" in html
         assert reverse("course_unarchive", args=[course.pk]) in html
         assert reverse("course_update", args=[course.pk]) not in html
         assert "/admin/courses/enrollment/add/" not in html

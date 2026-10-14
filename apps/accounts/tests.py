@@ -69,9 +69,13 @@ class TestLogin:
         assert client.session["organization_id"] == asignada.organization_id
 
     def test_logout_cierra_la_sesion(self, student_client):
-        response = student_client.get(reverse("logout"))
-        assert response.status_code == 302
+        response = student_client.post(reverse("logout"))
+        assert response.status_code == 302 and response.url == reverse("login")
         assert "_auth_user_id" not in student_client.session
+
+    def test_logout_por_get_no_cierra_la_sesion(self, student_client):
+        assert student_client.get(reverse("logout")).status_code == 405
+        assert "_auth_user_id" in student_client.session
 
 
 # ── Perfil ────────────────────────────────────────────────────────────

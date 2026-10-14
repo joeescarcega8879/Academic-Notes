@@ -276,7 +276,7 @@ function setupModalClose() {
   });
 }
 
-// ---------- Tabs (materia detail) ----------
+// ---------- Tabs (detalle del grupo) ----------
 function setupTabs() {
   document.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => {

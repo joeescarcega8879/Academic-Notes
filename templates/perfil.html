@@ -8,9 +8,7 @@
   <h1>Perfil</h1>
   <span class="sub">· Información personal y preferencias</span>
   <div class="spacer"></div>
-  <button class="icon-btn" title="Notificaciones">
-    <i data-icon="bell"></i><span class="pip"></span>
-  </button>
+  {% include 'partials/notifications.html' %}
 </header>
 {% endblock %}
 
@@ -27,7 +25,11 @@
         <span class="chip brand"><i data-icon="graduation"></i> {{ user.student_profile.program }}</span>
         <span class="chip"><i data-icon="calendar"></i> {{ user.student_profile.semester }}º semestre</span>
       {% endif %}
-      <span class="chip ok"><i data-icon="check-circle"></i> Inscripción activa</span>
+      {% if summary and summary.groups %}
+        <span class="chip ok"><i data-icon="check-circle"></i> {{ summary.groups }} grupo{{ summary.groups|pluralize }} activo{{ summary.groups|pluralize }}</span>
+      {% elif is_teacher %}
+        <span class="chip ok"><i data-icon="check-circle"></i> Docente</span>
+      {% endif %}
     </div>
   </div>
   <div class="ph-actions">
@@ -68,7 +70,7 @@
         </div>
         <div class="field">
           <label>Documento</label>
-          <input class="input" value="{{ user.dni }}" disabled>
+          <input class="input" value="{{ user.dni|default_if_none:'' }}" disabled>
         </div>
       </div>
 
@@ -99,7 +101,7 @@
         <div class="toggle-row">
           <div>
             <div class="tlbl">Resumen semanal</div>
-            <div class="tsub">Email los lunes con el progreso de cada materia.</div>
+            <div class="tsub">Email los lunes con el progreso de cada grupo.</div>
           </div>
           {{ profile_form.notify_weekly }}
         </div>
@@ -112,7 +114,7 @@
         </div>
         <div class="toggle-row">
           <div>
-            <div class="tlbl">Mostrar promedio en cards de materia</div>
+            <div class="tlbl">Mostrar promedio en cards de grupo</div>
             <div class="tsub">Visible solo para ti.</div>
           </div>
           {{ profile_form.show_average }}
@@ -123,74 +125,53 @@
 
     <!-- Columna derecha -->
     <div>
-      <div class="card mb-12">
-        <h3 class="section-title mb-12">Promedio del período</h3>
-        <div class="flex-row items-baseline gap-14">
-          <div class="grade-hero-md ok">{{ overall_average|default:"7.8" }}</div>
-          <div class="text-xs text-muted">de 10.0</div>
+      {% if summary %}
+        <div class="card mb-12">
+          <h3 class="section-title mb-12">Promedio general</h3>
+          <div class="flex-row items-baseline gap-14">
+            <div class="grade-hero-md {{ summary.tone }}">{{ summary.average|default_if_none:"—" }}</div>
+            {% if summary.average is not None %}<div class="text-xs text-muted">de 10.0</div>{% endif %}
+          </div>
+          <p class="text-xs text-muted" style="margin: 8px 0 0">
+            Promedio de la calificación final de tus {{ summary.groups }} grupo{{ summary.groups|pluralize }} activo{{ summary.groups|pluralize }}, expresado sobre 10.
+          </p>
+          <div class="dist-bars mt-16">
+            <div class="dist-row">
+              <div class="lbl">Aprobadas</div>
+              <div class="track"><div class="fill ok" style="width:{{ summary.passed_share }}%;"></div></div>
+              <div class="num">{{ summary.passed }}</div>
+            </div>
+            <div class="dist-row">
+              <div class="lbl">Reprobadas</div>
+              <div class="track"><div class="fill bad" style="width:{{ summary.failed_share }}%;"></div></div>
+              <div class="num">{{ summary.failed }}</div>
+            </div>
+            <div class="dist-row">
+              <div class="lbl">Sin calificar</div>
+              <div class="track"><div class="fill warn" style="width:{{ summary.pending_share }}%;"></div></div>
+              <div class="num">{{ summary.pending }}</div>
+            </div>
+          </div>
         </div>
-        <div class="dist-bars mt-16">
-          <div class="dist-row">
-            <div class="lbl">Aprobadas</div>
-            <div class="track">
-              <div class="fill ok" style="width:75%;"></div>
-            </div>
-            <div class="num">{{ approved_count|default:"9" }}</div>
-          </div>
-          <div class="dist-row">
-            <div class="lbl">En riesgo</div>
-            <div class="track">
-              <div class="fill warn" style="width:17%;"></div>
-            </div>
-            <div class="num">{{ at_risk_count|default:"2" }}</div>
-          </div>
-          <div class="dist-row">
-            <div class="lbl">Reprobadas</div>
-            <div class="track">
-              <div class="fill bad" style="width:8%;"></div>
-            </div>
-            <div class="num">{{ failed_count|default:"1" }}</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="card">
-        <h3 class="section-title mb-12">Actividad reciente</h3>
-        <div class="resource-list">
-          <div class="res-item">
-            <div class="res-thumb"><i data-icon="check-circle"></i></div>
-            <div>
-              <div class="name">Calificación publicada</div>
-              <div class="sub">Cálculo II · Parcial 2 · 6.0</div>
-            </div>
-            <span class="text-xxs text-faint">hace 2h</span>
-          </div>
-          <div class="res-item">
-            <div class="res-thumb"><i data-icon="message-square"></i></div>
-            <div>
-              <div class="name">Respuesta de Prof. Méndez</div>
-              <div class="sub">Aclaración Parcial 2</div>
-            </div>
-            <span class="text-xxs text-faint">hace 3h</span>
-          </div>
-          <div class="res-item">
-            <div class="res-thumb"><i data-icon="clipboard"></i></div>
-            <div>
-              <div class="name">Entrega recibida</div>
-              <div class="sub">Bases de Datos · Modelado E-R</div>
-            </div>
-            <span class="text-xxs text-faint">ayer</span>
-          </div>
-          <div class="res-item">
-            <div class="res-thumb"><i data-icon="trending-up"></i></div>
-            <div>
-              <div class="name">Promedio actualizado</div>
-              <div class="sub">+0.2 respecto al mes anterior</div>
-            </div>
-            <span class="text-xxs text-faint">ayer</span>
+        <div class="card">
+          <h3 class="section-title mb-12">Calificaciones recientes</h3>
+          <div class="resource-list">
+            {% for grade in summary.recent %}
+              <div class="res-item">
+                <div class="res-thumb"><i data-icon="check-circle"></i></div>
+                <div>
+                  <div class="name">{{ grade.activity.title }}</div>
+                  <div class="sub">{{ grade.activity.course.name }} · {{ grade.score|floatformat:"-2" }} / {{ grade.activity.max_score|floatformat:"-2" }}</div>
+                </div>
+                <span class="text-xxs text-faint">hace {{ grade.graded_at|timesince }}</span>
+              </div>
+            {% empty %}
+              <p class="text-sm text-muted" style="margin: 0">Aún no tienes calificaciones publicadas.</p>
+            {% endfor %}
           </div>
         </div>
-      </div>
+      {% endif %}
     </div>
   </div>
 
