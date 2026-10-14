@@ -35,6 +35,9 @@
         </form>
       {% endif %}
       <a class="btn btn-primary" href="{% url 'grades:gradesheet' course.pk %}">Libreta</a>
+      <a class="btn btn-ghost" href="{% url 'reports:risk' course.pk %}">Alumnos en riesgo</a>
+      <a class="btn btn-ghost" href="{% url 'reports:workbook' course.pk %}">Concentrado Excel</a>
+      <a class="btn btn-ghost" href="{% url 'reports:transcripts' course.pk %}">Boletas PDF</a>
       {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
     {% endif %}
@@ -140,6 +143,7 @@
             <td>{{ enrollment.enrolled_at|date:"d/m/Y" }}</td>
             {% if not course.is_archived %}
               <td style="white-space: nowrap">
+                <a class="btn btn-ghost" href="{% url 'reports:transcript' course.pk enrollment.student.pk %}">Boleta</a>
                 <a class="btn btn-ghost" href="{% url 'student_edit' course.pk enrollment.student.pk %}">Editar</a>
                 {% if enrollment.student.user_id %}
                   <form method="post" action="{% url 'student_unlink' course.pk enrollment.student.pk %}" class="inline-form"

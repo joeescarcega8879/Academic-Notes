@@ -11,7 +11,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.courses.models import Enrollment, Course
-from core.utils import parse_id
+from core.utils import csv_safe, parse_id
 
 from .models import Grade
 from .forms import GradeForm
@@ -147,20 +147,20 @@ class GradeExportView(OrganizationMemberMixin, View):
         for grade in grades:
             activity = grade.activity
             row = [
-                activity.course.name,
-                activity.title,
+                csv_safe(activity.course.name),
+                csv_safe(activity.title),
                 activity.get_type_display(),
                 activity.date.isoformat() if activity.date else '',
                 activity.weight,
                 grade.score,
                 activity.max_score,
-                grade.feedback,
+                csv_safe(grade.feedback),
             ]
             if show_student:
                 row = [
-                    grade.student.student_number,
-                    str(grade.student),
-                    grade.student.email,
+                    csv_safe(grade.student.student_number),
+                    csv_safe(grade.student),
+                    csv_safe(grade.student.email),
                 ] + row
             writer.writerow(row)
 

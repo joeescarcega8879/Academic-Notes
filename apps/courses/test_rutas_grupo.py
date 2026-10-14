@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from apps.grades.factories import ActivityFactory, GradeFactory
 
-from .factories import CourseFactory
+from .factories import CourseFactory, EnrollmentFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -97,6 +97,15 @@ class TestExportacionPorGrupo:
         a, b = dos_grupos
         filas = self.filas(professor_client.get(reverse(self.url), {"grupo": b.course_id, "materia": a.course_id}))
         assert [f[3] for f in filas[1:]] == [b.course.name]
+
+    @pytest.mark.parametrize("texto", ["=cmd|' /C calc'!A0", "+1+1", "-2+3", "@SUM(1)"])
+    def test_un_nombre_que_parece_formula_no_se_ejecuta_al_abrir_el_csv(self, professor_client, course, texto):
+        activity = ActivityFactory(course=course, title=texto)
+        alumno = EnrollmentFactory(course=course, student__user=None, student__first_name=texto, student__last_name="X").student
+        GradeFactory(activity=activity, student=alumno)
+        fila = self.filas(professor_client.get(reverse(self.url)))[1]
+        assert all(not celda.startswith(("=", "+", "-", "@")) for celda in fila if celda)
+        assert "'" + texto in fila[1] and "'" + texto in fila[4]
 
     @pytest.mark.parametrize("valor", ["abc", "1 OR 1=1", "²", "9" * 40])
     def test_valor_invalido_es_400(self, professor_client, valor):

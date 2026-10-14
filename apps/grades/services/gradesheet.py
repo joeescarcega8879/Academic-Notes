@@ -148,6 +148,17 @@ class Gradesheet:
         return next((column for column in self.columns if column.activity.pk == activity_id), None)
 
 
+def enrolled_students(course):
+    """Alumnos inscritos en el grupo, en orden alfabético sin importar acentos («Álvarez» antes que «Zapata»).
+
+    El orden de la base de datos no lo garantiza (SQLite pone la «Á» después de la «Z»).
+    """
+    return sorted(
+        (enrollment.student for enrollment in course.enrollments.select_related('student')),
+        key=lambda s: (normalize_text(s.last_name), normalize_text(s.first_name), s.pk),
+    )
+
+
 def build_gradesheet(course):
     """Toda la libreta del grupo: columnas agrupadas por periodo y criterio, una fila por alumno inscrito."""
     scheme = ensure_scheme(course)
@@ -168,11 +179,7 @@ def build_gradesheet(course):
             periods.append(PeriodGroup(period, groups))
             columns.extend(column for group in groups for column in group.columns)
 
-    # Alfabético sin importar acentos ("Álvarez" antes que "Zapata"): el orden de la base de datos no lo garantiza.
-    students = sorted(
-        (enrollment.student for enrollment in course.enrollments.select_related('student')),
-        key=lambda s: (normalize_text(s.last_name), normalize_text(s.first_name), s.pk),
-    )
+    students = enrolled_students(course)
     by_student, by_activity = defaultdict(dict), defaultdict(list)
     grades = Grade.objects.filter(activity__course=course, student__in=students).select_related('activity')
     for grade in grades:

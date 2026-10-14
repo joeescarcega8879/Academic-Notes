@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Alumnos en riesgo · {{ course.name }} - Academic Notes{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Alumnos en riesgo</h1>
+  <span class="sub">{{ course.name }} · {{ course.code }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{% url 'grades:gradesheet' course.pk %}">Libreta</a>
+  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid mb-12">
+  <div class="stat"><div class="stat-label">Reprobados ahora</div><div class="stat-value" style="color: var(--bad)">{{ counts.failing }}</div></div>
+  <div class="stat"><div class="stat-label">En riesgo</div><div class="stat-value" style="color: var(--warn)">{{ counts.at_risk }}</div></div>
+  <div class="stat"><div class="stat-label">Bien</div><div class="stat-value" style="color: var(--ok)">{{ counts.ok }}</div></div>
+  <div class="stat"><div class="stat-label">Sin datos</div><div class="stat-value">{{ counts.no_data }}</div></div>
+</div>
+
+<div class="table-wrap mb-12">
+  <div class="table-head"><h3>Necesitan atención</h3><span class="grade style-pill ok">{{ attention|length }}</span></div>
+  <table class="tbl">
+    <thead><tr><th>Alumno</th><th>Promedio</th><th>Nivel</th><th>Por qué</th><th></th></tr></thead>
+    <tbody>
+      {% for item in attention %}
+        <tr>
+          <td>{{ item.student }}<div class="text-xs text-muted">{{ item.student.student_number }}</div></td>
+          <td>{{ item.final_text|default:"—" }}</td>
+          <td>{% if item.level == "failing" %}<span class="chip" style="color: var(--bad)">{{ item.label }}</span>{% else %}<span class="chip" style="color: var(--warn)">{{ item.label }}</span>{% endif %}</td>
+          <td>
+            {% for reason in item.reasons %}<div>{{ reason }}</div>{% endfor %}
+            {% if item.missing %}<div class="text-xs text-muted">Faltan: {{ item.missing|join:", " }}</div>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost" href="{% url 'reports:transcript' course.pk item.student.pk %}">Boleta</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Nadie necesita atención por ahora.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if rest %}
+  <details class="table-wrap mb-12">
+    <summary style="padding: 12px 16px; cursor: pointer; font-weight: 500">Los demás alumnos ({{ rest|length }})</summary>
+    <table class="tbl">
+      <thead><tr><th>Alumno</th><th>Promedio</th><th>Nivel</th></tr></thead>
+      <tbody>
+        {% for item in rest %}
+          <tr><td>{{ item.student }}</td><td>{{ item.final_text|default:"—" }}</td><td>{{ item.label }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </details>
+{% endif %}
+
+<p class="text-xs text-muted">
+  Reprobado: el promedio ya está por debajo del mínimo aprobatorio del grupo. En riesgo: aprueba pero a menos del
+  {% widthratio margin_points 1 100 %} % de la escala por encima del mínimo, o tiene {{ missing_limit }} o más actividades con fecha límite
+  vencida sin entrega ni calificación. «Sin datos» es un alumno sin calificaciones ni faltantes todavía.
+</p>
+{% endblock %}
