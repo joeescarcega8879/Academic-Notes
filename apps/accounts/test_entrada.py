@@ -13,9 +13,10 @@ pytestmark = pytest.mark.django_db
 
 
 class TestRaiz:
-    def test_anonimo_va_al_login(self, client):
+    def test_anonimo_ve_la_portada(self, client):
         response = client.get("/")
-        assert response.status_code == 302 and response.url == reverse("login")
+        html = response.content.decode()
+        assert response.status_code == 200 and reverse("register") in html and reverse("login") in html
 
     def test_docente_va_a_su_inicio(self, professor_client):
         assert professor_client.get("/").url == reverse("professor_dashboard")

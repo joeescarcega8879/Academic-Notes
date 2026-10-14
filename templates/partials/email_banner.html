@@ -1,0 +1,10 @@
+{% if email_unverified %}
+  <div class="flash flash-info verify-banner" role="status">
+    <span>Confirma tu correo ({{ user.email }}) para poder recuperar tu cuenta si olvidas la contraseña.</span>
+    <form method="post" action="{% url 'resend_verification' %}" class="inline-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="btn btn-ghost">Reenviar correo</button>
+    </form>
+  </div>
+{% endif %}

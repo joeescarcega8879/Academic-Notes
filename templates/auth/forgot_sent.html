@@ -1,0 +1,11 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Revisa tu correo · {{ site_name }}{% endblock %}
+
+{% block content %}
+<h1>Revisa tu correo</h1>
+<p class="sub">
+  Si hay una cuenta con ese correo, te mandamos un enlace para elegir una contraseña nueva. Puede tardar unos minutos;
+  revisa también la carpeta de spam. El enlace deja de servir en poco tiempo.
+</p>
+<p class="sub text-center mt-22"><a class="btn btn-ghost" href="{% url 'login' %}">Volver a iniciar sesión</a></p>
+{% endblock %}

@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="es">
+  <body style="margin:0;padding:24px;background:#f2f4f8;font-family:Arial,Helvetica,sans-serif;color:#1b2a3d">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:8px;padding:28px">
+      <div style="font-size:18px;font-weight:bold;color:#1e3a5f;margin-bottom:18px">{{ site_name }}</div>
+      {% block body %}{% endblock %}
+      <hr style="border:0;border-top:1px solid #e6e8ee;margin:24px 0 12px">
+      <div style="font-size:12px;color:#6b7788">
+        ¿Dudas? Escríbenos a <a href="mailto:{{ support_email }}" style="color:#1e3a5f">{{ support_email }}</a>.
+      </div>
+    </div>
+  </body>
+</html>

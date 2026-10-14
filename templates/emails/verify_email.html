@@ -1,0 +1,7 @@
+{% extends "emails/base.html" %}
+{% block body %}
+<p>Hola {{ user.first_name|default:user.username }},</p>
+<p>Confirma que este correo es tuyo para poder recuperar tu cuenta si olvidas la contraseña.</p>
+<p><a href="{{ verify_url }}" style="display:inline-block;background:#1e3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">Confirmar mi correo</a></p>
+<p style="font-size:13px;color:#6b7788">El enlace vale 7 días. Si no creaste una cuenta en {{ site_name }}, ignora este mensaje.</p>
+{% endblock %}

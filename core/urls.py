@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # Antes los grupos se llamaban «materias»: los enlaces y favoritos viejos siguen llegando al mismo lugar.
     re_path(r'^materia/(?P<rest>.*)$', RedirectView.as_view(url='/grupo/%(rest)s', permanent=True, query_string=True)),
+    path('', include('apps.onboarding.urls')),
     path('', include('apps.accounts.urls')),
     path('', include('apps.organizations.urls')),
     path('', include('apps.courses.urls')),

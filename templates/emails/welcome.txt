@@ -1,0 +1,17 @@
+{% autoescape off %}Hola {{ user.first_name|default:user.username }},
+{% if teacher %}
+Tu cuenta de docente en {{ site_name }} ya está lista. Para dejar tu primer grupo funcionando:
+
+1. Crea tu grupo.
+2. Importa tu lista de alumnos desde Excel o CSV.
+3. Crea una actividad y califica en la libreta.
+{% else %}
+Tu cuenta de alumno en {{ site_name }} ya está lista. Entra, abre «Unirme a un grupo» y escribe el código que te dio tu docente para ver tus calificaciones.
+{% endif %}
+Entra aquí: {{ site_url }}
+{% if verify_url %}
+Confirma también tu correo para poder recuperar tu cuenta si olvidas la contraseña (el enlace vale 7 días):
+{{ verify_url }}
+{% endif %}
+¿Dudas? Escríbenos a {{ support_email }}.
+{% endautoescape %}

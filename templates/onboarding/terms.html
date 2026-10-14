@@ -1,0 +1,22 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Términos de uso · {{ site_name }}{% endblock %}
+
+{% block content %}
+<h1>Términos de uso</h1>
+{% if draft %}<div class="flash flash-info">Borrador pendiente de revisión legal. Puede cambiar antes del lanzamiento.</div>{% endif %}
+<div class="legal">
+  <h3>Qué es {{ site_name }}</h3>
+  <p>Es una herramienta para que docentes lleven sus grupos, actividades y calificaciones, y para que sus alumnos consulten los resultados.</p>
+  <h3>Tu cuenta</h3>
+  <p>Eres responsable de lo que se haga con tu cuenta y de mantener tu contraseña en secreto. Danos un correo real: lo usamos para recuperar tu cuenta.</p>
+  <h3>Datos de tus alumnos</h3>
+  <p>El docente decide qué datos de sus alumnos captura. Te pedimos guardar solo lo necesario (matrícula y nombre) y contar con la autorización de tu institución para tratar esos datos.</p>
+  <h3>Uso aceptable</h3>
+  <p>No uses el servicio para actividades ilícitas, para intentar acceder a datos de otras personas o para afectar su funcionamiento. Podemos suspender cuentas que lo hagan.</p>
+  <h3>Tus datos son tuyos</h3>
+  <p>Puedes exportar tus calificaciones en Excel o CSV en cualquier momento y pedirnos que borremos tu cuenta escribiendo a <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+  <h3>Cambios</h3>
+  <p>Si cambiamos estos términos de forma importante, te avisaremos por correo.</p>
+</div>
+<p class="sub text-center mt-22"><a href="{% url 'privacy' %}">Aviso de privacidad</a> · <a href="{% url 'home' %}">Volver al inicio</a></p>
+{% endblock %}

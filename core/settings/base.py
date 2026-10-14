@@ -61,6 +61,7 @@ LOCAL_APPS = [
     "apps.quizzes",
     "apps.reports",
     "apps.messaging",
+    "apps.onboarding",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -93,6 +94,8 @@ TEMPLATES = [
                 "apps.organizations.context_processors.active_organization",
                 "apps.messaging.context_processors.unread_messages",
                 "apps.messaging.context_processors.notifications",
+                "apps.accounts.context_processors.account_status",
+                "apps.onboarding.context_processors.onboarding",
             ],
         },
     },
@@ -176,6 +179,11 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="GradeLink <no-reply@gradelink.app>")
+
+# Nombre y dirección pública del sitio: los correos se mandan desde Celery, sin petición de donde sacarlos.
+SITE_NAME = env("SITE_NAME", default="GradeLink")
+SITE_URL = env("SITE_URL", default="http://localhost:8000").rstrip("/")
+SUPPORT_EMAIL = env("SUPPORT_EMAIL", default="soporte@gradelink.app")
 
 
 # ── Caché ─────────────────────────────────────────────────────────────

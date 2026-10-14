@@ -1,0 +1,20 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Aviso de privacidad · {{ site_name }}{% endblock %}
+
+{% block content %}
+<h1>Aviso de privacidad</h1>
+{% if draft %}<div class="flash flash-info">Borrador pendiente de revisión legal. Puede cambiar antes del lanzamiento.</div>{% endif %}
+<div class="legal">
+  <h3>Qué datos guardamos</h3>
+  <p>De los docentes: nombre, correo y contraseña (cifrada). De los alumnos que captura el docente o que crean su cuenta: nombre, matrícula, correo, y sus calificaciones, entregas y mensajes dentro de {{ site_name }}.</p>
+  <h3>Para qué los usamos</h3>
+  <p>Solo para prestar el servicio: calcular calificaciones, mostrarlas a quien corresponde, enviar los correos del sistema (confirmación de correo, restablecer contraseña) y dar soporte. No vendemos datos ni los usamos para publicidad.</p>
+  <h3>Quién los ve</h3>
+  <p>El docente ve a los alumnos de sus grupos; cada alumno ve solo lo suyo. Una organización nunca ve los datos de otra.</p>
+  <h3>Datos de menores</h3>
+  <p>Guardamos lo mínimo indispensable de los alumnos y esperamos que la institución o el docente cuente con la autorización necesaria para tratar esos datos.</p>
+  <h3>Tus derechos</h3>
+  <p>Puedes pedir acceso, corrección o borrado de tus datos escribiendo a <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</p>
+</div>
+<p class="sub text-center mt-22"><a href="{% url 'terms' %}">Términos de uso</a> · <a href="{% url 'home' %}">Volver al inicio</a></p>
+{% endblock %}

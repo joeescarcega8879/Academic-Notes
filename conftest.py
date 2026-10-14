@@ -33,6 +33,15 @@ def activity(course):
     return ActivityFactory(course=course)
 
 
+@pytest.fixture(autouse=True)
+def limpiar_cache():
+    """Los límites de intentos viven en la caché: cada prueba empieza con la suya vacía."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+
+
 @pytest.fixture(scope='session', autouse=True)
 def limpiar_archivos_de_prueba():
     """Las entregas de las pruebas van a un directorio temporal que se borra al terminar la sesión."""

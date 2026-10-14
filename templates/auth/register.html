@@ -1,0 +1,31 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}{{ title }} · {{ site_name }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="sub">{{ lead }}</p>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="flash flash-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  {% for field in form.visible_fields %}
+    {% if field.name == "website" %}
+      <div class="hp" aria-hidden="true">{{ field.label_tag }} {{ field }}</div>
+    {% elif field.name == "accept_terms" %}
+      <div class="field{% if field.errors %} has-error{% endif %}">
+        <label class="checkbox">{{ field }} Acepto los <a href="{% url 'terms' %}" target="_blank" rel="noopener">términos de uso</a> y el <a href="{% url 'privacy' %}" target="_blank" rel="noopener">aviso de privacidad</a></label>
+        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+    {% else %}
+      {% include "auth/_field.html" %}
+    {% endif %}
+  {% endfor %}
+  <button type="submit" class="btn btn-primary btn-block btn-lg">Crear cuenta</button>
+</form>
+
+<p class="sub text-center mt-22">
+  ¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión</a><br>
+  {% if role == "teacher" %}¿Eres alumno? <a href="{% url 'register_student' %}">Crea tu cuenta de alumno</a>
+  {% else %}¿Eres docente? <a href="{% url 'register' %}">Crea tu cuenta de docente</a>{% endif %}
+</p>
+{% endblock %}
