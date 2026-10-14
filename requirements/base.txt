@@ -13,3 +13,6 @@ redis>=5.2
 
 # ── Importación de listas (Excel) ─────────────────────────────────────
 openpyxl>=3.1
+
+# ── Reportes (boleta PDF) ─────────────────────────────────────────────
+reportlab>=4.2,<5

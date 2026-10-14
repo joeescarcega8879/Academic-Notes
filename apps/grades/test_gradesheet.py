@@ -471,6 +471,35 @@ class TestCalificarPorGrupoSigueIgual:
         assert Grade.objects.get().score == 7.5
 
 
+class TestColegaDeLaMismaOrganizacion:
+    """Otro docente de la MISMA organización tampoco puede ver ni editar la libreta de un grupo ajeno."""
+
+    @pytest.fixture
+    def grupo_del_colega(self, course):
+        from apps.accounts.factories import ProfessorFactory
+        from apps.courses.factories import CourseFactory
+        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.models import Membership
+
+        colega = ProfessorFactory()
+        MembershipFactory(user=colega, organization=course.organization, role=Membership.Role.TEACHER)
+        ajeno = CourseFactory(professor=colega, organization=course.organization)
+        assert ajeno.organization == course.organization
+        return ajeno
+
+    def test_no_ve_la_libreta(self, professor_client, grupo_del_colega):
+        assert professor_client.get(reverse("grades:gradesheet", args=[grupo_del_colega.pk])).status_code == 404
+
+    def test_no_edita_celdas(self, professor_client, grupo_del_colega):
+        actividad = ActivityFactory(course=grupo_del_colega)
+        alumno = inscribir(grupo_del_colega, "Ajeno")
+        response = professor_client.post(
+            reverse("grades:gradesheet_cell", args=[grupo_del_colega.pk]),
+            {"activity": actividad.pk, "student": alumno.pk, "score": "10"},
+        )
+        assert response.status_code == 404 and not Grade.objects.exists()
+
+
 def test_graderfactory_sigue_disponible_para_la_libreta(course, activity):
     # Las notas creadas sin pasar por el servicio (admin, scripts) también aparecen en la libreta.
     alumno = inscribir(course, "Directa")

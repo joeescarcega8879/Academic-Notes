@@ -28,3 +28,13 @@ def safe_next_url(request):
         candidate, allowed_hosts={request.get_host()}, require_https=request.is_secure(),
     )
     return candidate if candidate and allowed else ''
+
+
+def csv_safe(value):
+    """Texto seguro para una celda de CSV: Excel ejecuta como fórmula lo que empiece con =, +, - o @.
+
+    Un alumno (o un docente) puede escribir cualquier cosa en su nombre o en un comentario; al abrir el archivo
+    esa celda no debe correr nada. Se antepone una comilla, que Excel muestra pero no interpreta.
+    """
+    text = str(value)
+    return "'" + text if text[:1] in ('=', '+', '-', '@', '\t', '\r') else text
