@@ -44,13 +44,55 @@
 
 ### Edición Docente
 
-| Plan | Precio | Límites |
-|---|---|---|
-| Gratis | $0 | 2 grupos, 60 alumnos, sin exámenes cronometrados, sin exportar PDF |
-| Docente | $129–179 MXN/mes · $1,290–1,790 MXN/año | Grupos ilimitados, todas las actividades, banco de preguntas, reportes PDF/Excel |
-| Docente Plus | $249–299 MXN/mes | + IA para quizzes, WhatsApp, almacenamiento ampliado |
+**Modelo de venta (decidido el 2026-10-14):** *product-led*, como Canva o Notion. La portada y la página de Precios son públicas y su acción principal es «Empezar gratis». El registro no pide tarjeta y deja al docente en el plan Gratis. El cobro vive **dentro de la app**: al tocar un límite el docente ve «Mejorar plan», y en Ajustes hay una pantalla «Plan y facturación». El pago se hace en la página alojada de la pasarela (la tarjeta nunca pasa por el servidor) y un webhook cambia el plan de la organización; cancelar o cambiar de plan se hace en el portal de la pasarela. Mientras el marketing no estorbe, la portada y Precios viven en el mismo proyecto Django y leen los planes de un solo lugar. Separarlos después (sitio de marketing en el dominio raíz, app en `app.`) solo cuesta cambiar enlaces.
 
-El plan anual ofrece 2 meses gratis; es donde vive el margen.
+**Principios de los planes:**
+
+1. El plan Gratis debe dar el momento clave completo: importar la lista, armar el esquema ponderado y ver la calificación final en la libreta. Se limita la escala, no lo central.
+2. Se paga donde se siente el valor: al fin del periodo (boletas) y cuando el docente crece (más grupos).
+3. Los datos nunca quedan de rehén: nada se borra ni se bloquea para lectura, y el docente siempre puede exportar sus calificaciones.
+4. Pocos límites, fáciles de contar y de explicar (grupos y alumnos), no una colección de microlímites.
+5. Los alumnos nunca pagan ni ven límites.
+
+**Planes que se publican al lanzar:**
+
+| | Gratis | Docente |
+|---|---|---|
+| Precio | $0 | **$149 MXN/mes** · **$1,490 MXN/año** (2 meses gratis) |
+| Grupos activos | 2 | Ilimitados |
+| Alumnos en grupos activos | 60 | Ilimitados (uso razonable) |
+| Esquema ponderado, libreta, importar lista, código de invitación, mensajes, duplicar para nuevo ciclo | Sí | Sí |
+| Tareas, proyectos, participación y exámenes | Sí | Sí |
+| Quizzes autocalificables | Sí, **sin tiempo límite** | Sí, con tiempo límite |
+| Banco de preguntas | Hasta 30 preguntas | Ilimitado |
+| Concentrado en Excel | Columnas fijas | Columnas a elegir y ordenar |
+| Alumnos en riesgo | Sí | Sí |
+| **Boletas en PDF** | Con marca de agua «Generado con Academic Notes» | Sin marca |
+
+- **Boletas con marca de agua, no bloqueadas.** El docente gratis ve la boleta bien hecha; cuando tiene decenas que entregar y no quiere la marca, paga. Es el momento de mayor disposición a pagar, y la marca muestra el producto a padres y alumnos.
+- **Docente Plus no se publica todavía.** Su propuesta (IA para quizzes, WhatsApp, almacenamiento ampliado; referencia $249–299 MXN/mes) depende de funciones de la Fase 3 que no existen. Se agrega cuando existan; no se vende nada que no esté.
+- **El plan anual** cobra 10 meses por 12 y es donde vive el margen. Si la pasarela lo permite, el anual puede pagarse en una sola exhibición con OXXO o SPEI. Un pase semestral (por los ciclos escolares) queda por evaluar, no decidido.
+- **Los números son hipótesis iniciales.** Los topes (2 grupos, 60 alumnos y 30 preguntas) y los precios viven en una sola tabla (`services/limits.py`) y se ajustan con evidencia: conversión de Gratis a pago (sección 11) y uso real. Sin tope de almacenamiento por organización por ahora (10 MB por archivo en todos los planes): limitarlo exige medir el tamaño de cada archivo y se hará cuando haga falta.
+
+**Cómo se comportan los límites:**
+
+- Al llegar al tope solo se bloquea **crear**: un grupo nuevo, desarchivar uno, o agregar o importar alumnos que lo excedan. Lo que ya existe sigue funcionando.
+- El mensaje es concreto: «Tu lista trae 75 alumnos; tu plan permite 60 y ya tienes 40», con un botón «Mejorar plan». Una importación que excede el tope se rechaza completa, no se corta a la mitad.
+- Los grupos archivados no cuentan; desarchivar sí verifica el límite. Los alumnos se cuentan por ficha de lista en grupos activos, no por cuenta.
+- Al cancelar el plan de pago, los grupos de más pasan a solo lectura (el docente elige cuáles quedan activos). Nada se borra.
+- Si falla un cobro, hay 7 días de gracia antes de bajar de plan, alineados con los reintentos de la pasarela.
+
+**Dónde se engancha en el código:** un solo servicio con `check_limit(org, límite)` y `has_feature(org, función)`, sobre `Organization.plan`. Se aplica en `CourseCreateView` y `CourseUnarchiveView` (grupos), `StudentAddView` y `StudentImportView` (alumnos), la configuración del quiz (`time_limit_minutes`), el banco de preguntas (30), `TranscriptsView` (marca de agua) y `WorkbookConfigView` (columnas). Nunca condicionales por plan regados en las vistas (sección 7).
+
+**Ruta hacia el cobro** (cada paso se publica sin esperar al siguiente):
+
+1. Publicar gratis: registro y plan Gratis tal como están. Es donde más se aprende.
+2. Página de Precios con los dos planes y el botón «Próximamente» del plan de pago (o lista de espera), para ver si se lee y qué plan llama la atención.
+3. Límites funcionando sin cobrar: el módulo `limits`, los mensajes de «Mejorar plan» y la pantalla «Plan y facturación». El plan de pago se asigna a mano desde el admin.
+4. Pasarela en modo de prueba: checkout, webhook y portal con tarjetas falsas, recorriendo el flujo completo, incluida la baja de plan y el fallo de cobro.
+5. Cobro real, cuando existan dominio, datos fiscales (RFC), revisión legal de términos y privacidad, y respaldos probados. Pasar de prueba a real es cambiar las llaves.
+
+**Números de referencia** (supuestos a verificar, no datos): una pasarela con tarjeta cobra del orden de 3.6 % + $3 MXN por cargo, de modo que de $149 quedan cerca de $140. La infraestructura en etapa temprana (servidor, base de datos, Redis, correo, respaldos) costaría del orden de $600–1,100 MXN al mes, así que el punto de equilibrio está en unos 5 a 8 docentes de pago. Ilustración: si 3 de cada 100 docentes gratis pagaran, con 200 docentes gratis se cubriría la infraestructura; ese porcentaje es una suposición.
 
 ### Edición Institución (cobro anual)
 
@@ -61,6 +103,16 @@ El plan anual ofrece 2 meses gratis; es donde vive el margen.
 | Enterprise | Cotización (desde $30,000 MXN/año) | — | Ilimitado, SSO, capacitación, exportaciones personalizadas, SLA |
 
 Estrategia de entrada: piloto gratuito de un periodo para las primeras 5 escuelas a cambio de testimonios.
+
+**Instituciones no entran por autoservicio.** Hoy no existen el panel de dirección, el portal de padres ni la asistencia (Fase 2), así que **no se publican precios institucionales al lanzar**: la página de Precios ofrece «Hablar con ventas». El piloto gratuito se otorga asignando el plan a mano desde el admin, y el cobro es anual con factura manual (CFDI vía PAC) hasta que haya volumen que justifique automatizarlo.
+
+### Decisiones abiertas del cobro
+
+- **Pasarela:** por decidir. Recomendación: Stripe primero (Billing para suscripciones, OXXO/SPEI para el pago anual único, reintentos), con una capa de proveedor para sumar Mercado Pago o Conekta después.
+- **Datos fiscales:** RFC y régimen de quien factura; CFDI requiere un PAC aparte.
+- **Dominio** propio para el sitio, los correos de soporte y los remitentes (hoy son marcadores `@academicnotes.app`).
+- **Pase semestral** y tope de «uso razonable» de alumnos del plan Docente.
+- **Revisión legal** de términos y aviso de privacidad antes de cobrar.
 
 ---
 
@@ -144,7 +196,7 @@ Plantillas `Rubric` → `RubricCriterion` → `RubricLevel` (criterios × nivele
 - **Frontend web:** plantillas Django + HTMX/Alpine.js para el MVP. Migrar a un framework SPA solo si el constructor de exámenes lo exige.
 - **Tareas asíncronas:** Celery + Redis (PDFs, correos, recordatorios, recálculos masivos, importaciones).
 - **Archivos:** S3 o compatible (MinIO en local) desde el primer sprint que maneje entregas.
-- **Pagos:** Mercado Pago o Conekta para México (tarjeta, OXXO, SPEI); Stripe para el resto de LATAM. CFDI vía PAC (Facturama u otro).
+- **Pagos:** Mercado Pago o Conekta para México (tarjeta, OXXO, SPEI); Stripe para el resto de LATAM. CFDI vía PAC (Facturama u otro). La pasarela está por decidir (ver «Decisiones abiertas del cobro», sección 2).
 - **API:** `api/v1/` con DRF, JWT (`djangorestframework-simplejwt`), esquema OpenAPI con `drf-spectacular`. Es la base de la app móvil (sección 8).
 
 ### Infraestructura
@@ -201,7 +253,7 @@ Refactor de la base actual:
 | 4 | Quiz con calificación automática, banco de preguntas, intentos, tiempo límite, guardado periódico | `Question`, `Choice`, `QuizConfig`, `QuizAttempt`, `Answer` |
 | 5 | Libreta (alumnos × actividades, edición en línea), boleta PDF y concentrado Excel con matrícula y columnas configurables, alumnos en riesgo, planes y suscripción con webhooks, límites por plan, landing, onboarding | `Plan`, `Subscription` |
 
-**Criterio de listo:** un docente se registra, importa su lista, configura ponderación, crea tarea y quiz, califica, descarga boletas y paga sin intervención manual. Correos transaccionales vía Celery. Desplegado con respaldos probados antes del primer cobro.
+**Criterio de listo:** un docente se registra, importa su lista, configura ponderación, crea tarea y quiz, califica, descarga boletas y paga sin intervención manual. El cobro se activa al final, siguiendo la «Ruta hacia el cobro» de la sección 2. Correos transaccionales vía Celery. Desplegado con respaldos probados antes del primer cobro.
 
 **Meta comercial:** 50 docentes activos, 10 pagando.
 
@@ -234,7 +286,7 @@ Refactor de la base actual:
 2. **Lógica de negocio en servicios** (`services/grading.py`, `services/enrollment.py`, `services/limits.py`). Las vistas y los endpoints orquestan; los servicios deciden. Esto permite que web y API compartan la misma lógica.
 3. **Todo lo lento va a Celery.**
 4. **Toda consulta filtra por organización**, verificado por prueba automatizada.
-5. **Límites de plan centralizados** en `check_limit(org, feature)`; nunca condicionales por plan regados en vistas. Los cursos archivados no cuentan contra el límite; desarchivar sí lo verifica.
+5. **Límites de plan centralizados** en `check_limit(org, límite)` y `has_feature(org, función)` (`services/limits.py`); nunca condicionales por plan regados en vistas. Los cursos archivados no cuentan contra el límite; desarchivar sí lo verifica.
 6. **Feature flags** por organización (`django-waffle` o tabla propia).
 7. **Migraciones reversibles**; los campos se deprecan antes de borrarse.
 8. **Cada sprint termina desplegado en staging.**
@@ -377,7 +429,7 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 |---|---|---|
 | Activación | Docente crea grupo y primera actividad en su primera sesión | < 40 % → problema de onboarding |
 | Retención semanal | Docentes que regresan cada semana durante el periodo escolar | Base de todo lo demás |
-| Conversión | Gratis → pago | Valida precio y límites del plan gratis |
+| Conversión | Gratis → pago | Valida precio y límites del plan gratis; con ella se ajustan los topes de la sección 2 |
 | Churn mensual | Suscripciones canceladas / activas | > 5 % → investigar |
 | Alumnos activos por docente | Alumnos que entregan o consultan al menos una vez por semana | Mide adopción real |
 | Tiempo para calificar | Minutos desde abrir la bandeja hasta cerrar una actividad | Guía del diseño de la app móvil |
