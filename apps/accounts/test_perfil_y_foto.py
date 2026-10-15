@@ -222,6 +222,14 @@ class TestVerLaFoto:
         user = StudentFactory()
         assert cliente(user).get(reverse('avatar', args=[user.pk])).status_code == 404
 
+    def test_si_el_archivo_ya_no_esta_da_404_y_no_un_error(self, con_foto):
+        con_foto.avatar.storage.delete(con_foto.avatar.name)  # p. ej. se restauró la base sin los archivos
+        assert cliente(con_foto).get(reverse('avatar', args=[con_foto.pk])).status_code == 404
+
+    def test_el_circulo_vuelve_a_las_iniciales_si_la_imagen_falla(self, con_foto):
+        html = cliente(con_foto).get(reverse('profile')).content.decode()
+        assert f'data-initials="{con_foto.initials}"' in html and 'onerror=' in html
+
     def test_la_foto_no_cuelga_de_media(self, con_foto, settings):
         assert not (settings.MEDIA_ROOT / con_foto.avatar.name).exists()
 

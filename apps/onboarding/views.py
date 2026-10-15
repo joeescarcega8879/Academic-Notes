@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
 from django.views import View
@@ -110,6 +111,13 @@ class LegalView(TemplateView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(draft=self.draft, **kwargs)
+
+
+class HelpView(LoginRequiredMixin, View):
+    """Guía de uso y preguntas frecuentes, según quien la abre (docente o alumno)."""
+
+    def get(self, request):
+        return render(request, 'ayuda.html')
 
 
 class DismissChecklistView(TeacherRequiredMixin, View):
