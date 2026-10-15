@@ -2,10 +2,12 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import PasswordChangeView, PasswordResetCompleteView, PasswordResetConfirmView
-from django.shortcuts import render, redirect
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 
+from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY, active_memberships, pick_membership
 from core import throttle
 from core.utils import safe_next_url
@@ -153,3 +155,23 @@ class ChangePasswordView(PasswordChangeView):
     def form_valid(self, form):
         messages.success(self.request, 'Cambiamos tu contraseña.')
         return super().form_valid(form)
+
+
+class AvatarView(LoginRequiredMixin, View):
+    """Sirve la foto de perfil: solo a su dueño y a quien comparte alguna organización con él.
+
+    La foto no cuelga de ``MEDIA_URL``: son fotos de menores y no deben abrirse con solo tener la dirección.
+    """
+
+    def get(self, request, pk):
+        owner = get_object_or_404(User, pk=pk)
+        if not owner.avatar:
+            raise Http404
+        if owner.pk != request.user.pk:
+            compartidas = Membership.objects.filter(user=request.user).values('organization')
+            if not Membership.objects.filter(user=owner, organization__in=compartidas).exists():
+                raise Http404  # 404 y no 403: no se confirma ni que la foto exista
+        response = FileResponse(owner.avatar.open('rb'), content_type='image/jpeg')
+        response['X-Content-Type-Options'] = 'nosniff'
+        response['Cache-Control'] = 'private, max-age=86400'  # la dirección cambia con cada foto nueva
+        return response

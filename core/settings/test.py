@@ -28,6 +28,10 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {"location": str(Path(tempfile.gettempdir()) / "gradelink-test-submissions")},
     },
+    "avatars": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(Path(tempfile.gettempdir()) / "gradelink-test-avatars")},
+    },
 }
 
 # Silencia el ruido de las migraciones durante los tests.

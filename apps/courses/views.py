@@ -603,8 +603,10 @@ class ProfileView(LoginRequiredMixin, View):
                 user.email_verified_at = None
                 user.save(update_fields=['email_verified_at'])
                 queue_verification_email(user)
-            extra = extra_form.save(commit=False)
-            extra.user = request.user
-            extra.save()
+            if extra_form.instance.pk or extra_form.has_changed():  # sin datos académicos no se crea un perfil vacío
+                extra = extra_form.save(commit=False)
+                extra.user = request.user
+                extra.save()
+            messages.success(request, 'Guardamos tu perfil.')
             return redirect('profile')
         return render(request, self.template_name, self.context(request, profile_form, extra_form))

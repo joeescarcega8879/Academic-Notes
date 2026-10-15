@@ -1,4 +1,4 @@
-# GradeLink — Plan de producto e implementación
+# Academic Notes — Plan de producto e implementación
 
 > Plataforma de calificaciones, actividades y comunicación para docentes e instituciones educativas de habla hispana. Este documento es la referencia de producto, arquitectura y hoja de ruta. No contiene código; describe **qué** se construye, **en qué orden** y **por qué**.
 
@@ -27,7 +27,7 @@
 
 **Nicho objetivo:** docentes de secundaria, preparatoria y universidad en México y Latinoamérica que hoy llevan calificaciones en Excel y necesitan ponderaciones, listas, boletas y actividades calificadas en un solo lugar, en español y sin curva de aprendizaje.
 
-**Diferencia frente a la competencia:** Google Classroom es gratis pero no calcula promedios ponderados por criterio ni genera boletas; Moodle es potente pero requiere administración técnica. GradeLink se posiciona como la herramienta simple que resuelve el flujo real del docente: lista → esquema de evaluación → actividades → calificar → boleta.
+**Diferencia frente a la competencia:** Google Classroom es gratis pero no calcula promedios ponderados por criterio ni genera boletas; Moodle es potente pero requiere administración técnica. Academic Notes se posiciona como la herramienta simple que resuelve el flujo real del docente: lista → esquema de evaluación → actividades → calificar → boleta.
 
 **Estado de partida:** base Django con `accounts` (User personalizado, roles docente/alumno), `grades` y `messaging`. El plan agrega apps y ajusta las existentes; no hay reescrituras.
 
@@ -80,14 +80,14 @@ Estrategia de entrada: piloto gratuito de un periodo para las primeras 5 escuela
 
 ### Alumnos, matrícula y ciclos escolares
 
-**El alumno de la lista no es la cuenta.** Al importar desde Excel los alumnos aún no tienen usuario, y muchos nunca lo tendrán (docentes que usan GradeLink solo como libreta). Por eso existe `Student`, separado de `User`:
+**El alumno de la lista no es la cuenta.** Al importar desde Excel los alumnos aún no tienen usuario, y muchos nunca lo tendrán (docentes que usan Academic Notes solo como libreta). Por eso existe `Student`, separado de `User`:
 
 - `Student`: organización, matrícula, nombre(s), apellidos, correo opcional, `user` (FK nullable que se enlaza cuando el alumno usa el código de invitación).
 - `Enrollment` apunta a `Student`, no a `User`.
 - **Matrícula:** `CharField` opcional (nunca entero: hay ceros a la izquierda y letras). Única por organización cuando no está vacía. Vive en `Student` porque pertenece a la institución, no a la persona ni al curso.
 - El importador lee la columna de matrícula **como texto** (Excel la convierte a número o notación científica) y la usa como **llave de re-importación** (upsert): subir la lista actualizada no duplica alumnos.
 - Toda exportación (concentrado Excel, boleta) incluye la matrícula. El docente elige y ordena las columnas del concentrado, porque el formato que exige cada sistema de control escolar (SEP estatal, universidad) varía y no se intenta adivinar.
-- CURP: solo si las entrevistas lo piden, y siempre opcional (dato personal de menores; ver sección 10).
+- CURP: solo si un docente la pide, y siempre opcional (dato personal de menores; ver sección 10).
 
 **Ciclos escolares: crear nuevo y archivar, nunca renombrar.** Renombrar un grupo para reutilizarlo mezcla las calificaciones, boletas y `GradeHistory` del ciclo anterior con el nuevo.
 
@@ -394,7 +394,7 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 | El módulo de exámenes se traga meses | MVP solo con opción múltiple y verdadero/falso |
 | Un solo desarrollador | 15–20 h/semana sostenidas; no cambiar de stack a medio camino; móvil solo después de Fase 1 |
 | Mantener web y móvil sincronizadas | Toda lógica en servicios; API versionada; app declara versión mínima de API |
-| No se conoce el formato que exige el sistema de control escolar de cada docente (SEP estatal, universidad) | Exportación con matrícula y columnas configurables; preguntarlo en las entrevistas; plantilla de exportación solo si aparece un formato dominante |
+| No se conoce el formato que exige el sistema de control escolar de cada docente (SEP estatal, universidad) | Exportación con matrícula y columnas configurables; plantilla de exportación solo si aparece un formato dominante |
 | Competencia gratuita (Google Classroom) | No competir en funciones; competir en ponderación, boletas y simplicidad en español |
 
 ---
@@ -404,5 +404,4 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 1. Docker Compose, settings divididos y CI.
 2. App `organizations`, `Membership` y migración de datos de usuarios actuales.
 3. Managers `for_organization`, middleware y prueba de aislamiento entre organizaciones.
-4. Entrevistas con 10–15 docentes en paralelo; sus respuestas ajustan el Sprint 1. Preguntar siempre: "¿a dónde subes las calificaciones al final del periodo y qué formato e identificador del alumno te piden?" y "¿qué haces con tus grupos cuando termina el ciclo?".
-5. Tramitar cuentas de Mercado Pago/Conekta y revisar requisitos de CFDI.
+4. Tramitar cuentas de Mercado Pago/Conekta y revisar requisitos de CFDI.

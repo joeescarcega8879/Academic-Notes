@@ -1,4 +1,4 @@
-"""Configuración base de GradeLink.
+"""Configuración base de Academic Notes.
 
 Todo lo que comparten ``local``, ``test`` y ``production``. Lo que cambia entre
 entornos (secretos, base de datos, correo, caché) se lee de variables de
@@ -168,6 +168,11 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT)},
     },
+    # Fotos de perfil: también privadas (son de menores); se sirven por una vista que revisa quién las puede ver.
+    "avatars": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT / "avatars")},
+    },
 }
 
 
@@ -178,12 +183,12 @@ EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="GradeLink <no-reply@gradelink.app>")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Academic Notes <no-reply@academicnotes.app>")
 
 # Nombre y dirección pública del sitio: los correos se mandan desde Celery, sin petición de donde sacarlos.
-SITE_NAME = env("SITE_NAME", default="GradeLink")
+SITE_NAME = env("SITE_NAME", default="Academic Notes")
 SITE_URL = env("SITE_URL", default="http://localhost:8000").rstrip("/")
-SUPPORT_EMAIL = env("SUPPORT_EMAIL", default="soporte@gradelink.app")
+SUPPORT_EMAIL = env("SUPPORT_EMAIL", default="soporte@academicnotes.app")
 
 
 # ── Caché ─────────────────────────────────────────────────────────────

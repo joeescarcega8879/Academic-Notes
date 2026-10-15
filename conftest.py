@@ -51,6 +51,7 @@ def limpiar_archivos_de_prueba():
     from pathlib import Path
 
     shutil.rmtree(Path(tempfile.gettempdir()) / 'gradelink-test-submissions', ignore_errors=True)
+    shutil.rmtree(Path(tempfile.gettempdir()) / 'gradelink-test-avatars', ignore_errors=True)
 
 
 def _client_for(user):

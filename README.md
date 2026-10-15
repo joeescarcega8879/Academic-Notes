@@ -26,7 +26,7 @@ calificaciones y comunicación entre **profesores** y **alumnos**
 
 - **Django 5.2** · Python 3.14 (entorno conda `DjangoEnvironment`)
 - **SQLite** (base de datos local, no versionada)
-- Templates Django + **CSS/JS propios** (front *GradeLink* copiado al proyecto) con iconos Feather inline
+- Templates Django + **CSS/JS propios** (front *Academic Notes* copiado al proyecto) con iconos Feather inline
 - Admin de Django para gestión (materias, inscripciones, usuarios)
 
 ---
