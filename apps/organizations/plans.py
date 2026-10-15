@@ -71,6 +71,15 @@ LIMIT_KEYS = tuple(key for key, _ in LIMITS)
 FEATURE_KEYS = tuple(key for key, _ in FEATURES)
 
 
+def comparison_rows():
+    """Gratis frente a Docente, fila por fila: topes (``None`` = sin tope) y funciones (``feature=True``, sí/no)."""
+    return [
+        {'label': label, 'free': FREE.limit(key), 'paid': TEACHER.limit(key)} for key, label in LIMITS
+    ] + [
+        {'label': label, 'free': FREE.has(key), 'paid': TEACHER.has(key), 'feature': True} for key, label in FEATURES
+    ]
+
+
 def spec_for(plan_key):
     """El ``PlanSpec`` de un valor de ``Organization.plan``; uno desconocido se trata como Gratis (lo más prudente)."""
     return PLANS.get(plan_key, FREE)

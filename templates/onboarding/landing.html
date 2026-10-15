@@ -8,16 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=22" />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
   </head>
   <body class="landing">
-    <header class="landing-nav">
-      <a class="auth-brand" href="{% url 'home' %}"><span class="brand-mark">{{ site_name|first }}</span> {{ site_name }}</a>
-      <nav>
-        <a class="btn btn-ghost" href="{% url 'login' %}">Iniciar sesión</a>
-        <a class="btn btn-primary" href="{% url 'register' %}">Crear cuenta</a>
-      </nav>
-    </header>
+    {% include 'onboarding/_nav.html' %}
 
     <section class="landing-hero">
       <h1>Tu libreta de calificaciones, tus actividades y tu comunicación con alumnos, en un solo lugar.</h1>
@@ -26,7 +20,7 @@
         <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Crear mi cuenta de docente</a>
         <a class="btn btn-ghost btn-lg" href="{% url 'register_student' %}">Soy alumno</a>
       </div>
-      <p class="text-xs text-muted">Empieza gratis. No necesitas tarjeta.</p>
+      <p class="text-xs text-muted">Empieza gratis. No necesitas tarjeta. <a href="{% url 'pricing' %}">Ver precios</a></p>
     </section>
 
     <section class="landing-section">
@@ -62,9 +56,6 @@
       <p class="text-center"><a class="btn btn-primary btn-lg" href="{% url 'register' %}">Empezar ahora</a></p>
     </section>
 
-    <footer class="landing-foot text-xs">
-      <span>{{ site_name }}</span>
-      <span><a href="{% url 'terms' %}">Términos</a> · <a href="{% url 'privacy' %}">Privacidad</a> · <a href="mailto:{{ support_email }}">{{ support_email }}</a></span>
-    </footer>
+    {% include 'onboarding/_footer.html' %}
   </body>
 </html>

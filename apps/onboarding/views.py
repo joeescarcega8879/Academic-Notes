@@ -5,15 +5,19 @@ from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView
 
 from apps.accounts.mixins import TeacherRequiredMixin, home_url_name
+from apps.organizations import plans
+from apps.organizations.models import Organization
 from apps.organizations.services import SESSION_KEY, active_memberships, pick_membership
 from core import throttle
 
 from . import services
-from .forms import RegisterForm, TeacherRegisterForm
+from .forms import RegisterForm, TeacherRegisterForm, WaitlistForm
+from .models import WaitlistEntry
 
 LOGIN_BACKEND = 'apps.accounts.backends.EmailOrUsernameBackend'
 HIDDEN_SESSION_KEY = 'onboarding_hidden'
@@ -102,6 +106,66 @@ class StudentRegisterView(RegisterView):
         return services.register_student(
             first_name=data['first_name'], last_name=data['last_name'], email=data['email'], password=data['password1'],
         )
+
+
+class PricingView(View):
+    """Precios: los dos planes, lo que cambia entre ellos y la lista de espera del plan de pago.
+
+    Todo sale de ``apps.organizations.plans``: si cambia un tope o un precio, esta página cambia sola. Todavía no
+    se cobra en línea, así que el plan de pago ofrece «Avísame» (lista de espera) en lugar de comprar.
+    """
+
+    template_name = 'onboarding/pricing.html'
+    JOINED_PARAM = 'lista'
+
+    @staticmethod
+    def free_bullets():
+        free = plans.FREE
+        lines = [
+            'Libreta con calificación final ponderada por criterio y periodo',
+            'Importa tu lista desde Excel o CSV, con vista previa',
+            'Tareas, proyectos, participación y exámenes',
+            'Quizzes que se califican solos (sin tiempo límite)',
+        ]
+        lines += [f'{label}: {free.limit(key)}' for key, label in plans.LIMITS if free.limit(key) is not None]
+        lines += ['Concentrado en Excel con columnas fijas', 'Boletas en PDF con marca de agua']
+        return lines
+
+    @staticmethod
+    def paid_bullets():
+        lines = ['Todo lo del plan Gratis']
+        for row in plans.comparison_rows():
+            if row['free'] == row['paid']:
+                continue
+            lines.append(row['label'] if row.get('feature') else f'{row["label"]}: sin tope' if row['paid'] is None else f'{row["label"]}: {row["paid"]}')
+        return lines
+
+    def context(self, request, form, **extra):
+        return {
+            'free': plans.FREE, 'paid': plans.TEACHER, 'free_bullets': self.free_bullets(), 'paid_bullets': self.paid_bullets(),
+            'comparison': plans.comparison_rows(), 'form': form, 'joined': request.GET.get(self.JOINED_PARAM) == 'ok', **extra,
+        }
+
+    def get(self, request):
+        initial = {'email': request.user.email} if request.user.is_authenticated else {}
+        return render(request, self.template_name, self.context(request, WaitlistForm(initial=initial)))
+
+    def post(self, request):
+        form = WaitlistForm(request.POST)
+        if not throttle.allow('waitlist', throttle.client_ip(request), limit=5, window=3600):
+            form.is_valid()
+            form.add_error(None, 'Hiciste varios intentos desde tu conexión. Vuelve a intentarlo en un rato.')
+            return render(request, self.template_name, self.context(request, form), status=429)
+        if not form.is_valid():
+            return render(request, self.template_name, self.context(request, form))
+        if form.is_bot:
+            return redirect('pricing')  # sin guardar nada y sin dar pistas
+        # Repetir el correo no duplica ni avisa de que ya estaba: se responde igual.
+        WaitlistEntry.objects.get_or_create(
+            email=form.cleaned_data['email'], plan=Organization.Plan.TEACHER,
+            defaults={'user': request.user if request.user.is_authenticated else None},
+        )
+        return redirect(f'{reverse("pricing")}?{self.JOINED_PARAM}=ok#aviso')
 
 
 class LegalView(TemplateView):

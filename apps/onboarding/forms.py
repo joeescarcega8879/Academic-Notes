@@ -57,6 +57,27 @@ class RegisterForm(forms.Form):
         return bool(self.cleaned_data.get('website'))
 
 
+class WaitlistForm(forms.Form):
+    """«Avísame cuando el plan de pago esté disponible». ``website`` es la trampa para robots, como en el registro."""
+
+    email = forms.EmailField(
+        label='Tu correo', max_length=254,
+        widget=forms.EmailInput(attrs={'class': 'input', 'autocomplete': 'email', 'placeholder': 'tucorreo@ejemplo.com'}),
+    )
+    accept = forms.BooleanField(
+        label='Acepto que guarden mi correo para avisarme (aviso de privacidad)',
+        error_messages={'required': 'Marca la casilla para que podamos guardar tu correo y avisarte.'},
+    )
+    website = forms.CharField(required=False, widget=forms.TextInput(attrs={'tabindex': '-1', 'autocomplete': 'off'}))
+
+    def clean_email(self):
+        return self.cleaned_data['email'].strip().lower()
+
+    @property
+    def is_bot(self):
+        return bool(self.cleaned_data.get('website'))
+
+
 class TeacherRegisterForm(RegisterForm):
     school_name = forms.CharField(
         label='Escuela o institución (opcional)', max_length=150, required=False, widget=_input(autocomplete='organization'),
