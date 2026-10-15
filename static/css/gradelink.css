@@ -1396,6 +1396,14 @@ body.tweaks-on .tweaks-panel.was-opened { display: block; }
 .field-error { color: var(--bad); font-size: 12.5px; margin-top: 4px; }
 .card.is-editing { box-shadow: 0 0 0 2px var(--brand-primary); transition: box-shadow 0.2s; }
 
+/* Alumno con su foto (o iniciales) en listas y tablas */
+.person-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.person-cell > :not(.avatar) { min-width: 0; }
+/* En tablas el nombre no se parte (la tabla se desplaza dentro de su tarjeta); la libreta sí, por su columna fija. */
+table.tbl .person-cell { white-space: nowrap; }
+.person-cell .avatar { width: 30px; height: 30px; font-size: 12px; background: var(--brand-primary-50); color: var(--brand-primary); }
+.theme-dark .person-cell .avatar { background: var(--surface-2); color: var(--text); }
+
 /* Ajustes y Ayuda */
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--pad-3); align-items: start; }
 .settings-grid .kv-row { grid-template-columns: 130px 1fr; }

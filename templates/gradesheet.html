@@ -80,7 +80,7 @@
         <tbody>
           {% for row in sheet.rows %}
             <tr data-student="{{ row.student.pk }}" data-name="{{ row.student }} {{ row.student.student_number }}"{% if row.final.passed is False %} class="gs-risk"{% endif %}>
-              <th scope="row" class="gs-name">{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></th>
+              <th scope="row" class="gs-name"><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<div>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></div></div></th>
               <td class="gs-final" data-passed="{% if row.final.passed is True %}true{% elif row.final.passed is False %}false{% endif %}">
                 <span class="gs-final-value">{{ row.final.text|default:"—" }}</span>
               </td>

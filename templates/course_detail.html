@@ -130,7 +130,7 @@
       <tbody>
         {% for enrollment in enrollments %}
           <tr>
-            <td>{{ enrollment.student.get_full_name|default:enrollment.student.email }}</td>
+            <td><div class="person-cell">{% include 'partials/avatar.html' with person=enrollment.student cls='sm' %}<span>{{ enrollment.student.get_full_name|default:enrollment.student.email }}</span></div></td>
             <td>{{ enrollment.student.student_number }}</td>
             <td>{{ enrollment.student.email }}</td>
             <td>{% if enrollment.student.user_id %}<span class="chip ok">Vinculada</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>

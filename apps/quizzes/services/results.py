@@ -161,7 +161,9 @@ def question_stats(quiz):
 
 def student_rows(quiz):
     """Una fila por alumno inscrito: sus intentos, mejor y último resultado, y su calificación en la libreta."""
-    enrollments = list(quiz.activity.course.enrollments.select_related('student').order_by('student__last_name', 'student__first_name'))
+    enrollments = list(
+        quiz.activity.course.enrollments.select_related('student__user').order_by('student__last_name', 'student__first_name'),
+    )
     attempts_by_student = {}
     for attempt in quiz.attempts.select_related('student').order_by('number'):
         attempts_by_student.setdefault(attempt.student_id, []).append(attempt)
