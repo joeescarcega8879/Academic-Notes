@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Ayuda · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Ayuda</h1>
+  <span class="sub">· {% if is_teacher %}Guía para docentes{% else %}Guía para alumnos{% endif %}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="help-layout">
+
+  {% if is_teacher %}
+    <section class="card mb-12" aria-labelledby="ayuda-pasos">
+      <h3 class="section-title mb-12" id="ayuda-pasos">Empieza en seis pasos</h3>
+      <ol class="help-steps">
+        <li><strong>Crea tu grupo.</strong> En <a href="{% url 'professor_dashboard' %}">Mis grupos</a> usa «Nuevo grupo» y elige su ciclo escolar.</li>
+        <li><strong>Agrega a tus alumnos.</strong> Dentro del grupo puedes importar tu lista desde Excel o CSV (con vista previa antes de guardar) o agregarlos uno por uno.</li>
+        <li><strong>Define cómo se califica.</strong> En «Esquema de evaluación» crea los periodos y los criterios (por ejemplo, Exámenes 40 %, Tareas 30 %) con su peso.</li>
+        <li><strong>Crea las actividades.</strong> Tareas, exámenes o quizzes. Quedan en borrador hasta que las publiques, y cada una se asigna a un criterio.</li>
+        <li><strong>Califica.</strong> La «Libreta» es una tabla de alumnos por actividades donde editas las calificaciones en línea; también puedes calificar una actividad completa, con comentarios.</li>
+        <li><strong>Saca tus reportes.</strong> Desde el grupo: boletas en PDF, concentrado en Excel con las columnas que elijas y la lista de alumnos en riesgo.</li>
+      </ol>
+    </section>
+
+    <section class="card mb-12" aria-labelledby="ayuda-faq">
+      <h3 class="section-title mb-12" id="ayuda-faq">Preguntas frecuentes</h3>
+      <details class="help-item">
+        <summary>¿Mis alumnos necesitan una cuenta?</summary>
+        <p>No para que los califiques: basta con tenerlos en la lista. Si quieren ver sus calificaciones, entregar actividades o resolver quizzes, se registran como alumnos y se unen a tu grupo con el código de invitación que aparece en la página del grupo, junto con su matrícula y sus apellidos tal como están en tu lista.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Cómo se calcula la calificación final?</summary>
+        <p>Cada actividad pertenece a un criterio del esquema, y cada criterio pesa un porcentaje dentro de su periodo. La calificación final se calcula con los pesos que definiste y la ves en la libreta. Procura que los criterios de cada periodo sumen 100 %: el editor del esquema te muestra el total de cada uno.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Qué pasa con las entregas tardías?</summary>
+        <p>Al crear la actividad decides si se aceptan entregas tardías y qué porcentaje de penalización se aplica. Se conserva la calificación original, y el alumno ve cuánto se descontó y por qué.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Puedo corregir una calificación después de publicarla?</summary>
+        <p>Sí. Cada cambio queda registrado en el historial de la actividad, con la calificación anterior, la nueva y quién la modificó.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Cómo paso a un nuevo ciclo escolar?</summary>
+        <p>No renombres el grupo: en su página usa «Duplicar para nuevo ciclo» y archiva el anterior. Así las calificaciones y boletas del ciclo pasado no se mezclan con las nuevas. Los grupos archivados siguen consultables, pero ya no admiten cambios. Los ciclos se administran en <a href="{% url 'academic_years' %}">Ciclos escolares</a>.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Cómo cambio el nombre de mi escuela o mi foto?</summary>
+        <p>El nombre de la organización está en <a href="{% url 'organizations:settings' %}">Ajustes</a>. Tu foto y tus datos personales, en <a href="{% url 'profile' %}">Perfil</a>.</p>
+      </details>
+    </section>
+  {% else %}
+    <section class="card mb-12" aria-labelledby="ayuda-pasos">
+      <h3 class="section-title mb-12" id="ayuda-pasos">Cómo empezar</h3>
+      <ol class="help-steps">
+        <li><strong>Únete a tu grupo.</strong> Tu docente te da un código. En <a href="{% url 'join_course' %}">Unirme a un grupo</a> escríbelo junto con tu matrícula y tus apellidos, como aparecen en la lista del grupo.</li>
+        <li><strong>Consulta tus calificaciones.</strong> En <a href="{% url 'student_dashboard' %}">Mis grupos</a> y en <a href="{% url 'grades:list' %}">Mis Calificaciones</a> ves cómo vas en cada grupo.</li>
+        <li><strong>Entrega tus actividades.</strong> Abre la actividad y entrega un texto, un enlace o un archivo (hasta 10 MB), antes de la fecha límite.</li>
+        <li><strong>Resuelve tus quizzes.</strong> Tienen un tiempo límite que cuenta el sistema, aunque cierres la pestaña, y tus respuestas se guardan solas mientras contestas.</li>
+        <li><strong>Escribe a tu docente.</strong> Desde <a href="{% url 'messaging:list' %}">Mensajes</a>.</li>
+      </ol>
+    </section>
+
+    <section class="card mb-12" aria-labelledby="ayuda-faq">
+      <h3 class="section-title mb-12" id="ayuda-faq">Preguntas frecuentes</h3>
+      <details class="help-item">
+        <summary>Me dice «No encontramos esa combinación de código, matrícula y apellidos»</summary>
+        <p>Revisa que el código sea el vigente, que tu matrícula no tenga espacios de más y que tus apellidos estén escritos como en la lista de tu docente (da igual si usas acentos o mayúsculas). Si sigue sin funcionar, pídele a tu docente que revise tus datos en la lista. Después de varios intentos fallidos tendrás que esperar unos 15 minutos antes de volver a intentar.</p>
+      </details>
+      <details class="help-item">
+        <summary>Mi entrega aparece como tardía</summary>
+        <p>Se entregó después de la fecha límite. Si la actividad acepta entregas tardías, puede llevar una penalización que verás junto a tu calificación, y tu calificación original se conserva.</p>
+      </details>
+      <details class="help-item">
+        <summary>Olvidé mi contraseña</summary>
+        <p>En la pantalla de inicio de sesión elige «¿Olvidaste tu contraseña?» y te enviaremos un enlace a tu correo. Si ya entraste, puedes cambiarla desde tu <a href="{% url 'profile' %}">Perfil</a>.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Cómo pongo mi foto?</summary>
+        <p>En tu <a href="{% url 'profile' %}">Perfil</a>, con «Subir foto». Acepta JPG, PNG o WebP de hasta 5 MB. Solo la ven tú y las personas de tu misma escuela u organización.</p>
+      </details>
+      <details class="help-item">
+        <summary>Mi docente no me dio un código</summary>
+        <p>Pídeselo: lo encuentra en la página de su grupo. Sin él no se puede enlazar tu cuenta con la lista, y así nadie más puede ver tus calificaciones.</p>
+      </details>
+    </section>
+  {% endif %}
+
+  <section class="card" aria-labelledby="ayuda-contacto">
+    <h3 class="section-title mb-12" id="ayuda-contacto">¿Sigues con dudas?</h3>
+    <p class="text-sm" style="margin: 0 0 12px">Escríbenos y te ayudamos. Cuéntanos qué intentabas hacer y qué viste en pantalla.</p>
+    <div class="action-bar" style="margin-top: 0">
+      <a class="btn btn-primary" href="mailto:{{ support_email }}?subject=Ayuda%20con%20{{ site_name|urlencode }}"><i data-icon="at-sign"></i> {{ support_email }}</a>
+      <a class="btn btn-ghost" href="{% url 'terms' %}">Términos de uso</a>
+      <a class="btn btn-ghost" href="{% url 'privacy' %}">Aviso de privacidad</a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

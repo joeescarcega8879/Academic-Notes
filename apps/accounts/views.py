@@ -171,7 +171,11 @@ class AvatarView(LoginRequiredMixin, View):
             compartidas = Membership.objects.filter(user=request.user).values('organization')
             if not Membership.objects.filter(user=owner, organization__in=compartidas).exists():
                 raise Http404  # 404 y no 403: no se confirma ni que la foto exista
-        response = FileResponse(owner.avatar.open('rb'), content_type='image/jpeg')
+        try:
+            archivo = owner.avatar.open('rb')
+        except FileNotFoundError:
+            raise Http404 from None  # la base apunta a una foto que ya no está (p. ej. un respaldo sin los archivos)
+        response = FileResponse(archivo, content_type='image/jpeg')
         response['X-Content-Type-Options'] = 'nosniff'
         response['Cache-Control'] = 'private, max-age=86400'  # la dirección cambia con cada foto nueva
         return response

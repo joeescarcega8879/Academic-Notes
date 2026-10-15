@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Ajustes · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Ajustes</h1>
+  <span class="sub">· Tu organización y tu cuenta</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+
+  <section class="card" aria-labelledby="ajustes-org">
+    <h3 class="section-title mb-12" id="ajustes-org">Organización</h3>
+    {% if can_rename %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="field">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {{ form.name }}
+          {% for error in form.name.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+          <div class="text-xs text-muted" style="margin-top: 4px">Aparece en tus boletas y en el selector de organización.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar nombre</button>
+      </form>
+    {% else %}
+      <div class="kv-row"><div class="k">Nombre</div><div class="v">{{ organization.name }}</div></div>
+      <p class="text-xs text-muted" style="margin: 8px 0 0">Solo quien administra la organización puede cambiar su nombre.</p>
+    {% endif %}
+    <div class="kv-row"><div class="k">Tipo</div><div class="v">{{ organization.get_type_display }}</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="ajustes-ciclo">
+    <h3 class="section-title mb-12" id="ajustes-ciclo">Ciclo escolar</h3>
+    {% if current_year %}
+      <div class="kv-row"><div class="k">Ciclo actual</div><div class="v">{{ current_year.name }}</div></div>
+      <div class="kv-row"><div class="k">Del</div><div class="v">{{ current_year.start_date|date:"d/m/Y" }} al {{ current_year.end_date|date:"d/m/Y" }}</div></div>
+    {% else %}
+      <p class="text-sm text-muted" style="margin: 0">Aún no hay un ciclo marcado como actual.</p>
+    {% endif %}
+    <p class="text-xs text-muted" style="margin: 8px 0 12px">Los grupos se archivan y se duplican al cambiar de ciclo; nunca se renombran.</p>
+    <a class="btn btn-ghost" href="{% url 'academic_years' %}"><i data-icon="calendar"></i> Administrar ciclos</a>
+  </section>
+
+  <section class="card" aria-labelledby="ajustes-cuenta">
+    <h3 class="section-title mb-12" id="ajustes-cuenta">Mi cuenta</h3>
+    <div class="kv-row"><div class="k">Correo</div><div class="v">{{ user.email }}</div></div>
+    <div class="kv-row">
+      <div class="k">Confirmación</div>
+      <div class="v">
+        {% if user.email_verified_at %}
+          <span class="chip ok"><i data-icon="check-circle"></i> Confirmado</span>
+        {% else %}
+          <span class="chip">Sin confirmar</span>
+          <form method="post" action="{% url 'resend_verification' %}" class="inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="btn btn-ghost">Reenviar correo</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    <div class="action-bar">
+      <a class="btn btn-ghost" href="{% url 'profile' %}"><i data-icon="user"></i> Mi perfil y foto</a>
+      <a class="btn btn-ghost" href="{% url 'profile' %}#preferencias"><i data-icon="bell"></i> Notificaciones</a>
+      <a class="btn btn-ghost" href="{% url 'password_change' %}"><i data-icon="lock"></i> Cambiar contraseña</a>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
