@@ -161,7 +161,11 @@ button { font: inherit; cursor: pointer; }
   font-weight: 600;
   flex: 0 0 auto;
   font-size: 14px;
+  overflow: hidden;
 }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+a.profile { text-decoration: none; border-radius: 10px; transition: background 0.12s; }
+a.profile:hover { background: rgba(255,255,255,0.06); }
 .avatar.lg { width: 72px; height: 72px; font-size: 24px; }
 .avatar.sm { width: 30px; height: 30px; font-size: 12px; }
 .profile .meta { min-width: 0; }
@@ -227,12 +231,14 @@ button { font: inherit; cursor: pointer; }
   min-width: 0;
 }
 .topbar {
-  height: var(--header-h);
+  min-height: var(--header-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 var(--pad-5);
-  gap: 16px;
+  /* Con muchos botones la barra crece hacia abajo en vez de salirse de la pantalla. */
+  flex-wrap: wrap;
+  padding: 8px var(--pad-5);
+  gap: 8px 16px;
   position: sticky; top: 0; z-index: 10;
 }
 .topbar h1 {
@@ -1377,6 +1383,24 @@ body.tweaks-on .tweaks-panel.was-opened { display: block; }
 .flex-row { display: flex; align-items: center; }
 .flex-col { display: flex; flex-direction: column; }
 .flex-wrap { flex-wrap: wrap; }
+/* Solo para lectores de pantalla: el control sigue en el teclado y en el formulario, pero no se ve. */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0; }
+
+/* Foto de perfil en el formulario */
+.avatar-edit { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.avatar-edit .avatar { background: var(--brand-primary); color: #fff; width: 88px; height: 88px; font-size: 30px; }
+.avatar-edit .avatar-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; min-width: 0; }
+.avatar-edit .btn { cursor: pointer; }
+.avatar-edit:focus-within .btn { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+.avatar-edit .check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+.field-error { color: var(--bad); font-size: 12.5px; margin-top: 4px; }
+.card.is-editing { box-shadow: 0 0 0 2px var(--brand-primary); transition: box-shadow 0.2s; }
+
+/* Tabla de formulario que puede ser más ancha que la pantalla: se desplaza sola, la página no. */
+.table-scroll { overflow-x: auto; }
+/* Fila de botones de acción: salta de línea en vez de desbordar la tarjeta. */
+.action-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.action-bar .inline-form { display: inline-flex; }
 .items-start { align-items: flex-start; }
 .items-center { align-items: center; }
 .items-baseline { align-items: baseline; }

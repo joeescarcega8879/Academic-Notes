@@ -1,4 +1,4 @@
-"""Configuración de Celery para GradeLink.
+"""Configuración de Celery para Academic Notes.
 
 El worker se levanta con: ``celery -A core worker -l info``
 """

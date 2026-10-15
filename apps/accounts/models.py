@@ -1,5 +1,21 @@
-from django.db import models
+import uuid
+from pathlib import PurePosixPath
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db import models
+from django.urls import reverse
+
+
+def get_avatar_storage():
+    """Almacenamiento privado de las fotos de perfil (``STORAGES["avatars"]``): disco hoy, S3 mañana."""
+    from django.core.files.storage import storages
+
+    return storages['avatars']
+
+
+def avatar_upload_to(instance, filename):
+    # Nombre al azar: no revela nada y cada foto nueva cambia la dirección (así el navegador no muestra la vieja).
+    return f'{instance.pk}/{uuid.uuid4().hex}.jpg'
 
 
 class UserManager(BaseUserManager):
@@ -29,7 +45,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=15, blank=True)
     birth_date = models.DateField(null=True, blank=True)
     dni = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True)
+    avatar = models.ImageField(upload_to=avatar_upload_to, storage=get_avatar_storage, blank=True)
 
     # Preferencias (del perfil.html)
     notify_grades = models.BooleanField(default=True)
@@ -47,6 +63,19 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['role', 'dni']
+
+    @property
+    def initials(self):
+        """Iniciales para el círculo sin foto; si no hay nombre, la primera letra del correo."""
+        letters = f'{self.first_name[:1]}{self.last_name[:1]}'.upper()
+        return letters or (self.email[:1].upper() if self.email else '?')
+
+    @property
+    def avatar_url(self):
+        """Dirección de la foto (la sirve una vista con permisos), o ``''`` si no tiene."""
+        if not self.avatar:
+            return ''
+        return f'{reverse("avatar", args=[self.pk])}?v={PurePosixPath(self.avatar.name).stem}'
     
 
 class StudentProfile(models.Model):

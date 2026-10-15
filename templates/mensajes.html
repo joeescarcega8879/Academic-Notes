@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Mensajes · Academic Notes{% endblock %}
+{% block title %}Mensajes · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
@@ -20,7 +20,7 @@
     <div class="conv-items">
       {% for c in conversations %}
       <a class="conv-item {% if active_conversation and c.pk == active_conversation.pk %}is-active{% endif %}" href="{% url 'messaging:detail' c.pk %}">
-        <div class="avatar">{{ c.other.first_name|first }}{{ c.other.last_name|first }}</div>
+        {% include 'partials/avatar.html' with person=c.other %}
         <div>
           <div class="who">{{ c.other.get_full_name|default:c.other.email }}</div>
           <div class="last">{{ c.course.name }}</div>

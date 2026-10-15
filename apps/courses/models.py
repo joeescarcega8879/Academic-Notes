@@ -166,7 +166,7 @@ class Student(TenantModel):
     """Alumno de la lista de una organización.
 
     Es distinto de la cuenta (``User``): quien se importa desde Excel aún no tiene
-    usuario, y muchos docentes usan GradeLink solo como libreta. ``user`` se enlaza
+    usuario, y muchos docentes usan Academic Notes solo como libreta. ``user`` se enlaza
     cuando el alumno usa el código de invitación.
     """
 

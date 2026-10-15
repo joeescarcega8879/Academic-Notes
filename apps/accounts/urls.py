@@ -13,4 +13,5 @@ urlpatterns = [
     path('contrasena/restablecer/<uidb64>/<token>/', views.PasswordResetConfirm.as_view(), name='password_reset_confirm'),
     path('contrasena/restablecer/listo/', views.PasswordResetComplete.as_view(), name='password_reset_complete'),
     path('contrasena/cambiar/', views.ChangePasswordView.as_view(), name='password_change'),
+    path('avatar/<int:pk>/', views.AvatarView.as_view(), name='avatar'),
 ]

@@ -1,10 +1,10 @@
 <aside class="sidebar">
   <div class="brand">
-    <div class="brand-mark">A</div>
-    <div class="brand-name">Academic Notes</div>
+    <div class="brand-mark">{{ site_name|first }}</div>
+    <div class="brand-name">{{ site_name }}</div>
   </div>
-  <div class="profile">
-    <div class="avatar">{{ user.first_name|first }}{{ user.last_name|first }}</div>
+  <a class="profile" href="{% url 'profile' %}" title="Mi perfil">
+    {% include 'partials/avatar.html' with person=user %}
     <div class="meta">
       <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
       <div class="role">
@@ -19,7 +19,7 @@
         {% endif %}
       </div>
     </div>
-  </div>
+  </a>
   {% if memberships|length > 1 %}
     <form method="post" action="{% url 'organizations:switch' %}" class="org-switch">
       {% csrf_token %}
@@ -41,6 +41,7 @@
       </a>
       <a href="{% url 'quizzes:bank' %}" class="{% if request.resolver_match.app_name == 'quizzes' %}is-active{% endif %}"><i data-icon="book-open"></i> Banco de preguntas</a>
       <a href="{% url 'academic_years' %}" class="{% if request.resolver_match.view_name == 'academic_years' %}is-active{% endif %}"><i data-icon="calendar"></i> Ciclos escolares</a>
+      <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i> Perfil</a>
       <a href="#"><i data-icon="settings"></i> Ajustes</a>
     {% else %}
       <a href="{% url 'student_dashboard' %}" class="{% if request.resolver_match.view_name == 'student_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis grupos</a>

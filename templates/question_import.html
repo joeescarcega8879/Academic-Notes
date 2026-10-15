@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Importar preguntas · Academic Notes{% endblock %}
+{% block title %}Importar preguntas · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
@@ -32,7 +32,7 @@
       <label for="file">Archivo</label>
       <input class="input" type="file" id="file" name="file" accept=".xlsx,.csv,.txt" required>
     </div>
-    <div class="flex-row gap-14" style="margin-top: 18px">
+    <div class="flex-row flex-wrap gap-14" style="margin-top: 18px">
       <button type="submit" class="btn btn-primary">Subir y revisar</button>
       <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Cancelar</a>
       <div class="spacer"></div>

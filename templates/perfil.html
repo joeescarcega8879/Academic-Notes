@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Perfil — Academic Notes{% endblock %}
+{% block title %}Perfil — {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
@@ -16,7 +16,7 @@
 
 <!-- Hero del perfil -->
 <div class="profile-hero">
-  <div class="avatar xl">{{ user.first_name|first }}{{ user.last_name|first }}</div>
+  {% include 'partials/avatar.html' with person=user cls='xl' %}
   <div>
     <h2 class="ph-name">{{ user.get_full_name }}</h2>
     <div class="ph-meta">{{ user.email }}{% if student_number %} · Matrícula {{ student_number }}{% endif %}</div>
@@ -34,20 +34,46 @@
   </div>
   <div class="ph-actions">
     <a class="btn btn-ghost" href="{% url 'password_change' %}"><i data-icon="lock"></i> Cambiar contraseña</a>
-    <button class="btn btn-primary"><i data-icon="edit"></i> Editar perfil</button>
+    <a class="btn btn-primary" href="#editar-perfil" data-edit-profile><i data-icon="edit"></i> Editar perfil</a>
   </div>
 </div>
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
+
+  {% if profile_form.errors or extra_form.errors %}
+    <div class="flash flash-error" role="alert" style="margin-bottom: var(--pad-3)">
+      No pudimos guardar tus cambios:
+      <ul style="margin: 6px 0 0; padding-left: 18px">
+        {% for field in profile_form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+        {% for error in profile_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        {% for field in extra_form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+        {% for error in extra_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </div>
+  {% endif %}
 
   <!-- Grid: info + stats -->
   <div class="profile-grid">
     <div>
 
       <!-- Información personal -->
-      <div class="card mb-12">
+      <div class="card mb-12" id="editar-perfil">
         <h3 class="section-title mb-12">Información personal</h3>
+
+        <div class="avatar-edit">
+          <div id="avatar-preview">{% include 'partials/avatar.html' with person=user %}</div>
+          <div class="avatar-actions">
+            <label class="btn btn-ghost" for="id_avatar"><i data-icon="edit"></i> {% if user.avatar %}Cambiar foto{% else %}Subir foto{% endif %}</label>
+            {{ profile_form.avatar }}
+            {% if user.avatar %}
+              <label class="check-row"><input type="checkbox" name="remove_avatar"> Quitar mi foto</label>
+            {% endif %}
+            <div class="text-xs text-muted">JPG, PNG o WebP, hasta 5 MB. Se recorta en cuadro.</div>
+            <div class="field-error" id="avatar-error" role="alert">{{ profile_form.avatar.errors|join:' ' }}</div>
+          </div>
+        </div>
+
         <div class="field">
           <label>Nombre</label>
           {{ profile_form.first_name }}
@@ -180,4 +206,5 @@
   </div>
 </form>
 
+<script src="{% static 'js/profile.js' %}?v=1"></script>
 {% endblock %}

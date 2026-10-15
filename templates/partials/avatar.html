@@ -1,0 +1,2 @@
+{% comment %}Círculo con la foto de la persona, o sus iniciales si no tiene. Uso: {% include 'partials/avatar.html' with person=user cls='lg' %}{% endcomment %}
+<div class="avatar{% if cls %} {{ cls }}{% endif %}">{% if person.avatar_url %}<img src="{{ person.avatar_url }}" alt="" loading="lazy">{% else %}{{ person.initials }}{% endif %}</div>

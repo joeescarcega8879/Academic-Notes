@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ course.name }} - Academic Notes{% endblock %}
+{% block title %}{{ course.name }} - {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
@@ -14,13 +14,14 @@
 
 <!-- Presentación del grupo -->
 <div class="card mb-12" style="border-top: 3px solid {{ course.color }}">
-  <div class="flex-row items-baseline gap-14">
+  <div class="flex-row flex-wrap items-baseline gap-14">
     <h2 style="margin: 0">{{ course.name }}</h2>
     <span class="text-xs text-muted">{{ course.code }}</span>
     <span class="chip">{{ course.academic_year }}</span>
     {% if course.is_archived %}<span class="chip">Archivado</span>{% endif %}
-    {% if is_teacher %}
-      <div class="spacer"></div>
+  </div>
+  {% if is_teacher %}
+    <div class="action-bar">
       {% if course.is_archived %}
         <form method="post" action="{% url 'course_unarchive' course.pk %}" class="inline-form">
           {% csrf_token %}
@@ -40,9 +41,9 @@
       <a class="btn btn-ghost" href="{% url 'reports:transcripts' course.pk %}">Boletas PDF</a>
       {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
-    {% endif %}
-  </div>
-  <div class="text-sm text-muted" style="margin-top: 6px">
+    </div>
+  {% endif %}
+  <div class="text-sm text-muted" style="margin-top: 10px">
     {{ course.schedule|default:"Horario por definir" }} · {{ course.professor.get_full_name }}
   </div>
   {% if course.description %}

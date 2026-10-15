@@ -7,6 +7,7 @@ que no esté en ese juego (un nombre en otro alfabeto) sale como «?» en vez de
 from io import BytesIO
 from xml.sax.saxutils import escape
 
+from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import LETTER
@@ -130,13 +131,13 @@ def render_transcripts(transcripts, *, compress=True):
         canvas.saveState()
         canvas.setFont('Helvetica', 7.5)
         canvas.setFillColor(MUTED)
-        canvas.drawString(2 * cm, 1.2 * cm, clean(f'Generado el {generated} con GradeLink'))
+        canvas.drawString(2 * cm, 1.2 * cm, clean(f'Generado el {generated} con {settings.SITE_NAME}'))
         canvas.drawRightString(LETTER[0] - 2 * cm, 1.2 * cm, f'Página {doc.page}')
         canvas.restoreState()
 
     doc = SimpleDocTemplate(
         buffer, pagesize=LETTER, leftMargin=2 * cm, rightMargin=2 * cm, topMargin=1.8 * cm, bottomMargin=2 * cm,
-        title=clean(f'Boleta · {first.course.name}') if first else 'Boleta', author='GradeLink', pageCompression=1 if compress else 0,
+        title=clean(f'Boleta · {first.course.name}') if first else 'Boleta', author=settings.SITE_NAME, pageCompression=1 if compress else 0,
     )
     story = []
     for index, transcript in enumerate(transcripts):

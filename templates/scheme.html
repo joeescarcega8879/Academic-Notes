@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Esquema de evaluación · Academic Notes{% endblock %}
+{% block title %}Esquema de evaluación · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
@@ -43,6 +43,7 @@
     <input type="hidden" name="action" value="periods">
     {{ period_formset.management_form }}
     {% if period_formset.non_form_errors %}<div class="flash flash-error" style="margin: 10px 0">{{ period_formset.non_form_errors }}</div>{% endif %}
+    <div class="table-scroll">
     <table class="tbl">
       <thead><tr><th>Nombre</th><th>Peso (%)</th><th>Borrar</th></tr></thead>
       <tbody>
@@ -55,6 +56,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <p class="text-xs text-muted">La última fila vacía agrega un periodo nuevo.</p>
     <button type="submit" class="btn btn-primary">Guardar periodos</button>
   </form>
@@ -73,6 +75,7 @@
     <input type="hidden" name="action" value="criteria">
     {{ criterion_formset.management_form }}
     {% if criterion_formset.non_form_errors %}<div class="flash flash-error" style="margin: 10px 0">{{ criterion_formset.non_form_errors }}</div>{% endif %}
+    <div class="table-scroll">
     <table class="tbl">
       <thead><tr><th>Periodo</th><th>Nombre</th><th>Peso (%)</th><th>Evaluaciones nuevas de tipo</th><th>Borrar</th></tr></thead>
       <tbody>
@@ -87,6 +90,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     <p class="text-xs text-muted">La última fila vacía agrega un criterio nuevo. Una evaluación nueva se asigna sola al criterio de su tipo.</p>
     <button type="submit" class="btn btn-primary">Guardar criterios</button>
   </form>
@@ -100,6 +104,7 @@
       {% csrf_token %}
       <input type="hidden" name="action" value="evals">
       {{ assignment_formset.management_form }}
+      <div class="table-scroll">
       <table class="tbl">
         <thead><tr><th>Actividad</th><th>Tipo</th><th>Peso</th><th>Criterio</th></tr></thead>
         <tbody>
@@ -113,6 +118,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       <button type="submit" class="btn btn-primary" style="margin-top: 14px">Guardar asignación</button>
     </form>
   {% else %}
