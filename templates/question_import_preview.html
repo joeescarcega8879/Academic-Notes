@@ -25,6 +25,8 @@
     <div class="stat"><div class="stat-label">Con errores</div><div class="stat-value">{{ plan.count_error }}</div></div>
   </div>
 
+  {% include 'partials/plan_limit_alert.html' %}
+
   <div class="table-wrap mb-12">
     <div class="table-head"><h3>Qué pasará con cada fila</h3>
       <div class="spacer"></div><span class="text-sm text-muted">Las repetidas y las que tienen error se omiten; el resto se guarda.</span></div>

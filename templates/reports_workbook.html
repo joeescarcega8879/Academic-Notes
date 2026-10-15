@@ -15,24 +15,33 @@
 <form method="get" action="{% url 'reports:workbook_download' course.pk %}" id="workbook-form">
   <div class="card mb-12">
     <h3 class="section-title mb-12">Columnas</h3>
+    {% if locked %}
+      <div class="flash flash-warning" style="margin-bottom: var(--pad-2)">
+        Con el plan Gratis el concentrado trae estas columnas fijas. Elegir cuáles y en qué orden es del plan Docente.
+        <a href="{% url 'organizations:plan' %}" class="flash-link">Ver planes</a>
+      </div>
+    {% else %}
     <p class="text-sm text-muted" style="margin-top: 0">
       Marca las que quieres y ordénalas con las flechas: el formato que pide cada sistema escolar es distinto, así que lo armas tú.
       Se recuerda tu última elección para este grupo.
     </p>
+    {% endif %}
     <ul class="rpt-columns" id="rpt-columns">
       {% for row in rows %}
         <li class="rpt-column">
           <label>
-            <input type="checkbox" name="cols" value="{{ row.column.key }}"{% if row.checked %} checked{% endif %}>
+            <input type="checkbox" name="cols" value="{{ row.column.key }}"{% if row.checked %} checked{% endif %}{% if locked %} disabled{% endif %}>
             <span>
               <strong>{{ row.column.label }}</strong>
               {% if row.column.help %}<span class="text-xs text-muted"> · {{ row.column.help }}</span>{% endif %}
             </span>
           </label>
+          {% if not locked %}
           <span class="rpt-move">
             <button type="button" class="btn btn-ghost" data-move="-1" aria-label="Subir {{ row.column.label }}">↑</button>
             <button type="button" class="btn btn-ghost" data-move="1" aria-label="Bajar {{ row.column.label }}">↓</button>
           </span>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>

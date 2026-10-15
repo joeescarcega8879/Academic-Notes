@@ -9,6 +9,8 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 from apps.courses.services import importing as file_reader
+from apps.organizations import limits
+from apps.organizations.limits import PlanLimitError
 
 from .services import question_import
 
@@ -65,7 +67,11 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
         plan = question_import.analyze(request.organization, data['headers'], data['rows'])
         if plan.header_errors:
             return self.render_preview(request, data)
-        summary = question_import.apply_import(request.organization, request.user, plan)
+        try:
+            summary = question_import.apply_import(request.organization, request.user, plan)
+        except PlanLimitError as error:
+            limits.flash_limit_error(request, error)
+            return self.render_preview(request, data)
         del request.session[SESSION_KEY]
         text = f'Importación lista: {summary["created"]} preguntas nuevas.'
         if summary['duplicates']:
@@ -77,9 +83,15 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
 
     def render_preview(self, request, data):
         plan = question_import.analyze(request.organization, data['headers'], data['rows'])
+        limit_error = ''
+        try:
+            limits.check_limit(request.organization, 'questions', adding=plan.count_new)
+        except PlanLimitError as error:
+            limit_error = ' '.join(error.messages)
         return render(request, self.template_name, {
             'filename': data['filename'], 'plan': plan, 'preview': plan.items[:PREVIEW_ROWS],
-            'hidden': max(len(plan.items) - PREVIEW_ROWS, 0), 'can_confirm': plan.count_new > 0,
+            'hidden': max(len(plan.items) - PREVIEW_ROWS, 0), 'can_confirm': plan.count_new > 0 and not limit_error,
+            'limit_error': limit_error,
         })
 
 

@@ -75,9 +75,14 @@ class QuizConfigForm(forms.ModelForm):
             'attempts_allowed', 'time_limit_minutes', 'shuffle_questions', 'shuffle_choices', 'feedback_mode', 'attempt_policy',
         ]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, allow_time_limit=True, **kwargs):
         super().__init__(*args, **kwargs)
         _style(self)
+        if not allow_time_limit:
+            # Deshabilitado: lo que llegue en la petición se ignora y se conserva el valor actual (si lo hay).
+            field = self.fields['time_limit_minutes']
+            field.disabled = True
+            field.help_text = 'Los quizzes con tiempo límite son del plan Docente.'
 
 
 class BankFilterForm(forms.Form):

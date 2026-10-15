@@ -18,6 +18,8 @@ from apps.grades.services.grading import (
     course_stats, group_results, overall_stats, results_by_course, student_average,
 )
 
+from apps.organizations import limits
+from apps.organizations.limits import PlanLimitError
 from apps.organizations.services import SESSION_KEY
 
 from .forms import (
@@ -197,6 +199,21 @@ class CourseCreateView(CourseFormKwargsMixin, TeacherRequiredMixin, CreateView):
     form_class = CourseForm
     template_name = 'course_form.html'
 
+    def at_limit(self, request):
+        """Si el plan no deja crear otro grupo, avisa y lleva al inicio (en vez de dejar llenar un formulario inútil)."""
+        try:
+            limits.check_limit(request.organization, 'groups')
+        except PlanLimitError as error:
+            limits.flash_limit_error(request, error)
+            return redirect('professor_dashboard')
+        return None
+
+    def get(self, request, *args, **kwargs):
+        return self.at_limit(request) or super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.at_limit(request) or super().post(request, *args, **kwargs)
+
     def form_valid(self, form):
         response = super().form_valid(form)
         messages.success(self.request, f'Se creó el grupo "{self.object.name}".')
@@ -228,7 +245,11 @@ class CourseArchiveView(OwnCourseMixin, View):
 class CourseUnarchiveView(OwnCourseMixin, View):
     def post(self, request, pk):
         course = get_object_or_404(self.get_queryset(), pk=pk)
-        unarchive_course(course)
+        try:
+            unarchive_course(course)
+        except PlanLimitError as error:
+            limits.flash_limit_error(request, error)
+            return redirect(course)
         messages.success(request, f'"{course.name}" volvió a estar activo.')
         return redirect(course)
 
@@ -333,14 +354,22 @@ class StudentAddView(RosterMixin, View):
         if request.POST.get('action') == 'existing':
             form = EnrollExistingForm(request.POST, course=course)
             if form.is_valid():
-                roster.enroll_existing(course, form.cleaned_data['student'])
+                try:
+                    roster.enroll_existing(course, form.cleaned_data['student'])
+                except PlanLimitError as error:
+                    limits.flash_limit_error(request, error)
+                    return self.render_page(request, course, existing_form=form)
                 messages.success(request, f'{form.cleaned_data["student"]} quedó inscrito en el grupo.')
                 return redirect(course)
             return self.render_page(request, course, existing_form=form)
 
         form = StudentForm(request.POST, organization=course.organization)
         if form.is_valid():
-            student = roster.add_student(course, **form.cleaned_data)
+            try:
+                student = roster.add_student(course, **form.cleaned_data)
+            except PlanLimitError as error:
+                limits.flash_limit_error(request, error)
+                return self.render_page(request, course, new_form=form)
             messages.success(request, f'{student} se agregó al grupo.')
             return redirect(course)
         return self.render_page(request, course, new_form=form)
@@ -532,7 +561,14 @@ class StudentImportPreviewView(ImportMixin, View):
     def render_preview(self, request, course, data, mapping, errors=None):
         errors = errors if errors is not None else importing.validate_mapping(mapping, len(data['headers']))
         plan = None if errors else importing.analyze(course, data['rows'], mapping)
+        limit_error = ''
+        if plan is not None:
+            try:
+                importing.check_plan_limit(course, plan)
+            except PlanLimitError as error:
+                limit_error = ' '.join(error.messages)
         return render(request, self.template_name, {
+            'limit_error': limit_error,
             'course': course,
             'filename': data['filename'],
             'headers': data['headers'],
@@ -544,7 +580,7 @@ class StudentImportPreviewView(ImportMixin, View):
             'plan': plan,
             'preview_rows': plan.rows[:self.PREVIEW_ROWS] if plan else [],
             'hidden_rows': max(len(plan.rows) - self.PREVIEW_ROWS, 0) if plan else 0,
-            'can_confirm': bool(plan) and any(row.action != 'error' for row in plan.rows),
+            'can_confirm': bool(plan) and not limit_error and any(row.action != 'error' for row in plan.rows),
         })
 
 

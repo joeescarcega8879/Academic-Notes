@@ -1,0 +1,5 @@
+{% if limit_error %}
+  <div class="flash flash-warning mb-12" role="alert">
+    {{ limit_error }} <a href="{% url 'organizations:plan' %}" class="flash-link">Mejorar plan</a>
+  </div>
+{% endif %}

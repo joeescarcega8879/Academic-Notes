@@ -11,6 +11,8 @@ from django.views import View
 from apps.accounts.mixins import TeacherRequiredMixin
 
 from apps.grades.models import Activity
+from apps.organizations import limits
+from apps.organizations.limits import PlanLimitError
 from core.utils import parse_id
 
 from .forms import BankFilterForm, QuestionForm, TrueFalseForm, choice_formset
@@ -127,6 +129,11 @@ class QuestionCreateView(QuestionFormMixin, View):
 
     def get(self, request, kind):
         kind = self.kind(kind)
+        try:
+            limits.check_limit(request.organization, 'questions')
+        except PlanLimitError as error:
+            limits.flash_limit_error(request, error)  # antes de llenar un formulario que no se podría guardar
+            return redirect('quizzes:bank')
         form, formset = self.forms_for(kind)
         return self.render_page(request, kind, form, formset)
 
@@ -155,7 +162,11 @@ class QuestionDetailView(BankMixin, View):
 
 class QuestionDuplicateView(BankMixin, View):
     def post(self, request, pk):
-        copy = duplicate_question(self.get_question(pk), by=request.user)
+        try:
+            copy = duplicate_question(self.get_question(pk), by=request.user)
+        except PlanLimitError as error:
+            limits.flash_limit_error(request, error)
+            return redirect('quizzes:bank')
         messages.success(request, 'Se duplicó la pregunta: ya puedes editar tu copia.')
         return redirect('quizzes:question_update', pk=copy.pk)
 
@@ -163,6 +174,12 @@ class QuestionDuplicateView(BankMixin, View):
 class QuestionArchiveView(BankMixin, View):
     def post(self, request, pk):
         question = self.get_editable_question(pk)
+        if question.is_archived:  # volver al banco la hace contar otra vez contra el plan
+            try:
+                limits.check_limit(request.organization, 'questions')
+            except PlanLimitError as error:
+                limits.flash_limit_error(request, error)
+                return redirect('quizzes:bank')
         question.is_archived = not question.is_archived
         question.save(update_fields=['is_archived', 'updated_at'])
         messages.success(request, 'La pregunta se archivó.' if question.is_archived else 'La pregunta volvió al banco.')

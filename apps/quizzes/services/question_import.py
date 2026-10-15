@@ -19,6 +19,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.courses.services.text import normalize_text
+from apps.organizations import limits
 from core.utils import parse_id
 
 from ..models import Question
@@ -249,7 +250,11 @@ def analyze(organization, headers, rows):
 
 @transaction.atomic
 def apply_import(organization, author, plan):
-    """Crea las preguntas nuevas del plan. Las filas con error y las repetidas se omiten. Devuelve un resumen."""
+    """Crea las preguntas nuevas del plan. Las filas con error y las repetidas se omiten. Devuelve un resumen.
+
+    Si pasan el tope del banco del plan se rechaza la importación completa (``PlanLimitError``).
+    """
+    limits.check_limit(organization, 'questions', adding=plan.count_new)
     created = 0
     for item in plan.items:
         if item.status != 'new':

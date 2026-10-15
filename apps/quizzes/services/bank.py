@@ -3,6 +3,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from apps.organizations import limits
 from apps.organizations.models import Membership
 
 from ..models import Choice, Question
@@ -63,6 +64,7 @@ def save_question(
         raise ValidationError('Tipo de pregunta desconocido.')
 
     if question is None:
+        limits.check_limit(organization, 'questions')  # crear una pregunta cuenta contra el banco del plan
         question = Question(organization=organization, author=author, kind=kind)
     question.text = text.strip()
     question.points = points

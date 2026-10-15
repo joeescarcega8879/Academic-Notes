@@ -42,6 +42,8 @@
       <div class="stat"><div class="stat-label">Se inscriben</div><div class="stat-value">{{ plan.to_enroll }}</div></div>
     </div>
 
+    {% include 'partials/plan_limit_alert.html' %}
+
     <div class="table-wrap mb-12">
       <div class="table-head">
         <h3>2. Qué pasará con cada fila</h3>

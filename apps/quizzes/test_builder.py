@@ -238,6 +238,7 @@ class TestOrdenarYPonderar:
 
 # ── Pantalla del constructor ──────────────────────────────────────────
 
+@pytest.mark.usefixtures('plan_docente')  # el tiempo límite es del plan Docente (ver test_planes_y_limites)
 class TestPantalla:
     def test_se_abre_con_el_resumen(self, professor_client, quiz):
         context = professor_client.get(url(quiz.activity)).context

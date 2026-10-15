@@ -19,6 +19,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 
+from apps.organizations import limits
+
 from ..models import Enrollment, Student
 from .text import normalize_text
 
@@ -320,9 +322,28 @@ def _find_student(plan, by_number, by_email, enrolled_by_name):
 
 # ── Aplicación ────────────────────────────────────────────────────────
 
+def new_active_students(course, plan):
+    """Cuántos alumnos sumarían al tope del plan si se aplica la importación (los que ya cuentan no suman)."""
+    enrolled = [row for row in plan.rows if row.action != 'error' and row.enroll]
+    created = sum(1 for row in enrolled if row.action == 'create')
+    existing = [row.student.pk for row in enrolled if row.action != 'create' and row.student is not None]
+    return created + limits.new_students_among(course.organization, existing)
+
+
+def check_plan_limit(course, plan):
+    """Lanza ``PlanLimitError`` si la importación completa pasaría el tope de alumnos del plan; si no, nada."""
+    if limits.plan_for(course.organization).students is None:
+        return
+    limits.check_limit(course.organization, 'students', adding=new_active_students(course, plan))
+
+
 @transaction.atomic
 def apply_import(course, plan):
-    """Aplica las filas sin error: crea o actualiza alumnos y los inscribe. Devuelve un resumen."""
+    """Aplica las filas sin error: crea o actualiza alumnos y los inscribe. Devuelve un resumen.
+
+    Si pasa el tope de alumnos del plan se rechaza completa (``PlanLimitError``), no se corta a la mitad.
+    """
+    check_plan_limit(course, plan)
     summary = {'created': 0, 'updated': 0, 'enrolled': 0, 'skipped': plan.count('error')}
     for row in plan.rows:
         if row.action == 'error':
