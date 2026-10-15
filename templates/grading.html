@@ -31,7 +31,7 @@
       <tbody>
         {% for row in rows %}
           <tr>
-            <td>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></td>
+            <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<div>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></div></div></td>
             {% if activity.accepts_submissions %}
               <td>
                 {% if row.submission %}

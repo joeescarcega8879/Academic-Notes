@@ -140,7 +140,7 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
         user = self.request.user
         from apps.grades.models import Grade
 
-        enrollments = list(self.object.enrollments.select_related('student'))
+        enrollments = list(self.object.enrollments.select_related('student__user'))
         context['my_enrollment'] = self.object.enrollments.filter(student__user=user).first()
 
         # Vista docente: calificación final de cada alumno según el esquema del grupo

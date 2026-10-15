@@ -129,7 +129,7 @@ class ActivityDetailView(OrganizationMemberMixin, View):
         if request.membership.is_teacher:
             grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
             submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
-            enrollments = list(activity.course.enrollments.select_related('student'))
+            enrollments = list(activity.course.enrollments.select_related('student__user'))
             for enrollment in enrollments:
                 enrollment.grade = grades.get(enrollment.student_id)
                 enrollment.submission = submissions.get(enrollment.student_id)
@@ -238,7 +238,7 @@ class GradingView(OwnActiveCourseMixin, View):
         grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
         submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
         rows = []
-        for enrollment in activity.course.enrollments.select_related('student').order_by(
+        for enrollment in activity.course.enrollments.select_related('student__user').order_by(
             'student__last_name', 'student__first_name',
         ):
             submission = submissions.get(enrollment.student_id)

@@ -91,7 +91,7 @@
       {% for grade in grades %}
       <tr>
         {% if is_teacher %}
-        <td>{{ grade.student.get_full_name|default:grade.student.email }}</td>
+        <td><div class="person-cell">{% include 'partials/avatar.html' with person=grade.student cls='sm' %}<span>{{ grade.student.get_full_name|default:grade.student.email }}</span></div></td>
         {% endif %}
         <td>{{ grade.activity.course.name }}</td>
         <td>{{ grade.activity.title }}</td>

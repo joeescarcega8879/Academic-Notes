@@ -205,6 +205,19 @@ class Student(TenantModel):
     def get_full_name(self):
         return f'{self.first_name} {self.last_name}'.strip()
 
+    @property
+    def initials(self):
+        """Iniciales para el círculo sin foto (misma interfaz que ``User``, para ``partials/avatar.html``)."""
+        return f'{self.first_name[:1]}{self.last_name[:1]}'.upper() or '?'
+
+    @property
+    def avatar_url(self):
+        """Foto de la cuenta enlazada, o ``''`` si el alumno no tiene cuenta o no ha subido foto.
+
+        Pide ``select_related('student__user')`` a quien arme una lista: así no cuesta una consulta por alumno.
+        """
+        return self.user.avatar_url if self.user_id else ''
+
     def save(self, *args, **kwargs):
         self.student_number = self.student_number.strip()
         super().save(*args, **kwargs)

@@ -30,7 +30,7 @@
     <tbody>
       {% for row in students %}
         <tr>
-          <td>{{ row.student }}{% if row.in_progress %} <span class="chip brand">En curso</span>{% endif %}</td>
+          <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<span>{{ row.student }}{% if row.in_progress %} <span class="chip brand">En curso</span>{% endif %}</span></div></td>
           <td>{{ row.done|length }} / {{ quiz.attempts_allowed }}</td>
           <td>{% if row.best is not None %}{{ row.best }} %{% else %}—{% endif %}</td>
           <td>{% if row.last is not None %}{{ row.last }} %{% else %}—{% endif %}</td>

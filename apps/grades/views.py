@@ -23,7 +23,7 @@ def visible_grades(request):
 
     El alumno ve las suyas; quien da clase, las de sus grupos.
     """
-    grades = Grade.objects.for_organization(request.organization).select_related('student', 'activity__course')
+    grades = Grade.objects.for_organization(request.organization).select_related('student__user', 'activity__course')
     if request.membership.is_student:
         # Un alumno no ve las actividades en borrador ni sus notas.
         return grades.filter(student__user=request.user, activity__published=True)

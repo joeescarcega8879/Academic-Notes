@@ -154,7 +154,7 @@ def enrolled_students(course):
     El orden de la base de datos no lo garantiza (SQLite pone la «Á» después de la «Z»).
     """
     return sorted(
-        (enrollment.student for enrollment in course.enrollments.select_related('student')),
+        (enrollment.student for enrollment in course.enrollments.select_related('student__user')),
         key=lambda s: (normalize_text(s.last_name), normalize_text(s.first_name), s.pk),
     )
 

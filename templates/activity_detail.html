@@ -74,7 +74,7 @@
       <tbody>
         {% for enrollment in enrollments %}
           <tr>
-            <td>{{ enrollment.student }}</td>
+            <td><div class="person-cell">{% include 'partials/avatar.html' with person=enrollment.student cls='sm' %}<span>{{ enrollment.student }}</span></div></td>
             <td>{{ enrollment.student.student_number }}</td>
             {% if activity.accepts_submissions %}
               <td>
