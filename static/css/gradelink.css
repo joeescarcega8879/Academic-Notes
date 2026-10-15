@@ -1404,6 +1404,27 @@ table.tbl .person-cell { white-space: nowrap; }
 .person-cell .avatar { width: 30px; height: 30px; font-size: 12px; background: var(--brand-primary-50); color: var(--brand-primary); }
 .theme-dark .person-cell .avatar { background: var(--surface-2); color: var(--text); }
 
+.input:disabled, .select:disabled { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+
+/* Avisos de plan y la pantalla «Plan y facturación» */
+.flash-warning { background: var(--warn-bg); color: var(--text); border-color: rgba(211,148,17,0.45); }
+.flash-info { background: var(--brand-primary-50); color: var(--text); border-color: var(--border); }
+.flash-link { font-weight: 600; color: var(--brand-primary); text-decoration: underline; white-space: nowrap; }
+.theme-dark .flash-link { color: #74b6ff; }
+.plan-layout { max-width: 820px; }
+.plan-usage .dist-row { grid-template-columns: minmax(130px, 230px) 1fr 110px; }
+.plan-features { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; font-size: 13.5px; }
+.plan-features li { display: flex; gap: 10px; align-items: baseline; }
+.plan-features .is-on span:first-child { color: var(--ok); font-weight: 700; }
+.plan-features .is-off { color: var(--text-muted); }
+.plan-price { font-size: 15px; margin: 0 0 14px; }
+.plan-compare td:not(:first-child), .plan-compare th:not(:first-child) { text-align: center; }
+@media (max-width: 600px) {
+  .plan-usage .dist-row { grid-template-columns: 1fr 90px; }
+  .plan-usage .dist-row .track { grid-column: 1 / -1; grid-row: 2; }
+  .plan-usage .dist-row .num { grid-column: 2; grid-row: 1; }
+}
+
 /* Ajustes y Ayuda */
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--pad-3); align-items: start; }
 .settings-grid .kv-row { grid-template-columns: 130px 1fr; }

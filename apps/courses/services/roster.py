@@ -3,6 +3,7 @@
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from apps.organizations import limits
 from apps.organizations.models import Membership
 
 from ..models import Enrollment, Student
@@ -10,7 +11,8 @@ from ..models import Enrollment, Student
 
 @transaction.atomic
 def add_student(course, **data):
-    """Crea un alumno nuevo en la organización del grupo y lo inscribe."""
+    """Crea un alumno nuevo en la organización del grupo y lo inscribe (cuenta contra el tope de alumnos del plan)."""
+    limits.check_limit(course.organization, 'students')
     student = Student.objects.create(organization=course.organization, **data)
     Enrollment.objects.create(student=student, course=course)
     return student
@@ -20,6 +22,7 @@ def enroll_existing(course, student):
     """Inscribe en el grupo a un alumno que ya está en la organización."""
     if student.organization_id != course.organization_id:
         raise ValidationError('El alumno debe pertenecer a la misma organización que el grupo.')
+    limits.check_students(course.organization, [student.pk])
     enrollment, _ = Enrollment.objects.get_or_create(student=student, course=course)
     return enrollment
 

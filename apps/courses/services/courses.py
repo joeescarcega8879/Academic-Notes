@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.organizations import limits
+
 from ..models import Course
 from ..signals import course_cloned
 
@@ -19,10 +21,15 @@ def archive_course(course):
 
 
 def unarchive_course(course):
-    """Devuelve un grupo archivado a la vista principal."""
-    # Sprint 5: aquí pasará por ``check_limit`` (los archivados no cuentan contra el plan, desarchivar sí).
+    """Devuelve un grupo archivado a la vista principal.
+
+    Los grupos archivados no cuentan contra el plan, pero desarchivar sí lo verifica: el grupo y sus alumnos
+    vuelven a contar. Lanza ``PlanLimitError`` (un ``ValidationError``) si el plan no lo permite.
+    """
     if not course.is_archived:
         return course
+    limits.check_limit(course.organization, 'groups')
+    limits.check_students(course.organization, course.enrollments.values_list('student_id', flat=True))
     course.status = Course.Status.ACTIVE
     course.archived_at = None
     course.save(update_fields=['status', 'archived_at'])
@@ -43,6 +50,7 @@ def clone_course(course, academic_year, *, code=None, name=None):
     code = (code or course.code).strip()
     if Course.objects.filter(organization=course.organization, academic_year=academic_year, code=code).exists():
         raise ValidationError(f'Ya existe un grupo con el código "{code}" en el ciclo {academic_year}.')
+    limits.check_limit(course.organization, 'groups')  # el duplicado cuenta como un grupo activo más
 
     clone = Course.objects.create(
         organization=course.organization,

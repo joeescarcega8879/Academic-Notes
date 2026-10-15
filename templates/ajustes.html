@@ -13,6 +13,21 @@
 {% block content %}
 <div class="settings-grid">
 
+  <section class="card" aria-labelledby="ajustes-plan">
+    <h3 class="section-title mb-12" id="ajustes-plan">Plan y facturación</h3>
+    <div class="kv-row"><div class="k">Tu plan</div><div class="v"><span class="chip {% if plan.is_free %}{% else %}ok{% endif %}">{{ plan.name }}</span></div></div>
+    <div class="dist-bars plan-usage" style="margin: 6px 0 14px">
+      {% for row in limit_rows %}
+        <div class="dist-row">
+          <div class="lbl">{{ row.label }}</div>
+          <div class="track"><div class="fill {{ row.tone }}" style="width: {% if row.unlimited %}0{% else %}{{ row.percent }}{% endif %}%"></div></div>
+          <div class="num">{{ row.used }}{% if not row.unlimited %} / {{ row.limit }}{% endif %}</div>
+        </div>
+      {% endfor %}
+    </div>
+    <a class="btn btn-ghost" href="{% url 'organizations:plan' %}"><i data-icon="trending-up"></i> {% if plan.is_free %}Ver planes y mejorar{% else %}Ver mi plan{% endif %}</a>
+  </section>
+
   <section class="card" aria-labelledby="ajustes-org">
     <h3 class="section-title mb-12" id="ajustes-org">Organización</h3>
     {% if can_rename %}

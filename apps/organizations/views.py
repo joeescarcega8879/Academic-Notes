@@ -1,3 +1,6 @@
+from urllib.parse import quote
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -7,6 +10,7 @@ from django.views import View
 from apps.accounts.mixins import TeacherRequiredMixin, home_url_name
 from apps.courses.models import AcademicYear
 
+from . import limits, plans
 from .forms import OrganizationNameForm
 from .models import Membership
 from .services import SESSION_KEY
@@ -22,6 +26,38 @@ class SwitchOrganizationView(LoginRequiredMixin, View):
             raise Http404('No perteneces a esa organización.')
         request.session[SESSION_KEY] = membership.organization_id
         return redirect(home_url_name(membership))
+
+
+class PlanView(TeacherRequiredMixin, View):
+    """«Plan y facturación»: el plan actual, cuánto se usa de cada tope y qué ofrece el plan de pago.
+
+    Todavía no se cobra en línea: el plan Docente se activa con el equipo (el plan de la organización se asigna
+    desde el admin). Cuando exista la pasarela, el botón de abajo pasa a ser el pago.
+    """
+
+    template_name = 'plan.html'
+
+    def get(self, request):
+        organization = request.organization
+        plan = limits.plan_for(organization)
+        rows = limits.limit_rows(organization)
+        comparison = [
+            {'label': label, 'free': plans.FREE.limit(key), 'paid': plans.TEACHER.limit(key)} for key, label in plans.LIMITS
+        ] + [
+            {'label': label, 'free': plans.FREE.has(key), 'paid': plans.TEACHER.has(key), 'feature': True}
+            for key, label in plans.FEATURES
+        ]
+        subject = quote('Quiero el plan Docente')
+        lines = [
+            'Hola, quiero activar el plan Docente.', '',
+            f'Organización: {organization.name} (id {organization.pk})', f'Correo: {request.user.email}',
+        ]
+        body = quote('\n'.join(lines))
+        return render(request, self.template_name, {
+            'plan': plan, 'limit_rows': rows, 'feature_rows': limits.feature_rows(organization),
+            'over_limit': any(row.over for row in rows), 'comparison': comparison, 'paid_plan': plans.TEACHER,
+            'upgrade_mailto': f'mailto:{settings.SUPPORT_EMAIL}?subject={subject}&body={body}',
+        })
 
 
 class SettingsView(TeacherRequiredMixin, View):
@@ -40,6 +76,7 @@ class SettingsView(TeacherRequiredMixin, View):
         current_year = AcademicYear.objects.for_organization(request.organization).filter(is_current=True).first()
         return render(request, self.template_name, {
             'form': form, 'can_rename': self.can_rename(request), 'current_year': current_year,
+            'plan': limits.plan_for(request.organization), 'limit_rows': limits.limit_rows(request.organization),
         })
 
     def get(self, request):

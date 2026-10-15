@@ -214,6 +214,9 @@ def build_demo(*, seed=SEED, now=None):
     teacher.email_verified_at = b.now
     teacher.save(update_fields=['email_verified_at'])
     organization = Membership.objects.get(user=teacher).organization
+    # La escuela de ejemplo usa el plan Docente: así se ve todo (sin topes, quizzes con tiempo, boletas sin marca).
+    organization.plan = Organization.Plan.TEACHER
+    organization.save(update_fields=['plan'])
     current = AcademicYear.current_for(organization)
     previous = AcademicYear.objects.create(
         organization=organization, name=f'{current.start_date.year - 1}–{current.start_date.year}',

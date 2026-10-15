@@ -79,8 +79,8 @@
 - Al llegar al tope solo se bloquea **crear**: un grupo nuevo, desarchivar uno, o agregar o importar alumnos que lo excedan. Lo que ya existe sigue funcionando.
 - El mensaje es concreto: «Tu lista trae 75 alumnos; tu plan permite 60 y ya tienes 40», con un botón «Mejorar plan». Una importación que excede el tope se rechaza completa, no se corta a la mitad.
 - Los grupos archivados no cuentan; desarchivar sí verifica el límite. Los alumnos se cuentan por ficha de lista en grupos activos, no por cuenta.
-- Al cancelar el plan de pago, los grupos de más pasan a solo lectura (el docente elige cuáles quedan activos). Nada se borra.
-- Si falla un cobro, hay 7 días de gracia antes de bajar de plan, alineados con los reintentos de la pasarela.
+- Al cancelar el plan de pago, los grupos de más pasan a solo lectura (el docente elige cuáles quedan activos). Nada se borra. *Estado (2026-10-14):* esto se construye con la pasarela (paso 4 de la ruta); mientras tanto, estar por encima de un tope (por ejemplo, si el admin baja el plan a mano) deja todo activo y solo impide crear más, y la pantalla «Plan y facturación» lo explica.
+- Si falla un cobro, hay 7 días de gracia antes de bajar de plan, alineados con los reintentos de la pasarela (también del paso 4).
 
 **Dónde se engancha en el código:** un solo servicio con `check_limit(org, límite)` y `has_feature(org, función)`, sobre `Organization.plan`. Se aplica en `CourseCreateView` y `CourseUnarchiveView` (grupos), `StudentAddView` y `StudentImportView` (alumnos), la configuración del quiz (`time_limit_minutes`), el banco de preguntas (30), `TranscriptsView` (marca de agua) y `WorkbookConfigView` (columnas). Nunca condicionales por plan regados en las vistas (sección 7).
 

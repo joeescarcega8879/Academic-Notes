@@ -9,6 +9,7 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 from apps.courses.models import Course, Student
+from apps.organizations import limits
 
 from .services import pdf, risk, workbook
 from .services.transcript import build_transcripts
@@ -55,7 +56,9 @@ class TranscriptsView(OwnCourseReportMixin, View):
             )
             transcripts = build_transcripts(course, [student])
             filename = _filename(f'boleta-{slugify(student.student_number or student.last_name) or student.pk}', course, 'pdf')
-        return _download(pdf.render_transcripts(transcripts), 'application/pdf', filename)
+        # Con el plan Gratis la boleta sale bien hecha pero con marca de agua; el plan Docente la quita.
+        watermark = not limits.has_feature(request.organization, 'clean_transcripts')
+        return _download(pdf.render_transcripts(transcripts, watermark=watermark), 'application/pdf', filename)
 
 
 class WorkbookConfigView(OwnCourseReportMixin, View):
@@ -63,16 +66,25 @@ class WorkbookConfigView(OwnCourseReportMixin, View):
 
     def get(self, request, course_pk):
         course = self.get_course(course_pk)
+        if not limits.has_feature(request.organization, 'custom_workbook'):
+            # Plan Gratis: columnas fijas, sin elegir ni ordenar.
+            rows = [{'column': workbook.BY_KEY[key], 'checked': True} for key in workbook.DEFAULT_KEYS]
+            return render(request, 'reports_workbook.html', {'course': course, 'rows': rows, 'locked': True})
         chosen = workbook.parse_columns(request.session.get(SESSION_KEY, {}).get(str(course.pk), [])) or list(workbook.DEFAULT_KEYS)
         # Primero las elegidas, en su orden; luego las demás sin marcar.
         ordered = [workbook.BY_KEY[key] for key in chosen] + [c for c in workbook.COLUMNS if c.key not in chosen]
         rows = [{'column': column, 'checked': column.key in chosen} for column in ordered]
-        return render(request, 'reports_workbook.html', {'course': course, 'rows': rows})
+        return render(request, 'reports_workbook.html', {'course': course, 'rows': rows, 'locked': False})
 
 
 class WorkbookDownloadView(OwnCourseReportMixin, View):
     def get(self, request, course_pk):
         course = self.get_course(course_pk)
+        if not limits.has_feature(request.organization, 'custom_workbook'):
+            # Plan Gratis: siempre las columnas fijas, pidan lo que pidan en la dirección.
+            return _download(
+                workbook.build_workbook(course, list(workbook.DEFAULT_KEYS)), workbook.XLSX_TYPE, _filename('concentrado', course, 'xlsx'),
+            )
         requested = request.GET.getlist('cols')
         keys = workbook.parse_columns(requested)
         if requested and not keys:

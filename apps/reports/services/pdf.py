@@ -121,8 +121,23 @@ def _story_for(transcript):
     ]
 
 
-def render_transcripts(transcripts, *, compress=True):
-    """PDF (bytes) con una boleta por alumno, cada una en su propia página. ``compress=False`` deja el texto legible (pruebas)."""
+def _draw_watermark(canvas):
+    """Marca de agua diagonal, tenue y detrás del contenido (plan Gratis)."""
+    canvas.saveState()
+    canvas.setFillColor(colors.Color(0.45, 0.5, 0.58))
+    canvas.setFillAlpha(0.13)
+    canvas.setFont('Helvetica-Bold', 40)
+    canvas.translate(LETTER[0] / 2, LETTER[1] / 2)
+    canvas.rotate(45)
+    canvas.drawCentredString(0, 0, clean(f'Generado con {settings.SITE_NAME}'))
+    canvas.restoreState()
+
+
+def render_transcripts(transcripts, *, compress=True, watermark=False):
+    """PDF (bytes) con una boleta por alumno, cada una en su propia página.
+
+    ``compress=False`` deja el texto legible (pruebas). ``watermark=True`` agrega la marca de agua del plan Gratis.
+    """
     buffer = BytesIO()
     first = transcripts[0] if transcripts else None
     generated = first.generated_on.strftime('%d/%m/%Y') if first else ''
@@ -146,5 +161,10 @@ def render_transcripts(transcripts, *, compress=True):
         story.extend(_story_for(transcript))
     if not story:
         story = [_p('Este grupo no tiene alumnos inscritos.')]
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    def decorate(canvas, doc):
+        if watermark:
+            _draw_watermark(canvas)  # primero la marca: el contenido de la página se dibuja encima
+        footer(canvas, doc)
+
+    doc.build(story, onFirstPage=decorate, onLaterPages=decorate)
     return buffer.getvalue()

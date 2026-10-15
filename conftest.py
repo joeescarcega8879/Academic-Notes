@@ -19,6 +19,17 @@ def student(db):
 
 
 @pytest.fixture
+def plan_docente(professor):
+    """La organización del docente con el plan Docente (sin topes ni marca de agua), para probar sus funciones."""
+    from apps.organizations.models import Membership, Organization
+
+    organization = Membership.objects.get(user=professor).organization
+    organization.plan = Organization.Plan.TEACHER
+    organization.save(update_fields=['plan'])
+    return organization
+
+
+@pytest.fixture
 def course(professor):
     return CourseFactory(professor=professor)
 

@@ -10,6 +10,7 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 from apps.grades.models import Activity
+from apps.organizations import limits
 from core.utils import parse_id
 
 from .forms import BankFilterForm, QuizConfigForm
@@ -33,6 +34,11 @@ class OwnQuizMixin(TeacherRequiredMixin):
     def quiz(self):
         quiz, _ = QuizConfig.objects.get_or_create(activity=self.activity)
         return quiz
+
+    @cached_property
+    def timed_quizzes(self):
+        """El plan de la organización permite fijar un tiempo límite."""
+        return limits.has_feature(self.request.organization, 'timed_quizzes')
 
 
 class BuilderView(OwnQuizMixin, View):
@@ -63,7 +69,8 @@ class BuilderView(OwnQuizMixin, View):
 
         return render(request, self.template_name, {
             'activity': self.activity, 'course': self.activity.course, 'quiz': quiz,
-            'config_form': config_form or QuizConfigForm(instance=quiz),
+            'config_form': config_form or QuizConfigForm(instance=quiz, allow_time_limit=self.timed_quizzes),
+            'time_limit_locked': not self.timed_quizzes,
             'questions': quiz.questions.prefetch_related('choices'),
             'question_count': count, 'total_points': total,
             'points_match': float(total) == float(self.activity.max_score),
@@ -81,7 +88,7 @@ class BuilderView(OwnQuizMixin, View):
         action = request.POST.get('action')
         try:
             if action == 'settings':
-                form = QuizConfigForm(request.POST, instance=self.quiz)
+                form = QuizConfigForm(request.POST, instance=self.quiz, allow_time_limit=self.timed_quizzes)
                 if not form.is_valid():
                     return self.render_page(request, config_form=form)
                 form.save()
