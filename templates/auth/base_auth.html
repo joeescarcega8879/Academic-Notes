@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=22" />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
   </head>
   <body>
     <main class="auth-shell">
@@ -21,7 +21,7 @@
         {% block content %}{% endblock %}
       </div>
       <p class="auth-foot text-xs">
-        <a href="{% url 'terms' %}">Términos</a> · <a href="{% url 'privacy' %}">Privacidad</a> · <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+        <a href="{% url 'pricing' %}">Precios</a> · <a href="{% url 'terms' %}">Términos</a> · <a href="{% url 'privacy' %}">Privacidad</a> · <a href="mailto:{{ support_email }}">{{ support_email }}</a>
       </p>
     </main>
   </body>

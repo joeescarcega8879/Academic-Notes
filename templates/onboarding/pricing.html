@@ -1,0 +1,139 @@
+{% load static %}<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Precios · {{ site_name }}</title>
+    <meta name="description" content="Empieza gratis, sin tarjeta. Cuando tus grupos crezcan, el plan Docente cuesta ${{ paid.monthly_price }} MXN al mes o ${{ paid.annual_price|floatformat:'0g' }} MXN al año. Tus alumnos nunca pagan." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
+  </head>
+  <body class="landing">
+    {% include 'onboarding/_nav.html' %}
+
+    <section class="landing-hero">
+      <h1>Empieza gratis. Paga solo cuando lo necesites.</h1>
+      <p>Tu libreta con calificación ponderada, tu lista desde Excel y tus boletas, sin tarjeta. Cuando tus grupos crezcan, pasas al plan Docente. Tus alumnos nunca pagan.</p>
+    </section>
+
+    <section class="landing-section pricing" aria-label="Planes">
+      <div class="pricing-grid">
+
+        <article class="card pricing-card" aria-labelledby="plan-gratis">
+          <h2 id="plan-gratis">{{ free.name }}</h2>
+          <p class="pricing-for">Para probar con los grupos que tienes hoy.</p>
+          <p class="pricing-price"><strong>$0</strong> <span class="text-muted">para siempre</span></p>
+          <ul class="pricing-list">
+            {% for line in free_bullets %}<li>{{ line }}</li>{% endfor %}
+          </ul>
+          {% if user.is_authenticated %}
+            <a class="btn btn-ghost btn-lg" href="{% url 'home' %}">Ir a mi cuenta</a>
+          {% else %}
+            <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Empezar gratis</a>
+            <p class="text-xs text-muted" style="margin: 8px 0 0">Sin tarjeta, en un minuto.</p>
+          {% endif %}
+        </article>
+
+        <article class="card pricing-card is-featured" aria-labelledby="plan-docente-titulo" id="plan-docente">
+          <span class="chip brand pricing-tag">Próximamente</span>
+          <h2 id="plan-docente-titulo">{{ paid.name }}</h2>
+          <p class="pricing-for">Para cuando ya das clase con todos tus grupos.</p>
+          <p class="pricing-price">
+            <strong>${{ paid.monthly_price }}</strong> <span class="text-muted">MXN al mes</span>
+          </p>
+          <p class="pricing-alt">o <strong>${{ paid.annual_price|floatformat:"0g" }}</strong> MXN al año <span class="text-muted">(2 meses gratis)</span></p>
+          <ul class="pricing-list">
+            {% for line in paid_bullets %}<li>{{ line }}</li>{% endfor %}
+          </ul>
+
+          <div id="aviso" class="pricing-waitlist">
+            {% if joined %}
+              <div class="flash flash-success" role="status">¡Listo! Te avisaremos por correo cuando el plan Docente esté disponible.</div>
+            {% else %}
+              <p class="text-sm" style="margin: 0 0 10px"><strong>Todavía no cobramos en línea.</strong> Déjanos tu correo y te avisamos cuando esté listo.</p>
+              <form method="post" action="{% url 'pricing' %}#aviso" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="flash flash-error" role="alert" style="margin-bottom: 8px">{{ form.non_field_errors }}</div>{% endif %}
+                <div class="field">
+                  <label for="{{ form.email.id_for_label }}" class="sr-only">{{ form.email.label }}</label>
+                  {{ form.email }}
+                  {% for error in form.email.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="hp" aria-hidden="true"><label>No llenar<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+                <label class="check-row pricing-consent">
+                  {{ form.accept }} <span>Acepto que guarden mi correo solo para avisarme (<a href="{% url 'privacy' %}">aviso de privacidad</a>)</span>
+                </label>
+                {% for error in form.accept.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                <button type="submit" class="btn btn-primary btn-lg" style="margin-top: 10px">Avísame cuando esté disponible</button>
+              </form>
+            {% endif %}
+            <p class="text-xs text-muted" style="margin: 10px 0 0">
+              ¿Ya necesitas el plan Docente? <a href="mailto:{{ support_email }}?subject={{ 'Quiero el plan Docente'|urlencode }}">Escríbenos</a> y lo activamos nosotros.
+            </p>
+          </div>
+        </article>
+
+      </div>
+      <p class="text-center text-xs text-muted" style="margin-top: 16px">Precios en pesos mexicanos.</p>
+    </section>
+
+    <section class="landing-section" aria-labelledby="comparar">
+      <h2 id="comparar">Compara los planes</h2>
+      <div class="table-wrap" style="max-width: 760px; margin: 0 auto">
+        <table class="tbl plan-compare">
+          <thead><tr><th></th><th>{{ free.name }}</th><th>{{ paid.name }}</th></tr></thead>
+          <tbody>
+            {% for row in comparison %}
+              <tr>
+                <td>{{ row.label }}</td>
+                {% if row.feature %}
+                  <td>{% if row.free %}<span class="chip ok">Sí</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                  <td>{% if row.paid %}<span class="chip ok">Sí</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                {% else %}
+                  <td>{% if row.free is None %}Sin tope{% else %}{{ row.free }}{% endif %}</td>
+                  <td>{% if row.paid is None %}Sin tope{% else %}{{ row.paid }}{% endif %}</td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="landing-section" aria-labelledby="escuelas">
+      <div class="card pricing-school">
+        <h2 id="escuelas">¿Eres una escuela?</h2>
+        <p>Estamos abriendo un piloto gratuito con las primeras escuelas. Cuéntanos cuántos docentes y alumnos son y lo armamos contigo.</p>
+        <a class="btn btn-ghost btn-lg" href="mailto:{{ support_email }}?subject={{ 'Quiero un piloto para mi escuela'|urlencode }}">Hablar con nosotros</a>
+      </div>
+    </section>
+
+    <section class="landing-section pricing-faq" aria-labelledby="preguntas">
+      <h2 id="preguntas">Preguntas frecuentes</h2>
+      <details class="help-item">
+        <summary>¿Mis alumnos tienen que pagar?</summary>
+        <p>No, nunca. Solo el docente o la escuela pagan. Los alumnos crean su cuenta gratis, se unen a tu grupo con tu código y ven sus calificaciones.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Necesito tarjeta para empezar?</summary>
+        <p>No. Creas tu cuenta con tu correo y empiezas en el plan Gratis.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Cuándo puedo pagar?</summary>
+        <p>Todavía no cobramos en línea. Mientras tanto, si ya necesitas el plan Docente, escríbenos y lo activamos nosotros; o déjanos tu correo y te avisamos cuando el pago esté disponible.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Qué pasa con mis datos si no pago o dejo de pagar?</summary>
+        <p>Nada se borra. Sigues viendo y exportando todo lo que ya tienes; lo único que cambia es que no puedes crecer más allá de los límites del plan Gratis.</p>
+      </details>
+      <details class="help-item">
+        <summary>¿Puedo cancelar cuando quiera?</summary>
+        <p>Sí. Y como tus datos se conservan, puedes volver al plan Docente cuando lo necesites.</p>
+      </details>
+    </section>
+
+    {% include 'onboarding/_footer.html' %}
+  </body>
+</html>

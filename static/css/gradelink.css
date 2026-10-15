@@ -1425,6 +1425,29 @@ table.tbl .person-cell { white-space: nowrap; }
   .plan-usage .dist-row .num { grid-column: 2; grid-row: 1; }
 }
 
+/* Página de Precios */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; max-width: 800px; margin: 0 auto; align-items: stretch; }
+.pricing-card { display: flex; flex-direction: column; padding: 28px 26px; position: relative; }
+.landing-section .pricing-card h2 { text-align: left; margin: 0 0 4px; font-size: 22px; }
+.pricing-card.is-featured { border: 2px solid var(--brand-primary); }
+.pricing-tag { align-self: flex-start; margin-bottom: 10px; }
+.pricing-for { color: var(--text-muted); font-size: 14px; margin: 0 0 14px; }
+.pricing-price { margin: 0; font-size: 15px; }
+.pricing-price strong { font-size: 36px; font-weight: 500; letter-spacing: -0.5px; }
+.pricing-alt { margin: 2px 0 0; font-size: 14px; }
+.pricing-list { list-style: none; margin: 18px 0 22px; padding: 0; display: grid; align-content: start; gap: 9px; font-size: 14px; line-height: 1.45; flex: 1; }
+.pricing-list li { position: relative; padding-left: 22px; }
+.pricing-list li::before { content: '✓'; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+.pricing-waitlist { border-top: 1px solid var(--border); padding-top: 16px; }
+.pricing-card .btn { justify-content: center; }
+.pricing-consent { align-items: flex-start; }
+.pricing-consent a { text-decoration: underline; }
+.pricing-school { max-width: 760px; margin: 0 auto; text-align: center; }
+.pricing-school h2 { margin-bottom: 8px; }
+.pricing-school p { color: var(--text-muted); margin: 0 0 16px; }
+.pricing-faq { max-width: 760px; }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+
 /* Ajustes y Ayuda */
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--pad-3); align-items: start; }
 .settings-grid .kv-row { grid-template-columns: 130px 1fr; }
@@ -1842,8 +1865,8 @@ table.gs tfoot .gs-name, table.gs tfoot .gs-final { z-index: 4; }
 .checklist-text { flex: 1; min-width: 0; }
 
 .landing { background: var(--surface); }
-.landing-nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
-.landing-nav nav { display: flex; gap: 8px; }
+.landing-nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; padding: 16px 24px; max-width: 1080px; margin: 0 auto; }
+.landing-nav nav { display: flex; flex-wrap: wrap; gap: 8px; }
 .landing-hero { max-width: 820px; margin: 0 auto; padding: 56px 24px 40px; text-align: center; }
 .landing-hero h1 { font-size: 36px; line-height: 1.15; letter-spacing: -0.5px; margin: 0 0 16px; font-weight: 500; }
 .landing-hero p { font-size: 17px; color: var(--text-muted); margin: 0 0 24px; }

@@ -41,12 +41,6 @@ class PlanView(TeacherRequiredMixin, View):
         organization = request.organization
         plan = limits.plan_for(organization)
         rows = limits.limit_rows(organization)
-        comparison = [
-            {'label': label, 'free': plans.FREE.limit(key), 'paid': plans.TEACHER.limit(key)} for key, label in plans.LIMITS
-        ] + [
-            {'label': label, 'free': plans.FREE.has(key), 'paid': plans.TEACHER.has(key), 'feature': True}
-            for key, label in plans.FEATURES
-        ]
         subject = quote('Quiero el plan Docente')
         lines = [
             'Hola, quiero activar el plan Docente.', '',
@@ -55,7 +49,7 @@ class PlanView(TeacherRequiredMixin, View):
         body = quote('\n'.join(lines))
         return render(request, self.template_name, {
             'plan': plan, 'limit_rows': rows, 'feature_rows': limits.feature_rows(organization),
-            'over_limit': any(row.over for row in rows), 'comparison': comparison, 'paid_plan': plans.TEACHER,
+            'over_limit': any(row.over for row in rows), 'comparison': plans.comparison_rows(), 'paid_plan': plans.TEACHER,
             'upgrade_mailto': f'mailto:{settings.SUPPORT_EMAIL}?subject={subject}&body={body}',
         })
 
