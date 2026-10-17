@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card mb-12" style="max-width: 760px">
+<div class="card mb-12 mw-760">
   <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
     <span class="grade style-pill ok">{{ attempt.score|floatformat:"-2" }} / {{ attempt.max_points|floatformat:"-2" }} puntos</span>
     <span class="chip">{{ attempt.get_status_display }}</span>

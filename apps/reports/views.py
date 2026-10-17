@@ -56,7 +56,7 @@ class TranscriptsView(OwnCourseReportMixin, View):
             )
             transcripts = build_transcripts(course, [student])
             filename = _filename(f'boleta-{slugify(student.student_number or student.last_name) or student.pk}', course, 'pdf')
-        # Con el plan Gratis la boleta sale bien hecha pero con marca de agua; el plan Docente la quita.
+        # Con el plan Gratis la boleta sale bien hecha pero con marca de agua; el plan Pro la quita.
         watermark = not limits.has_feature(request.organization, 'clean_transcripts')
         return _download(pdf.render_transcripts(transcripts, watermark=watermark), 'application/pdf', filename)
 

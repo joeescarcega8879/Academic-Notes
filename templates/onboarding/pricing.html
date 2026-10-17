@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Precios · {{ site_name }}</title>
-    <meta name="description" content="Empieza gratis, sin tarjeta. Cuando tus grupos crezcan, el plan Docente cuesta ${{ paid.monthly_price }} MXN al mes o ${{ paid.annual_price|floatformat:'0g' }} MXN al año. Tus alumnos nunca pagan." />
+    <meta name="description" content="Empieza gratis, sin tarjeta. Cuando tus grupos crezcan, el plan Pro cuesta ${{ paid.monthly_price }} MXN al mes o ${{ paid.annual_price|floatformat:'0g' }} MXN al año. Tus alumnos nunca pagan." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -15,7 +15,7 @@
 
     <section class="landing-hero">
       <h1>Empieza gratis. Paga solo cuando lo necesites.</h1>
-      <p>Tu libreta con calificación ponderada, tu lista desde Excel y tus boletas, sin tarjeta. Cuando tus grupos crezcan, pasas al plan Docente. Tus alumnos nunca pagan.</p>
+      <p>Tu libreta con calificación ponderada, tu lista desde Excel y tus boletas, sin tarjeta. Cuando tus grupos crezcan, pasas al plan Pro. Tus alumnos nunca pagan.</p>
     </section>
 
     <section class="landing-section pricing" aria-label="Planes">
@@ -50,7 +50,7 @@
 
           <div id="aviso" class="pricing-waitlist">
             {% if joined %}
-              <div class="flash flash-success" role="status">¡Listo! Te avisaremos por correo cuando el plan Docente esté disponible.</div>
+              <div class="flash flash-success" role="status">¡Listo! Te avisaremos por correo cuando el plan Pro esté disponible.</div>
             {% else %}
               <p class="text-sm" style="margin: 0 0 10px"><strong>Todavía no cobramos en línea.</strong> Déjanos tu correo y te avisamos cuando esté listo.</p>
               <form method="post" action="{% url 'pricing' %}#aviso" novalidate>
@@ -70,7 +70,7 @@
               </form>
             {% endif %}
             <p class="text-xs text-muted" style="margin: 10px 0 0">
-              ¿Ya necesitas el plan Docente? <a href="mailto:{{ support_email }}?subject={{ 'Quiero el plan Docente'|urlencode }}">Escríbenos</a> y lo activamos nosotros.
+              ¿Ya necesitas el plan Pro? <a href="mailto:{{ support_email }}?subject={{ 'Quiero el plan Pro'|urlencode }}">Escríbenos</a> y lo activamos nosotros.
             </p>
           </div>
         </article>
@@ -122,7 +122,7 @@
       </details>
       <details class="help-item">
         <summary>¿Cuándo puedo pagar?</summary>
-        <p>Todavía no cobramos en línea. Mientras tanto, si ya necesitas el plan Docente, escríbenos y lo activamos nosotros; o déjanos tu correo y te avisamos cuando el pago esté disponible.</p>
+        <p>Todavía no cobramos en línea. Mientras tanto, si ya necesitas el plan Pro, escríbenos y lo activamos nosotros; o déjanos tu correo y te avisamos cuando el pago esté disponible.</p>
       </details>
       <details class="help-item">
         <summary>¿Qué pasa con mis datos si no pago o dejo de pagar?</summary>
@@ -130,7 +130,7 @@
       </details>
       <details class="help-item">
         <summary>¿Puedo cancelar cuando quiera?</summary>
-        <p>Sí. Y como tus datos se conservan, puedes volver al plan Docente cuando lo necesites.</p>
+        <p>Sí. Y como tus datos se conservan, puedes volver al plan Pro cuando lo necesites.</p>
       </details>
     </section>
 

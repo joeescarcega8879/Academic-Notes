@@ -533,7 +533,7 @@ class TestQuizConTiempo:
     def test_en_gratis_el_campo_sale_deshabilitado_con_su_explicacion(self, docente, quiz):
         respuesta = cliente(docente).get(reverse('quizzes:builder', args=[quiz.activity.pk]))
         campo = respuesta.context['config_form'].fields['time_limit_minutes']
-        assert campo.disabled and 'plan Docente' in campo.help_text
+        assert campo.disabled and 'plan Pro' in campo.help_text
         assert 'Ver planes' in respuesta.content.decode()
 
     def test_en_gratis_un_post_con_tiempo_se_ignora(self, docente, quiz):
@@ -543,7 +543,7 @@ class TestQuizConTiempo:
         assert quiz.time_limit_minutes is None  # el tiempo no
 
     def test_en_gratis_se_conserva_un_tiempo_ya_fijado_al_guardar_otra_cosa(self, docente, quiz):
-        QuizConfig.objects.filter(pk=quiz.pk).update(time_limit_minutes=30)  # p. ej. de cuando tenía plan Docente
+        QuizConfig.objects.filter(pk=quiz.pk).update(time_limit_minutes=30)  # p. ej. de cuando tenía plan Pro
         cliente(docente).post(reverse('quizzes:builder', args=[quiz.activity.pk]), self.datos(time_limit_minutes='', attempts_allowed=2))
         quiz.refresh_from_db()
         assert quiz.time_limit_minutes == 30 and quiz.attempts_allowed == 2
@@ -676,14 +676,14 @@ class TestPantallaDelPlan:
         assert '1</div>' in html or '1 / 2' in html  # grupos
         for esperado in ('12 / 60', '3 / 30', '$149', '$1,490', 'Todavía no cobramos en línea'):
             assert esperado in html, esperado
-        assert 'mailto:ayuda@ejemplo.mx?subject=Quiero%20el%20plan%20Docente' in html
+        assert 'mailto:ayuda@ejemplo.mx?subject=Quiero%20el%20plan%20Pro' in html
         assert org_de(docente).name.replace(' ', '%20') in html  # la organización va en el cuerpo del correo
 
     def test_docente_no_ofrece_comprar_y_dice_sin_tope(self, docente):
         con_plan(docente, Plan.TEACHER)
         CourseFactory.create_batch(3, professor=docente)
         html = cliente(docente).get(URL_PLAN).content.decode()
-        assert 'Tu plan: Docente' in html and 'sin tope' in html
+        assert 'Tu plan: Pro' in html and 'sin tope' in html
         assert 'Pedir el plan' not in html and 'Cambios y cancelación' in html
 
     def test_por_encima_del_tope_explica_que_no_se_pierde_nada(self, docente):

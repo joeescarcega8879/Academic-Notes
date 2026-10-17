@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card mb-12" style="max-width: 640px">
+<div class="card mb-12 mw-640">
   {% if attempt.status == 'expired' %}
     <div class="flash mb-12">Se acabó el tiempo: se calificó lo que alcanzaste a responder.</div>
   {% endif %}
@@ -28,7 +28,7 @@
   <h3 class="section-title">Revisión</h3>
   {% include 'partials/attempt_rows.html' with rows=review %}
 {% elif not review_available %}
-  <div class="card" style="max-width: 640px">
+  <div class="card mw-640">
     <p class="text-muted" style="margin: 0">
       {% if quiz.feedback_mode == 'after_close' %}Las respuestas correctas y las explicaciones se mostrarán cuando cierre el quiz.
       {% else %}Este quiz solo muestra la calificación.{% endif %}

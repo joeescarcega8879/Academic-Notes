@@ -143,7 +143,7 @@ def grupo(course):
     return ana
 
 
-@pytest.mark.usefixtures('plan_docente')  # elegir y ordenar columnas es del plan Docente (ver test_planes_y_limites)
+@pytest.mark.usefixtures('plan_docente')  # elegir y ordenar columnas es del plan Pro (ver test_planes_y_limites)
 class TestDescargas:
     def test_boletas_del_grupo(self, professor_client, course, grupo):
         response = professor_client.get(reverse("reports:transcripts", args=[course.pk]))

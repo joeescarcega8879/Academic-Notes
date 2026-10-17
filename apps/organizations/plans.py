@@ -44,13 +44,13 @@ FREE = PlanSpec(
     timed_quizzes=False, custom_workbook=False, clean_transcripts=False,
 )
 
-TEACHER = PlanSpec(key=Plan.TEACHER, name='Docente', monthly_price=149, annual_price=1490)
+TEACHER = PlanSpec(key=Plan.TEACHER, name='Pro', monthly_price=149, annual_price=1490)
 
 # Los demás planes se asignan a mano (piloto, instituciones): sin topes y con todas las funciones.
 PLANS = {
     Plan.FREE: FREE,
     Plan.TEACHER: TEACHER,
-    Plan.TEACHER_PLUS: replace(TEACHER, key=Plan.TEACHER_PLUS, name='Docente Plus', monthly_price=None, annual_price=None),
+    Plan.TEACHER_PLUS: replace(TEACHER, key=Plan.TEACHER_PLUS, name='Plus', monthly_price=None, annual_price=None),
     Plan.BASIC: replace(TEACHER, key=Plan.BASIC, name='Institución Básico', monthly_price=None, annual_price=None),
     Plan.STANDARD: replace(TEACHER, key=Plan.STANDARD, name='Institución Estándar', monthly_price=None, annual_price=None),
     Plan.ENTERPRISE: replace(TEACHER, key=Plan.ENTERPRISE, name='Institución Enterprise', monthly_price=None, annual_price=None),
@@ -72,7 +72,7 @@ FEATURE_KEYS = tuple(key for key, _ in FEATURES)
 
 
 def comparison_rows():
-    """Gratis frente a Docente, fila por fila: topes (``None`` = sin tope) y funciones (``feature=True``, sí/no)."""
+    """Gratis frente a Pro, fila por fila: topes (``None`` = sin tope) y funciones (``feature=True``, sí/no)."""
     return [
         {'label': label, 'free': FREE.limit(key), 'paid': TEACHER.limit(key)} for key, label in LIMITS
     ] + [

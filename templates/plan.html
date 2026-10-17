@@ -35,7 +35,7 @@
       {% for feature in feature_rows %}
         <li class="{% if feature.included %}is-on{% else %}is-off{% endif %}">
           <span aria-hidden="true">{% if feature.included %}✓{% else %}—{% endif %}</span>
-          {{ feature.label }}{% if not feature.included %} <span class="text-xs text-muted">(plan Docente)</span>{% endif %}
+          {{ feature.label }}{% if not feature.included %} <span class="text-xs text-muted">(plan Pro)</span>{% endif %}
         </li>
       {% endfor %}
     </ul>

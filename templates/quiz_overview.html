@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card mb-12" style="max-width: 760px">
+<div class="card mb-12 mw-760">
   {% if activity.instructions %}<p style="white-space: pre-line; margin-top: 0">{{ activity.instructions }}</p>{% endif %}
   <div class="kv-row"><div class="k">Preguntas</div><div class="v">{{ question_count }}</div></div>
   <div class="kv-row"><div class="k">Puntos de la actividad</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
@@ -36,7 +36,7 @@
 </div>
 
 {% if attempts %}
-<div class="table-wrap" style="max-width: 760px">
+<div class="table-wrap mw-760">
   <div class="table-head"><h3>Tus intentos</h3></div>
   <table class="tbl">
     <thead><tr><th>Intento</th><th>Inicio</th><th>Estado</th><th>Resultado</th><th></th></tr></thead>

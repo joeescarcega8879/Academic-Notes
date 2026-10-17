@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 760px">
+<div class="card mw-760">
   <p class="text-sm" style="margin-top: 0">
     Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
     {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% else %}<span class="chip ok">A tiempo</span>{% endif %}
