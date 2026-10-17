@@ -2,9 +2,7 @@
 
 Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, actividades y entregas, quizzes con calificación automática, libreta de calificaciones y reportes (boleta PDF, concentrado Excel y alumnos en riesgo). Construida con **Django**.
 
-> **Documentos del proyecto**
-> - [`New_Phases.md`](New_Phases.md): plan de producto por fases, planes y precios, y la ruta hacia el cobro.
-> - [`CONTEXT.md`](CONTEXT.md): registro técnico de las primeras fases. **Está desactualizado** (se quedó en la Fase 0); no refleja el estado actual.
+> El plan de producto por fases, los planes y precios y la ruta hacia el cobro viven en [`New_Phases.md`](New_Phases.md).
 
 ---
 
@@ -20,6 +18,24 @@ Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, 
 | Reportes | `reports` | Boleta PDF, concentrado Excel con columnas elegibles, alumnos en riesgo |
 | Mensajería | `messaging` | Conversaciones docente ↔ alumno y notificaciones |
 | Alta y precios | `onboarding` | Portada, registro de docente y de alumno, términos y privacidad (**borrador sin revisión legal**), primeros pasos, página de Precios con lista de espera, Ayuda |
+
+---
+
+## 💳 Planes
+
+Los topes y funciones de cada plan están en una sola tabla: `apps/organizations/plans.py` (se consultan con `apps/organizations/limits.py`). Hoy **no hay cobro en línea**: el plan de pago se asigna desde el admin y la página `/precios/` recoge una lista de espera.
+
+| | Gratis | Docente |
+|---|---|---|
+| Grupos activos | 2 | sin tope |
+| Alumnos en grupos activos | 60 | sin tope |
+| Preguntas en el banco | 30 | sin tope |
+| Quizzes con tiempo límite | no | sí |
+| Excel con columnas a elección | no (columnas fijas) | sí |
+| Boletas PDF | con marca de agua | sin marca de agua |
+| Precio | $0 | $149/mes · $1,490/año (MXN) |
+
+Los planes de institución y Docente Plus se asignan a mano y no tienen topes.
 
 ---
 
@@ -119,6 +135,30 @@ El CI (`.github/workflows/ci.yml`) corre estas tres comprobaciones con PostgreSQ
 | `/admin/` | Panel de administración de Django |
 
 Las rutas antiguas `/materia/…` redirigen (301) a `/grupo/…`.
+
+---
+
+## ⚙️ Variables de entorno
+
+Se leen de `.env` (plantilla en `.env.example`). Las principales:
+
+| Variable | Para qué |
+|---|---|
+| `DJANGO_SETTINGS_MODULE` | `core.settings.local` (desarrollo) o `core.settings.production` |
+| `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS` | Configuración básica de Django |
+| `DATABASE_URL` | Vacía = SQLite local; con Docker/producción, la URL de PostgreSQL |
+| `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `CELERY_TASK_ALWAYS_EAGER` | Caché y Celery |
+| `DJANGO_EMAIL_BACKEND`, `EMAIL_*`, `DEFAULT_FROM_EMAIL` | Correo (por defecto, a consola) |
+| `SITE_NAME`, `SITE_URL`, `SUPPORT_EMAIL` | Nombre, dirección pública (obligatoria en producción) y soporte; salen en los correos |
+| `SENTRY_DSN` | Errores en producción (opcional) |
+
+---
+
+## 🧭 Estado y hoja de ruta
+
+- **Hecho:** organizaciones multi-tenant, ciclos y grupos, esquema de evaluación, actividades y entregas, quizzes, libreta, reportes, registro, planes y límites sin cobro, página de Precios.
+- **Siguiente:** corregir lo que salga de las pruebas manuales; luego la pasarela de pago en modo de prueba, y el despliegue con respaldos probados.
+- **Más adelante:** asistencia, rúbricas, proyectos por equipos, panel de dirección, API (`api/v1`) y app móvil. Detalle en [`New_Phases.md`](New_Phases.md).
 
 ---
 
