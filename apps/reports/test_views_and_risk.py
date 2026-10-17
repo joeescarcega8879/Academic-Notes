@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.courses.services.courses import archive_course
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 from apps.grades.services.gradebook import grade_activity
 from apps.grades.services.schemes import ensure_scheme

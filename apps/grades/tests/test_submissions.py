@@ -17,9 +17,9 @@ from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY
 
-from .factories import ActivityFactory, GradeFactory
-from .models import MAX_SUBMISSION_BYTES, Activity, Submission
-from .services.submissions import clean_filename, submission_state, submit
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import MAX_SUBMISSION_BYTES, Activity, Submission
+from apps.grades.services.submissions import clean_filename, submission_state, submit
 
 pytestmark = pytest.mark.django_db
 

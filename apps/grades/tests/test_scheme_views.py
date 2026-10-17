@@ -8,8 +8,8 @@ from apps.courses.services.courses import archive_course
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Activity, EvaluationCriterion, EvaluationPeriod
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod
 
 pytestmark = pytest.mark.django_db
 

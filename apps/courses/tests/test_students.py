@@ -6,7 +6,7 @@ from django.db import IntegrityError, transaction
 from django.urls import reverse
 
 from apps.accounts.tests.factories import StudentFactory
-from apps.grades.factories import GradeFactory
+from apps.grades.tests.factories import GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.models import Conversation
 from apps.organizations.tests.factories import OrganizationFactory

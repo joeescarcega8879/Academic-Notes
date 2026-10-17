@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership

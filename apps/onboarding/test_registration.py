@@ -266,7 +266,7 @@ class TestPrimerosPasos:
 
     def test_los_pasos_se_marcan_con_lo_que_ya_hizo(self, professor_client, professor, course):
         from apps.courses.tests.factories import EnrollmentFactory
-        from apps.grades.factories import ActivityFactory
+        from apps.grades.tests.factories import ActivityFactory
         from apps.grades.services.gradebook import grade_activity
 
         def hechos():
@@ -304,7 +304,7 @@ class TestPrimerosPasos:
 
     def test_el_trabajo_de_un_colega_de_la_misma_organizacion_no_cuenta(self, professor_client, course):
         from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
-        from apps.grades.factories import ActivityFactory
+        from apps.grades.tests.factories import ActivityFactory
         from apps.organizations.tests.factories import MembershipFactory
 
         colega = ProfessorFactory()

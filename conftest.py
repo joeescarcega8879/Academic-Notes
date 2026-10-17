@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 
 

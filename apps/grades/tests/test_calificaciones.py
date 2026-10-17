@@ -12,8 +12,8 @@ from django.urls import reverse
 from apps.accounts.tests.factories import StudentFactory
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Grade
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Grade
 
 pytestmark = pytest.mark.django_db
 

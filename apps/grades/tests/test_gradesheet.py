@@ -10,13 +10,13 @@ from django.utils import timezone
 from apps.courses.tests.factories import EnrollmentFactory
 from apps.courses.services.courses import archive_course
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Activity, EvaluationCriterion, EvaluationPeriod, Grade, GradeHistory
-from .services.gradebook import grade_activity
-from .services.grading import results_by_course
-from .services.gradesheet import build_gradesheet, fmt, parse_score, set_cell
-from .services.schemes import ensure_scheme
-from .services.submissions import submit
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, Grade, GradeHistory
+from apps.grades.services.gradebook import grade_activity
+from apps.grades.services.grading import results_by_course
+from apps.grades.services.gradesheet import build_gradesheet, fmt, parse_score, set_cell
+from apps.grades.services.schemes import ensure_scheme
+from apps.grades.services.submissions import submit
 
 pytestmark = pytest.mark.django_db
 

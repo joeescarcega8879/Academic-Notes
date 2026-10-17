@@ -2,7 +2,7 @@ import factory
 from django.utils import timezone
 
 from apps.accounts.tests.factories import ProfessorFactory
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 from apps.organizations.services import teaching_organization
 

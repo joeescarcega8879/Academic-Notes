@@ -2,7 +2,7 @@ import factory
 
 from apps.courses.tests.factories import CourseFactory, StudentRecordFactory, as_student
 
-from .models import Activity, Grade
+from apps.grades.models import Activity, Grade
 
 
 class ActivityFactory(factory.django.DjangoModelFactory):

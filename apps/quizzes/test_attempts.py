@@ -12,7 +12,7 @@ from django.utils import timezone
 from apps.accounts.tests.factories import StudentFactory
 from apps.courses.tests.factories import EnrollmentFactory
 from apps.courses.services.courses import archive_course
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 
 from .factories import QuestionFactory, make_quiz

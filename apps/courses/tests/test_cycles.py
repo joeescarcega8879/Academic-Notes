@@ -6,7 +6,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, Grade
 from apps.organizations.tests.factories import OrganizationFactory
 

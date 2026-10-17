@@ -6,7 +6,7 @@ import io
 import pytest
 from django.urls import reverse
 
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 

@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from apps.courses.tests.factories import EnrollmentFactory
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 from apps.messaging.tests.factories import ConversationFactory, MessageFactory
 
 pytestmark = pytest.mark.django_db

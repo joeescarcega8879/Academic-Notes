@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory
 from apps.courses.services.courses import archive_course, clone_course
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 
 from .factories import QuestionFactory, QuizAttemptFactory, make_quiz

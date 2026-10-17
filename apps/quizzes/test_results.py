@@ -381,7 +381,7 @@ class TestPantallaDelDocente:
         assert student_client.get(resultados(quiz)).status_code == 302
 
     def test_una_actividad_que_no_es_quiz_es_404(self, professor_client, course):
-        from apps.grades.factories import ActivityFactory
+        from apps.grades.tests.factories import ActivityFactory
 
         assert professor_client.get(reverse("quizzes:results", args=[ActivityFactory(course=course).pk])).status_code == 404
 

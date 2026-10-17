@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, GradeHistory, Submission
 from apps.quizzes.factories import QuestionFactory, QuizAttemptFactory, answer, make_quiz
 from apps.quizzes.models import Answer, Choice, Question, QuizAttempt, QuizChoice, QuizConfig, QuizQuestion

@@ -18,7 +18,7 @@ from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, Stu
 from apps.courses.models import Course, Enrollment, Student
 from apps.courses.services import importing, roster
 from apps.courses.services.courses import archive_course, clone_course, unarchive_course
-from apps.grades.factories import ActivityFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.organizations import limits, plans
 from apps.organizations.limits import PlanLimitError
 from apps.organizations.models import Membership, Organization

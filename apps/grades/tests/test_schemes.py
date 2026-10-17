@@ -8,9 +8,9 @@ from django.db.models import ProtectedError
 from apps.courses.tests.factories import AcademicYearFactory, CourseFactory
 from apps.courses.services.courses import clone_course
 
-from .factories import ActivityFactory
-from .models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
-from .services.schemes import copy_scheme, create_default_scheme, default_criterion, ensure_scheme
+from apps.grades.tests.factories import ActivityFactory
+from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme
+from apps.grades.services.schemes import copy_scheme, create_default_scheme, default_criterion, ensure_scheme
 
 pytestmark = pytest.mark.django_db
 

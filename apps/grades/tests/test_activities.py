@@ -11,9 +11,9 @@ from apps.courses.services.courses import archive_course
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Activity
-from .services.grading import results_by_course
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity
+from apps.grades.services.grading import results_by_course
 
 pytestmark = pytest.mark.django_db
 

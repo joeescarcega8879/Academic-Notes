@@ -12,7 +12,7 @@ from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.tests.factories import PASSWORD, ProfessorFactory, StudentFactory
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.tests.factories import MessageFactory
 from apps.messaging.models import Conversation, Message

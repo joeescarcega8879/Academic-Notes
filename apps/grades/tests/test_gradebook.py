@@ -11,11 +11,11 @@ from apps.accounts.tests.factories import ProfessorFactory
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 from apps.courses.services.courses import archive_course
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Activity, Grade, GradeHistory, apply_late_penalty
-from .services.gradebook import grade_activity, late_penalty_for, remove_grade
-from .services.grading import results_by_course
-from .services.submissions import submit
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity, Grade, GradeHistory, apply_late_penalty
+from apps.grades.services.gradebook import grade_activity, late_penalty_for, remove_grade
+from apps.grades.services.grading import results_by_course
+from apps.grades.services.submissions import submit
 
 pytestmark = pytest.mark.django_db
 

@@ -6,7 +6,7 @@ from django.test import Client
 from django.urls import reverse
 
 from apps.accounts.tests.factories import ProfessorFactory
-from apps.grades.factories import ActivityFactory, GradeFactory
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
 
 from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 

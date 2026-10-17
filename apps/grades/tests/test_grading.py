@@ -14,9 +14,9 @@ from django.test.utils import CaptureQueriesContext
 
 from apps.courses.tests.factories import CourseFactory, StudentRecordFactory
 
-from .factories import ActivityFactory, GradeFactory
-from .models import Activity
-from .services.grading import (
+from apps.grades.tests.factories import ActivityFactory, GradeFactory
+from apps.grades.models import Activity
+from apps.grades.services.grading import (
     DISPLAY_SCALE,
     CourseResult,
     GroupStats,
