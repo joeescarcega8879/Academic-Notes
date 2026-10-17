@@ -31,7 +31,7 @@ class SwitchOrganizationView(LoginRequiredMixin, View):
 class PlanView(TeacherRequiredMixin, View):
     """«Plan y facturación»: el plan actual, cuánto se usa de cada tope y qué ofrece el plan de pago.
 
-    Todavía no se cobra en línea: el plan Docente se activa con el equipo (el plan de la organización se asigna
+    Todavía no se cobra en línea: el plan Pro se activa con el equipo (el plan de la organización se asigna
     desde el admin). Cuando exista la pasarela, el botón de abajo pasa a ser el pago.
     """
 
@@ -41,9 +41,9 @@ class PlanView(TeacherRequiredMixin, View):
         organization = request.organization
         plan = limits.plan_for(organization)
         rows = limits.limit_rows(organization)
-        subject = quote('Quiero el plan Docente')
+        subject = quote('Quiero el plan Pro')
         lines = [
-            'Hola, quiero activar el plan Docente.', '',
+            'Hola, quiero activar el plan Pro.', '',
             f'Organización: {organization.name} (id {organization.pk})', f'Correo: {request.user.email}',
         ]
         body = quote('\n'.join(lines))

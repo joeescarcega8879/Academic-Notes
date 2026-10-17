@@ -82,7 +82,7 @@ class QuizConfigForm(forms.ModelForm):
             # Deshabilitado: lo que llegue en la petición se ignora y se conserva el valor actual (si lo hay).
             field = self.fields['time_limit_minutes']
             field.disabled = True
-            field.help_text = 'Los quizzes con tiempo límite son del plan Docente.'
+            field.help_text = 'Los quizzes con tiempo límite son del plan Pro.'
 
 
 class BankFilterForm(forms.Form):

@@ -25,7 +25,7 @@ Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, 
 
 Los topes y funciones de cada plan están en una sola tabla: `apps/organizations/plans.py` (se consultan con `apps/organizations/limits.py`). Hoy **no hay cobro en línea**: el plan de pago se asigna desde el admin y la página `/precios/` recoge una lista de espera.
 
-| | Gratis | Docente |
+| | Gratis | Pro |
 |---|---|---|
 | Grupos activos | 2 | sin tope |
 | Alumnos en grupos activos | 60 | sin tope |
@@ -35,7 +35,7 @@ Los topes y funciones de cada plan están en una sola tabla: `apps/organizations
 | Boletas PDF | con marca de agua | sin marca de agua |
 | Precio | $0 | $149/mes · $1,490/año (MXN) |
 
-Los planes de institución y Docente Plus se asignan a mano y no tienen topes.
+Los planes de institución y Plus se asignan a mano y no tienen topes.
 
 ---
 

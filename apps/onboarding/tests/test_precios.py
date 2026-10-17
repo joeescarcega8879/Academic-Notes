@@ -38,7 +38,7 @@ class TestPagina:
 
     def test_muestra_los_dos_planes_con_sus_precios_y_topes(self):
         html = Client().get(URL).content.decode()
-        for esperado in ('Gratis', 'Docente', '$0', '$149', '$1,490', '2 meses gratis', 'Grupos activos: 2',
+        for esperado in ('Gratis', 'Pro', '$0', '$149', '$1,490', '2 meses gratis', 'Grupos activos: 2',
                          'Alumnos en grupos activos: 60', 'Preguntas en el banco: 30'):
             assert esperado in html, esperado
 
@@ -68,7 +68,7 @@ class TestPagina:
 
     def test_no_promete_lo_que_no_existe(self):
         html = Client().get(URL).content.decode()
-        for prohibido in ('WhatsApp', 'inteligencia artificial', 'portal de padres', 'panel de dirección', 'Docente Plus'):
+        for prohibido in ('WhatsApp', 'inteligencia artificial', 'portal de padres', 'panel de dirección', 'Plus'):
             assert prohibido.lower() not in html.lower(), prohibido
 
     def test_las_escuelas_van_a_un_piloto_por_correo(self, settings):

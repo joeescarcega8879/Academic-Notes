@@ -13,8 +13,8 @@ class Organization(models.Model):
 
     class Plan(models.TextChoices):
         FREE = 'free', 'Gratis'
-        TEACHER = 'teacher', 'Docente'
-        TEACHER_PLUS = 'teacher_plus', 'Docente Plus'
+        TEACHER = 'teacher', 'Pro'
+        TEACHER_PLUS = 'teacher_plus', 'Plus'
         BASIC = 'basic', 'Institución Básico'
         STANDARD = 'standard', 'Institución Estándar'
         ENTERPRISE = 'enterprise', 'Institución Enterprise'
