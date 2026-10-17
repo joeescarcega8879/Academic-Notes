@@ -9,7 +9,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
-from apps.accounts.factories import StudentFactory
+from apps.accounts.tests.factories import StudentFactory
 from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
 from .factories import ActivityFactory, GradeFactory

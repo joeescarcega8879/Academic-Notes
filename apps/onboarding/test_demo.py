@@ -10,7 +10,7 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory
+from apps.accounts.tests.factories import ProfessorFactory
 from apps.courses.factories import EnrollmentFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.grades.models import Activity, Grade, GradeHistory, Submission

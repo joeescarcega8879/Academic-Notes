@@ -1,9 +1,9 @@
 import factory
 
-from apps.accounts.factories import StudentFactory
+from apps.accounts.tests.factories import StudentFactory
 from apps.courses.factories import CourseFactory
 
-from .models import Conversation, Message
+from apps.messaging.models import Conversation, Message
 
 
 class ConversationFactory(factory.django.DjangoModelFactory):

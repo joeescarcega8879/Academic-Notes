@@ -4,7 +4,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
-from apps.accounts.factories import StudentFactory
+from apps.accounts.tests.factories import StudentFactory
 from apps.messaging.models import Conversation
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY

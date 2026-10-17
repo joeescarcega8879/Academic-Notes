@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts import services, tasks
-from apps.accounts.factories import PASSWORD, ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import PASSWORD, ProfessorFactory, StudentFactory
 
 pytestmark = pytest.mark.django_db
 

@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import PASSWORD, StudentFactory
+from apps.accounts.tests.factories import PASSWORD, StudentFactory
 from apps.courses.factories import EnrollmentFactory
 from apps.organizations.factories import MembershipFactory
 from apps.organizations.models import Membership

@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory
+from apps.accounts.tests.factories import ProfessorFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
 
 from .factories import EnrollmentFactory, CourseFactory

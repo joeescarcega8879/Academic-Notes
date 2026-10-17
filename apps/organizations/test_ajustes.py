@@ -7,7 +7,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.courses.factories import AcademicYearFactory
 from apps.organizations.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership, Organization

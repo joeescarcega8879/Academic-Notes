@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.factories import ProfessorFactory
+from apps.accounts.tests.factories import ProfessorFactory
 from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 from apps.courses.services.courses import archive_course
 

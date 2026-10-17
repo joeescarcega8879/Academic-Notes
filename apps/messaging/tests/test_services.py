@@ -5,13 +5,13 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory
+from apps.accounts.tests.factories import ProfessorFactory
 from apps.organizations.factories import MembershipFactory
 from apps.organizations.models import Membership
 from apps.courses.factories import EnrollmentFactory
 
-from .factories import ConversationFactory, MessageFactory
-from .services import mark_all_read, unread_messages_for
+from apps.messaging.tests.factories import ConversationFactory, MessageFactory
+from apps.messaging.services import mark_all_read, unread_messages_for
 
 pytestmark = pytest.mark.django_db
 

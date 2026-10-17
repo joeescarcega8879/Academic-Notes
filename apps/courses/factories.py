@@ -3,7 +3,7 @@ import datetime
 import factory
 from django.contrib.auth import get_user_model
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.organizations.factories import OrganizationFactory
 
 from .models import AcademicYear, Course, Enrollment, Student

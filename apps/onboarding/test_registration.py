@@ -8,7 +8,7 @@ from django.core import mail
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import PASSWORD, ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import PASSWORD, ProfessorFactory, StudentFactory
 from apps.courses.models import AcademicYear, Course
 from apps.organizations.models import Membership, Organization
 

@@ -8,12 +8,12 @@ from django.test import Client, RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod, EvaluationScheme, Grade, GradeHistory, Submission
 from apps.quizzes.factories import QuestionFactory, QuizAttemptFactory, answer, make_quiz
 from apps.quizzes.models import Answer, Choice, Question, QuizAttempt, QuizChoice, QuizConfig, QuizQuestion
-from apps.messaging.factories import ConversationFactory, MessageFactory
+from apps.messaging.tests.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student

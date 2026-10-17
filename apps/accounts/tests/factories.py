@@ -1,7 +1,7 @@
 import factory
 from django.contrib.auth import get_user_model
 
-from .models import ProfessorProfile, StudentProfile
+from apps.accounts.models import ProfessorProfile, StudentProfile
 
 PASSWORD = "Prueba123!"
 

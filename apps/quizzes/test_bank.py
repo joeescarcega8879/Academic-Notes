@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory
+from apps.accounts.tests.factories import ProfessorFactory
 from apps.organizations.factories import MembershipFactory
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY, teaching_organization

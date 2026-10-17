@@ -1,6 +1,6 @@
 import factory
 
-from apps.accounts.factories import StudentFactory
+from apps.accounts.tests.factories import StudentFactory
 
 from .models import Membership, Organization
 

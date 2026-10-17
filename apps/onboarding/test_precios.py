@@ -7,7 +7,7 @@ from django.contrib import admin
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.organizations import plans
 from apps.organizations.models import Organization
 

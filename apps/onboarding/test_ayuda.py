@@ -6,7 +6,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 
 pytestmark = pytest.mark.django_db
 

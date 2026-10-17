@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 from django.urls import reverse
 
-from apps.accounts.factories import StudentFactory
+from apps.accounts.tests.factories import StudentFactory
 from apps.courses.services.courses import archive_course
 from apps.grades.factories import ActivityFactory
 from apps.grades.services.gradebook import grade_activity

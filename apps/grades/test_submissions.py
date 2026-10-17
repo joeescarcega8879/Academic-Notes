@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.accounts.factories import ProfessorFactory, StudentFactory
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 from apps.courses.services.courses import archive_course
 from apps.organizations.factories import MembershipFactory
