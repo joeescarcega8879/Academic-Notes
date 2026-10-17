@@ -16,7 +16,7 @@
 <form method="post" id="quiz-form" data-autosave-url="{% url 'quizzes:autosave' attempt.pk %}" data-remaining="{{ remaining|default_if_none:'' }}">
   {% csrf_token %}
   {% for row in rows %}
-    <div class="card mb-12 quiz-question" style="max-width: 760px">
+    <div class="card mb-12 quiz-question mw-760">
       <div class="flex-row items-baseline gap-14">
         <strong>{{ forloop.counter }}.</strong>
         <span class="chip">{{ row.question.points|floatformat:"-2" }} punto{{ row.question.points|pluralize }}</span>

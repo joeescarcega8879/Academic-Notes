@@ -10,7 +10,7 @@
 
 {% block content %}
 {% if plan.header_errors %}
-  <div class="card mb-12" style="max-width: 720px">
+  <div class="card mb-12 mw-720">
     {% for error in plan.header_errors %}<div class="flash flash-error" style="margin-bottom: 8px">{{ error }}</div>{% endfor %}
     <p class="text-sm text-muted">Revisa los encabezados del archivo o usa la plantilla.</p>
     <div class="flex-row gap-14">

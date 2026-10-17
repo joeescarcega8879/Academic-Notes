@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="card mb-12" style="max-width: 640px">
+<div class="card mb-12 mw-640">
   <h3 class="section-title">Alumno nuevo</h3>
   <form method="post" novalidate>
     {% csrf_token %}
@@ -22,7 +22,7 @@
   </form>
 </div>
 
-<div class="card" style="max-width: 640px">
+<div class="card mw-640">
   <h3 class="section-title">Inscribir a alguien que ya está en la organización</h3>
   <p class="text-sm text-muted" style="margin-top: 0">Útil cuando el alumno ya cursó otro grupo contigo: conserva su matrícula y su cuenta.</p>
   <form method="post" novalidate>
