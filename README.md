@@ -1,91 +1,102 @@
 # Academic Notes
 
-Sistema web académico construido con **Django** para la gestión de materias,
-calificaciones y comunicación entre **profesores** y **alumnos**
-(prototipo · Universidad del Plata Sur).
+Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, actividades y entregas, quizzes con calificación automática, libreta de calificaciones y reportes (boleta PDF, concentrado Excel y alumnos en riesgo). Construida con **Django**.
 
-> 📄 **Contexto del proyecto:** el historial técnico completo — fases, archivos,
-> decisiones y pendientes — vive en **[CONTEXT.md](CONTEXT.md)**. Este README es la
-> guía rápida; el CONTEXT.md es el registro de trabajo.
+> **Documentos del proyecto**
+> - [`New_Phases.md`](New_Phases.md): plan de producto por fases, planes y precios, y la ruta hacia el cobro.
+> - [`CONTEXT.md`](CONTEXT.md): registro técnico de las primeras fases. **Está desactualizado** (se quedó en la Fase 0); no refleja el estado actual.
 
 ---
 
-## ✨ Funcionalidades
+## ✨ Qué incluye
 
-| Área | Estado | Descripción |
+| Área | App | Descripción |
 |---|---|---|
-| Autenticación | ✅ Fase 2 | Login con **email o username**, selector de rol, logout, perfiles con datos académicos y preferencias |
-| Materias e inscripciones | ✅ Fase 3 | Dashboards por rol, materias con horario/color, inscripción de alumnos, detalle con tabla de inscritos |
-| Calificaciones | ⬜ Fase 4 | Evaluaciones, calificaciones y promedios (en desarrollo) |
-| Mensajería | ⬜ Fase 5 | Conversaciones profesor ↔ alumno (en desarrollo) |
-| Integración y pulido | ⬜ Fase 6 | Stats reales, notificaciones, exportar, responsive, dark mode |
+| Organizaciones | `organizations` | Multi-tenant por fila: `Organization`, `Membership`, selector de organización activa, planes y límites (`plans.py`, `limits.py`), pantalla «Plan y facturación» |
+| Cuentas | `accounts` | Login por correo o usuario, confirmación de correo, restablecer y cambiar contraseña, perfil editable y foto privada |
+| Grupos y alumnos | `courses` | Ciclos escolares, grupos archivables y duplicables, lista de alumnos, importación Excel/CSV con vista previa, código de invitación |
+| Calificaciones | `grades` | Esquema de evaluación (periodos y criterios), actividades con borrador/publicación, entregas con archivos privados, calificar con penalización por tardía, historial, libreta con edición en línea |
+| Quizzes | `quizzes` | Banco de preguntas, constructor, resolver con plazo del servidor y autoguardado, calificación automática, importar preguntas, cierre de intentos vencidos |
+| Reportes | `reports` | Boleta PDF, concentrado Excel con columnas elegibles, alumnos en riesgo |
+| Mensajería | `messaging` | Conversaciones docente ↔ alumno y notificaciones |
+| Alta y precios | `onboarding` | Portada, registro de docente y de alumno, términos y privacidad (**borrador sin revisión legal**), primeros pasos, página de Precios con lista de espera, Ayuda |
 
 ---
 
 ## 🧱 Stack
 
-- **Django 5.2** · Python 3.14 (entorno conda `DjangoEnvironment`)
-- **SQLite** (base de datos local, no versionada)
-- Templates Django + **CSS/JS propios** (front *Academic Notes* copiado al proyecto) con iconos Feather inline
-- Admin de Django para gestión (materias, inscripciones, usuarios)
+- **Django 5.2**. Desarrollo local con Python 3.14 (entorno conda `DjangoEnvironment`); el CI y el Dockerfile usan Python 3.13.
+- **SQLite** en local sin Docker; **PostgreSQL 16** en Docker, CI y producción.
+- **Celery + Redis** para correos y cierre de intentos de quiz. En local, `CELERY_TASK_ALWAYS_EAGER=True` corre las tareas en el mismo proceso, sin worker.
+- Plantillas Django con CSS y JS propios (`static/css/gradelink.css`, `static/js/`).
+- `openpyxl` (Excel), `reportlab` (PDF), `Pillow` (fotos).
+- Pruebas con **pytest + pytest-django + factory_boy**; lint con **ruff**.
 
 ---
 
-## 📁 Estructura del proyecto
+## 📁 Estructura
 
 ```
 Academic-Notes/
-├── core/                  # Settings y urls del proyecto
+├── core/             # Settings (base/local/production/test), urls, Celery, throttle, utilidades
 ├── apps/
-│   ├── accounts/          # User custom, perfiles, login, backends
-│   ├── courses/           # Course, Enrollment, dashboards
-│   ├── grades/            # (Fase 4) Evaluaciones y calificaciones
-│   └── messaging/         # (Fase 5) Mensajería
-├── templates/             # HTML: base, login, perfil, dashboards, materia…
-├── static/                # css/gradelink.css, js/app.js, js/icons.js
-├── media/                 # Subidas de usuario (avatares)
-├── credenciales-prueba/   # ⚠️ LOCAL (no versionado): usuarios y datos demo
-├── CONTEXT.md             # Contexto técnico detallado del proyecto
+│   ├── accounts/  courses/  grades/  messaging/
+│   └── onboarding/  organizations/  quizzes/  reports/
+├── templates/        # Plantillas HTML (auth, emails, onboarding, partials…)
+├── static/           # CSS y JS propios
+├── requirements/     # base.txt, local.txt, production.txt
+├── conftest.py       # Fixtures compartidas de la suite
+├── New_Phases.md     # Plan de producto
 └── manage.py
 ```
 
+Convenciones del código: la lógica va en `services/`, no en las vistas; todo modelo con organización hereda `TenantModel` y se consulta con `.for_organization(request.organization)`.
+
 ---
 
-## 🚀 Puesta en marcha
+## 🚀 Puesta en marcha (local)
 
 ```bash
 # 1. Activar el entorno (conda, como se usa en este proyecto)
 conda activate DjangoEnvironment
 
-# 2. Instalar dependencias (si hace falta)
-pip install "django>=5.2"
+# 2. Instalar dependencias
+pip install -r requirements/local.txt
 
-# 3. Migrar la base de datos y crear superusuario
+# 3. Variables de entorno
+cp .env.example .env               # el valor por defecto usa SQLite y correos por consola
+
+# 4. Migrar la base de datos
 python manage.py migrate
-python manage.py createsuperuser   # pide email, rol y contraseña
 
-# 4. Levantar el servidor
+# 5. Datos de ejemplo (docente, alumnos, grupos, quizzes, entregas…)
+python manage.py crear_demo
+
+# 6. Levantar el servidor
 python manage.py runserver         # → http://127.0.0.1:8000/
+```
+
+`crear_demo` crea el docente `docente@demo.test` y los alumnos `alumno1@demo.test` a `alumno3@demo.test`, todos con la contraseña `Demo-Clave-2026`. Solo corre con `DEBUG=True` o con `--force`. Opciones: `--reset` (rehacer la escuela), `--delete` (borrarla).
+
+Para crear un administrador: `python manage.py createsuperuser`.
+
+### Con Docker
+
+```bash
+docker compose up --build          # web + PostgreSQL + Redis + worker de Celery
 ```
 
 ---
 
-## 👥 Datos de demostración (opcional)
-
-El proyecto incluye scripts locales (en `credenciales-prueba/`, **no versionados**)
-para poblar la base de datos al instante:
+## ✅ Pruebas y calidad
 
 ```bash
-python credenciales-prueba/crear_usuarios.py      # 10 profesores + 10 alumnos con perfiles
-python credenciales-prueba/crear_datos_demo.py    # 5 materias + 17 inscripciones
+pytest                             # toda la suite (settings: core.settings.test)
+ruff check .                       # lint
+python manage.py makemigrations --check --dry-run   # ¿faltan migraciones?
 ```
 
-**Credenciales** (ver `credenciales-prueba/credenciales.txt`):
-
-| Rol | Email | Contraseña |
-|---|---|---|
-| Profesor | `jose.ramirez@gradelink.edu` | `Test1234!` |
-| Alumno | `diego.morales@gradelink.edu` | `Test1234!` |
+El CI (`.github/workflows/ci.yml`) corre estas tres comprobaciones con PostgreSQL y Redis en cada push a `main` y `develop`.
 
 ---
 
@@ -93,26 +104,28 @@ python credenciales-prueba/crear_datos_demo.py    # 5 materias + 17 inscripcione
 
 | URL | Descripción |
 |---|---|
-| `/login/` | Inicio de sesión (selector de rol) |
-| `/profesor/dashboard/` | Dashboard del profesor (sus materias + alumnos) |
-| `/alumno/dashboard/` | Dashboard del alumno (materias inscritas) |
-| `/materia/<pk>/` | Detalle de materia (tabla de alumnos / info de inscripción) |
-| `/perfil/` | Perfil y preferencias del usuario |
-| `/calificaciones/` | *(Fase 4)* — placeholder actual |
-| `/mensajes/` | *(Fase 5)* — placeholder actual |
-| `/admin/` | Panel de administración |
+| `/` | Portada (o el panel, según el rol, si ya iniciaste sesión) |
+| `/registro/` · `/registro/alumno/` | Registro de docente y de alumno |
+| `/login/` | Inicio de sesión |
+| `/precios/` | Planes y lista de espera del plan de pago |
+| `/profesor/dashboard/` · `/alumno/dashboard/` | Panel por rol |
+| `/grupo/<id>/` | Detalle del grupo |
+| `/grupo/<id>/libreta/` | Libreta de calificaciones |
+| `/grupo/<id>/concentrado/` · `/grupo/<id>/riesgo/` | Reportes del grupo |
+| `/actividades/<id>/` | Actividad (entregas, calificar, historial) |
+| `/banco/` | Banco de preguntas |
+| `/mensajes/` | Mensajería |
+| `/perfil/` · `/ajustes/` · `/ajustes/plan/` · `/ayuda/` | Perfil, ajustes, plan y facturación, ayuda |
+| `/admin/` | Panel de administración de Django |
+
+Las rutas antiguas `/materia/…` redirigen (301) a `/grupo/…`.
 
 ---
 
 ## 🔒 Notas
 
-- `db.sqlite3` y `credenciales-prueba/` están en `.gitignore`: cada quien genera
-  su base local con `migrate` + scripts demo.
-- Si tu `db.sqlite3` es anterior al renombrado de la app `subjects` a `courses`, ejecuta una vez,
-  **antes** de `migrate`: `python manage.py renombrar_app_subjects`. En una base nueva no hace falta.
-- Las credenciales de prueba son únicamente para desarrollo local.
-- Las entregas de los alumnos se guardan en `private_media/` (privado, fuera de `/media/`).
-- Los intentos de quiz que se quedan abiertos pasado su plazo se cierran con Celery beat cada minuto
-  (`celery -A core beat`, ya incluido en `docker compose`) o a mano con `python manage.py cerrar_intentos_vencidos`.
-- Para el registro técnico por fases (qué se creó, por qué y cómo se verificó),
-  consulta **[CONTEXT.md](CONTEXT.md)**.
+- `db.sqlite3`, `.env`, `media/` y `private_media/` están en `.gitignore`: cada quien genera su base local con `migrate` y `crear_demo`.
+- Las entregas de los alumnos y las fotos de perfil se guardan en `private_media/` (privado, fuera de `/media/`). En producción debe ser un volumen persistente o almacenamiento tipo S3.
+- Los intentos de quiz abiertos pasado su plazo se cierran con Celery beat cada minuto (`celery -A core beat`, ya incluido en `docker compose`) o a mano con `python manage.py cerrar_intentos_vencidos`.
+- Producción exige `SITE_URL`; el remitente (`no-reply@academicnotes.app`) y el correo de soporte son marcadores hasta tener un dominio real.
+- Los textos de términos y privacidad son un borrador y necesitan revisión legal antes de lanzar.

@@ -10,5 +10,7 @@ env
 db.sqlite3
 media
 staticfiles
-credenciales-prueba
+private_media
+.pytest_cache
+.ruff_cache
 *.md
