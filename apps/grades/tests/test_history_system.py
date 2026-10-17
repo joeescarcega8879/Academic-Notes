@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from apps.grades.models import Grade, GradeHistory
 from apps.grades.services.gradebook import grade_activity
-from apps.quizzes.factories import make_quiz
+from apps.quizzes.tests.factories import make_quiz
 
 pytestmark = pytest.mark.django_db
 

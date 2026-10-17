@@ -6,9 +6,9 @@ from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 from apps.organizations.services import teaching_organization
 
-from .models import Answer, Question, QuizAttempt
-from .services.bank import save_question
-from .services.builder import add_questions
+from apps.quizzes.models import Answer, Question, QuizAttempt
+from apps.quizzes.services.bank import save_question
+from apps.quizzes.services.builder import add_questions
 
 DEFAULT_CHOICES = [('Opción A', True), ('Opción B', False), ('Opción C', False)]
 

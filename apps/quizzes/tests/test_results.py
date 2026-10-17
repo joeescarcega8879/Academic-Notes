@@ -12,10 +12,10 @@ from apps.grades.models import Grade, GradeHistory
 from apps.grades.services.gradebook import grade_activity
 from apps.grades.services.grading import results_by_course
 
-from .factories import make_quiz
-from .models import QuizAttempt, QuizConfig
-from .services import attempts as svc
-from .services import results
+from apps.quizzes.tests.factories import make_quiz
+from apps.quizzes.models import QuizAttempt, QuizConfig
+from apps.quizzes.services import attempts as svc
+from apps.quizzes.services import results
 
 pytestmark = pytest.mark.django_db
 

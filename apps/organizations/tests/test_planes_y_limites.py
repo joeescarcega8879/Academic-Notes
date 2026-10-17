@@ -22,7 +22,7 @@ from apps.grades.tests.factories import ActivityFactory
 from apps.organizations import limits, plans
 from apps.organizations.limits import PlanLimitError
 from apps.organizations.models import Membership, Organization
-from apps.quizzes.factories import QuestionFactory, make_quiz
+from apps.quizzes.tests.factories import QuestionFactory, make_quiz
 from apps.quizzes.models import Question, QuizConfig
 from apps.quizzes.services import bank
 from apps.reports.services import pdf, workbook

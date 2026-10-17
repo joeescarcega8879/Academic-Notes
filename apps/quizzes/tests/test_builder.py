@@ -9,9 +9,9 @@ from apps.courses.services.courses import archive_course, clone_course
 from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 
-from .factories import QuestionFactory, QuizAttemptFactory, make_quiz
-from .models import Question, QuizAttempt, QuizConfig, QuizQuestion
-from .services import builder
+from apps.quizzes.tests.factories import QuestionFactory, QuizAttemptFactory, make_quiz
+from apps.quizzes.models import Question, QuizAttempt, QuizConfig, QuizQuestion
+from apps.quizzes.services import builder
 
 pytestmark = pytest.mark.django_db
 
@@ -136,7 +136,7 @@ class TestAgregarPreguntas:
         assert vacio.questions.count() == 1
 
     def test_editar_el_banco_despues_no_altera_el_quiz(self, vacio, professor):
-        from .services.bank import save_question
+        from apps.quizzes.services.bank import save_question
 
         original = QuestionFactory(author=professor, text="Original")
         builder.add_questions(vacio, [original])

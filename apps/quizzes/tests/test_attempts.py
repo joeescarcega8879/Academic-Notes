@@ -15,10 +15,10 @@ from apps.courses.services.courses import archive_course
 from apps.grades.tests.factories import ActivityFactory
 from apps.grades.models import Activity
 
-from .factories import QuestionFactory, make_quiz
-from .models import Answer, QuizAttempt
-from .services import attempts as svc
-from .services.attempts import AttemptExpired, GRACE_SECONDS
+from apps.quizzes.tests.factories import QuestionFactory, make_quiz
+from apps.quizzes.models import Answer, QuizAttempt
+from apps.quizzes.services import attempts as svc
+from apps.quizzes.services.attempts import AttemptExpired, GRACE_SECONDS
 
 pytestmark = pytest.mark.django_db
 
@@ -111,7 +111,7 @@ class TestOrden:
 
     def test_verdadero_o_falso_no_se_baraja(self, course):
         quiz = make_quiz(course, questions=0, shuffle_choices=True)
-        from .services.builder import add_questions
+        from apps.quizzes.services.builder import add_questions
 
         add_questions(quiz, [QuestionFactory(author=course.professor, organization=course.organization, kind="true_false")])
         pregunta = quiz.questions.get()

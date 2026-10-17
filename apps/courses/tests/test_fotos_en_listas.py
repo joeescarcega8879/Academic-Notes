@@ -17,7 +17,7 @@ from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.courses.services.roster import unlink_student
 from apps.grades.tests.factories import ActivityFactory
 from apps.grades.services.gradebook import grade_activity
-from apps.quizzes.factories import make_quiz
+from apps.quizzes.tests.factories import make_quiz
 
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 

@@ -11,9 +11,9 @@ from openpyxl import Workbook
 from apps.courses.services.importing import read_table
 from apps.organizations.services import teaching_organization
 
-from .factories import QuestionFactory
-from .models import Question
-from .services import question_import as qi
+from apps.quizzes.tests.factories import QuestionFactory
+from apps.quizzes.models import Question
+from apps.quizzes.services import question_import as qi
 
 pytestmark = pytest.mark.django_db
 

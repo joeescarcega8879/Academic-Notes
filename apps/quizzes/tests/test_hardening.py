@@ -13,11 +13,11 @@ from django.utils import timezone
 from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.grades.models import Grade
 
-from .factories import QuestionFactory, make_quiz
-from .models import Answer, QuizAttempt
-from .services import attempts as svc
-from .services.attempts import GRACE_SECONDS, close_overdue_attempts
-from .tasks import close_overdue_attempts_task
+from apps.quizzes.tests.factories import QuestionFactory, make_quiz
+from apps.quizzes.models import Answer, QuizAttempt
+from apps.quizzes.services import attempts as svc
+from apps.quizzes.services.attempts import GRACE_SECONDS, close_overdue_attempts
+from apps.quizzes.tasks import close_overdue_attempts_task
 
 pytestmark = pytest.mark.django_db
 
@@ -259,7 +259,7 @@ class TestSeguridad:
 
     def test_el_texto_de_las_preguntas_se_escapa_al_resolver(self, student_client, course, alumno):
         quiz = make_quiz(course, questions=0)
-        from .services.builder import add_questions
+        from apps.quizzes.services.builder import add_questions
 
         add_questions(quiz, [QuestionFactory(
             author=course.professor, organization=course.organization, text="<script>alert(1)</script>",

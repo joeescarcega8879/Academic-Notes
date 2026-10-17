@@ -10,9 +10,9 @@ from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY, teaching_organization
 
-from .factories import QuestionFactory
-from .models import Choice, Question
-from .services.bank import (
+from apps.quizzes.tests.factories import QuestionFactory
+from apps.quizzes.models import Choice, Question
+from apps.quizzes.services.bank import (
     MAX_CHOICES, can_edit_question, duplicate_question, save_question, validate_choices,
 )
 
