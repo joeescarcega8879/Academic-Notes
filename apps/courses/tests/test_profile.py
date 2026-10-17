@@ -11,8 +11,8 @@ from apps.grades.services.gradebook import grade_activity
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
-from .factories import CourseFactory, EnrollmentFactory
-from .services.summary import student_summary
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
+from apps.courses.services.summary import student_summary
 
 pytestmark = pytest.mark.django_db
 

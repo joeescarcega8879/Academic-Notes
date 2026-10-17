@@ -9,10 +9,10 @@ from apps.messaging.models import Conversation
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY
 
-from .factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
-from .models import INVITE_ALPHABET, Course, Student
-from .services.courses import archive_course, clone_course
-from .services.invitations import (
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
+from apps.courses.models import INVITE_ALPHABET, Course, Student
+from apps.courses.services.courses import archive_course, clone_course
+from apps.courses.services.invitations import (
     MAX_FAILURES, NOT_FOUND, InvitationError, disable_invite_code, redeem_invitation, regenerate_invite_code,
 )
 

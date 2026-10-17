@@ -5,9 +5,9 @@ import io
 import pytest
 from openpyxl import Workbook
 
-from .factories import EnrollmentFactory, StudentRecordFactory
-from .models import Enrollment, Student
-from .services.importing import (
+from apps.courses.tests.factories import EnrollmentFactory, StudentRecordFactory
+from apps.courses.models import Enrollment, Student
+from apps.courses.services.importing import (
     ImportFileError, analyze, apply_import, detect_mapping, read_table, validate_mapping,
 )
 
@@ -267,7 +267,7 @@ class TestAplicacion:
     def test_no_inscribe_en_un_grupo_archivado(self, course):
         from django.core.exceptions import ValidationError
 
-        from .services.courses import archive_course
+        from apps.courses.services.courses import archive_course
 
         plan = plan_for(course, CSV)
         archive_course(course)

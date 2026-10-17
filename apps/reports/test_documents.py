@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 from openpyxl import load_workbook
 
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 from apps.grades.factories import ActivityFactory
 from apps.grades.models import Activity, EvaluationCriterion, EvaluationPeriod
 from apps.grades.services.gradebook import grade_activity

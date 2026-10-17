@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from apps.grades.factories import ActivityFactory, GradeFactory
 
-from .factories import CourseFactory, EnrollmentFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 
 pytestmark = pytest.mark.django_db
 

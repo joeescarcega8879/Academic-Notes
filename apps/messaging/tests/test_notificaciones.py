@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.messaging.tests.factories import ConversationFactory, MessageFactory
 

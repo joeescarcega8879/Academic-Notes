@@ -12,11 +12,11 @@ from apps.messaging.models import Conversation
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
-from .factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
-from .models import Enrollment, Student
-from .services import roster
-from .services.courses import archive_course
-from .services.invitations import redeem_invitation
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
+from apps.courses.models import Enrollment, Student
+from apps.courses.services import roster
+from apps.courses.services.courses import archive_course
+from apps.courses.services.invitations import redeem_invitation
 
 pytestmark = pytest.mark.django_db
 

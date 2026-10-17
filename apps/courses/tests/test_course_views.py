@@ -9,9 +9,9 @@ from apps.organizations.tests.factories import MembershipFactory, OrganizationFa
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY
 
-from .factories import AcademicYearFactory, CourseFactory, EnrollmentFactory
-from .models import AcademicYear, Course
-from .services.courses import archive_course
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory
+from apps.courses.models import AcademicYear, Course
+from apps.courses.services.courses import archive_course
 
 pytestmark = pytest.mark.django_db
 

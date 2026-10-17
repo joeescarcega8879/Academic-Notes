@@ -1,6 +1,6 @@
 import factory
 
-from apps.courses.factories import CourseFactory, StudentRecordFactory, as_student
+from apps.courses.tests.factories import CourseFactory, StudentRecordFactory, as_student
 
 from .models import Activity, Grade
 

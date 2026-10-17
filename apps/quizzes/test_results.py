@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.courses.factories import CourseFactory, EnrollmentFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.courses.services.courses import archive_course
 from apps.grades.models import Grade, GradeHistory
 from apps.grades.services.gradebook import grade_activity

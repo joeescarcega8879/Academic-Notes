@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 
 from apps.accounts.tests.factories import StudentFactory
-from apps.courses.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
 from .factories import ActivityFactory, GradeFactory
 from .models import Grade

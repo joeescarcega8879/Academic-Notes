@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 
 from apps.accounts.tests.factories import PASSWORD
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 
 pytestmark = pytest.mark.django_db
 

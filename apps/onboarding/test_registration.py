@@ -207,10 +207,10 @@ class TestRegistroDeAlumno:
         assert client.get(response.url).status_code == 200
 
     def test_el_alumno_nuevo_se_une_a_un_grupo_con_el_codigo(self, client, course):
-        from apps.courses.factories import StudentRecordFactory
+        from apps.courses.tests.factories import StudentRecordFactory
 
         ficha = StudentRecordFactory(organization=course.organization, user=None, student_number="00123", last_name="Gómez")
-        from apps.courses.factories import EnrollmentFactory
+        from apps.courses.tests.factories import EnrollmentFactory
 
         EnrollmentFactory(course=course, student=ficha)
         client.post(reverse("register_student"), datos(email="luis@x.com"))
@@ -265,7 +265,7 @@ class TestPrimerosPasos:
         assert pasos["steps"][0].url == reverse("course_create")
 
     def test_los_pasos_se_marcan_con_lo_que_ya_hizo(self, professor_client, professor, course):
-        from apps.courses.factories import EnrollmentFactory
+        from apps.courses.tests.factories import EnrollmentFactory
         from apps.grades.factories import ActivityFactory
         from apps.grades.services.gradebook import grade_activity
 
@@ -296,14 +296,14 @@ class TestPrimerosPasos:
         assert client.post(reverse("onboarding_dismiss")).url.startswith("/login/")
 
     def test_solo_cuenta_lo_del_propio_docente(self, professor_client, course):
-        from apps.courses.factories import EnrollmentFactory
+        from apps.courses.tests.factories import EnrollmentFactory
 
         EnrollmentFactory()  # alumno en el grupo de otro docente
         pasos = professor_client.get(reverse("professor_dashboard")).context["onboarding"]["steps"]
         assert [s.done for s in pasos] == [True, False, False, False]
 
     def test_el_trabajo_de_un_colega_de_la_misma_organizacion_no_cuenta(self, professor_client, course):
-        from apps.courses.factories import CourseFactory, EnrollmentFactory
+        from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
         from apps.grades.factories import ActivityFactory
         from apps.organizations.tests.factories import MembershipFactory
 

@@ -10,9 +10,9 @@ from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, Grade
 from apps.organizations.tests.factories import OrganizationFactory
 
-from .factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
-from .models import AcademicYear, Course, Enrollment
-from .services.courses import archive_course, clone_course, unarchive_course
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
+from apps.courses.models import AcademicYear, Course, Enrollment
+from apps.courses.services.courses import archive_course, clone_course, unarchive_course
 
 pytestmark = pytest.mark.django_db
 

@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
-from apps.courses.factories import AcademicYearFactory, CourseFactory
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory
 from apps.courses.services.courses import clone_course
 
 from .factories import ActivityFactory

@@ -11,7 +11,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from apps.accounts.tests.factories import ProfessorFactory
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.grades.models import Activity, Grade, GradeHistory, Submission
 from apps.messaging.models import Conversation, Message

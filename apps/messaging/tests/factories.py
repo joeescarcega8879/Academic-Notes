@@ -1,7 +1,7 @@
 import factory
 
 from apps.accounts.tests.factories import StudentFactory
-from apps.courses.factories import CourseFactory
+from apps.courses.tests.factories import CourseFactory
 
 from apps.messaging.models import Conversation, Message
 

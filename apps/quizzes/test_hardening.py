@@ -10,7 +10,7 @@ from django.db import IntegrityError, transaction
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.courses.factories import CourseFactory, EnrollmentFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.grades.models import Grade
 
 from .factories import QuestionFactory, make_quiz

@@ -6,8 +6,8 @@ from django.contrib.auth import get_user_model
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.organizations.tests.factories import OrganizationFactory
 
-from .models import AcademicYear, Course, Enrollment, Student
-from .services.students import student_for_user
+from apps.courses.models import AcademicYear, Course, Enrollment, Student
+from apps.courses.services.students import student_for_user
 
 
 class CourseFactory(factory.django.DjangoModelFactory):

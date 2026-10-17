@@ -14,7 +14,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
-from apps.courses.factories import AcademicYearFactory, CourseFactory, StudentRecordFactory
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, StudentRecordFactory
 from apps.courses.models import Course, Enrollment, Student
 from apps.courses.services import importing, roster
 from apps.courses.services.courses import archive_course, clone_course, unarchive_course

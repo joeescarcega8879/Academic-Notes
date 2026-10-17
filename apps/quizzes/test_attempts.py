@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.tests.factories import StudentFactory
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 from apps.courses.services.courses import archive_course
 from apps.grades.factories import ActivityFactory
 from apps.grades.models import Activity
@@ -173,7 +173,7 @@ class TestEmpezar:
         assert not quiz.attempts.exists()
 
     def test_quien_no_esta_inscrito_no_empieza(self, quiz, course):
-        from apps.courses.factories import StudentRecordFactory
+        from apps.courses.tests.factories import StudentRecordFactory
 
         with pytest.raises(ValidationError, match="No estás inscrito"):
             svc.start_attempt(quiz, StudentRecordFactory(organization=course.organization))

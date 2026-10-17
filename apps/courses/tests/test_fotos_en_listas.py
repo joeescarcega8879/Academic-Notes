@@ -19,7 +19,7 @@ from apps.grades.factories import ActivityFactory
 from apps.grades.services.gradebook import grade_activity
 from apps.quizzes.factories import make_quiz
 
-from .factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory, StudentRecordFactory
 
 pytestmark = pytest.mark.django_db
 

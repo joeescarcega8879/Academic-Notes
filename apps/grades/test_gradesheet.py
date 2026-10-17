@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 from apps.courses.services.courses import archive_course
 
 from .factories import ActivityFactory, GradeFactory
@@ -326,7 +326,7 @@ class TestPagina:
         assert reverse("grades:activity_create", args=[course.pk]) not in html
 
     def test_otro_docente_recibe_404(self, professor_client):
-        from apps.courses.factories import CourseFactory
+        from apps.courses.tests.factories import CourseFactory
 
         assert professor_client.get(self.url(CourseFactory())).status_code == 404
 
@@ -390,7 +390,7 @@ class TestCelda:
         assert not Grade.objects.exists()
 
     def test_actividad_de_otro_grupo_del_mismo_docente_es_404(self, professor_client, course, professor, alumno):
-        from apps.courses.factories import CourseFactory
+        from apps.courses.tests.factories import CourseFactory
 
         hermana = ActivityFactory(course=CourseFactory(professor=professor))
         assert self.post(professor_client, course, hermana, alumno, "5").status_code == 404
@@ -401,7 +401,7 @@ class TestCelda:
         assert not Grade.objects.exists()
 
     def test_alumno_de_la_organizacion_pero_de_otro_grupo_es_404(self, professor_client, course, activity):
-        from apps.courses.factories import StudentRecordFactory
+        from apps.courses.tests.factories import StudentRecordFactory
 
         sin_inscribir = StudentRecordFactory(organization=course.organization, user=None)
         assert self.post(professor_client, course, activity, sin_inscribir, "5").status_code == 404
@@ -477,7 +477,7 @@ class TestColegaDeLaMismaOrganizacion:
     @pytest.fixture
     def grupo_del_colega(self, course):
         from apps.accounts.tests.factories import ProfessorFactory
-        from apps.courses.factories import CourseFactory
+        from apps.courses.tests.factories import CourseFactory
         from apps.organizations.tests.factories import MembershipFactory
         from apps.organizations.models import Membership
 

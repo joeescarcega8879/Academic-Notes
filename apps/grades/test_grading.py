@@ -12,7 +12,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
-from apps.courses.factories import CourseFactory, StudentRecordFactory
+from apps.courses.tests.factories import CourseFactory, StudentRecordFactory
 
 from .factories import ActivityFactory, GradeFactory
 from .models import Activity

@@ -4,7 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 
-from apps.courses.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory
+from apps.courses.tests.factories import AcademicYearFactory, CourseFactory, EnrollmentFactory
 from apps.courses.services.courses import archive_course, clone_course
 from apps.grades.factories import ActivityFactory
 from apps.grades.models import Activity

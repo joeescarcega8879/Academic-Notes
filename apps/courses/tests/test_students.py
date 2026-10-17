@@ -12,9 +12,9 @@ from apps.messaging.models import Conversation
 from apps.organizations.tests.factories import OrganizationFactory
 from apps.organizations.models import Membership
 
-from .factories import EnrollmentFactory, StudentRecordFactory
-from .models import Enrollment, Student
-from .services.students import student_for_user
+from apps.courses.tests.factories import EnrollmentFactory, StudentRecordFactory
+from apps.courses.models import Enrollment, Student
+from apps.courses.services.students import student_for_user
 
 pytestmark = pytest.mark.django_db
 

@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from openpyxl import load_workbook
 
-from apps.courses.factories import CourseFactory, EnrollmentFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.courses.services.courses import archive_course
 from apps.grades.factories import ActivityFactory
 from apps.grades.models import Activity
@@ -158,7 +158,7 @@ class TestDescargas:
         assert "boleta-00123-" in response["Content-Disposition"] and response["Content-Disposition"].endswith('.pdf"')
 
     def test_boleta_de_alguien_que_no_es_del_grupo(self, professor_client, course, grupo):
-        from apps.courses.factories import StudentRecordFactory
+        from apps.courses.tests.factories import StudentRecordFactory
 
         mismo_org = StudentRecordFactory(organization=course.organization, user=None)
         otro_org = EnrollmentFactory().student

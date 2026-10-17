@@ -7,9 +7,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from openpyxl import Workbook
 
-from .factories import CourseFactory
-from .models import Enrollment, Student
-from .services.courses import archive_course
+from apps.courses.tests.factories import CourseFactory
+from apps.courses.models import Enrollment, Student
+from apps.courses.services.courses import archive_course
 
 pytestmark = pytest.mark.django_db
 

@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
-from apps.courses.factories import AcademicYearFactory
+from apps.courses.tests.factories import AcademicYearFactory
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership, Organization
 from apps.organizations.services import SESSION_KEY

@@ -8,7 +8,7 @@ from django.urls import reverse
 from apps.accounts.tests.factories import ProfessorFactory
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
-from apps.courses.factories import EnrollmentFactory
+from apps.courses.tests.factories import EnrollmentFactory
 
 from apps.messaging.tests.factories import ConversationFactory, MessageFactory
 from apps.messaging.services import mark_all_read, unread_messages_for

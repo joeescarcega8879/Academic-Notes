@@ -16,7 +16,7 @@ from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.tests.factories import MessageFactory
 from apps.messaging.models import Conversation, Message
-from apps.courses.factories import EnrollmentFactory, CourseFactory
+from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership

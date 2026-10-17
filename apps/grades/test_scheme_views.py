@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from apps.courses.factories import CourseFactory
+from apps.courses.tests.factories import CourseFactory
 from apps.courses.services.courses import archive_course
 from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership

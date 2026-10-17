@@ -15,7 +15,7 @@ from apps.quizzes.factories import QuestionFactory, QuizAttemptFactory, answer, 
 from apps.quizzes.models import Answer, Choice, Question, QuizAttempt, QuizChoice, QuizConfig, QuizQuestion
 from apps.messaging.tests.factories import ConversationFactory, MessageFactory
 from apps.messaging.models import Conversation, Message
-from apps.courses.factories import EnrollmentFactory, CourseFactory
+from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
