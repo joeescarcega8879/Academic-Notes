@@ -11,7 +11,7 @@ from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.organizations import plans
 from apps.organizations.models import Organization
 
-from .models import WaitlistEntry
+from apps.onboarding.models import WaitlistEntry
 
 pytestmark = pytest.mark.django_db
 

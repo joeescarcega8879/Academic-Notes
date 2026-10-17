@@ -20,7 +20,7 @@ from apps.organizations.models import Membership, Organization
 from apps.quizzes.models import Question, QuizAttempt
 from apps.reports.services import risk
 
-from . import demo
+from apps.onboarding import demo
 
 pytestmark = pytest.mark.django_db
 

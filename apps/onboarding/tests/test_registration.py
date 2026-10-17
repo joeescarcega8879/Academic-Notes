@@ -12,8 +12,8 @@ from apps.accounts.tests.factories import PASSWORD, ProfessorFactory, StudentFac
 from apps.courses.models import AcademicYear, Course
 from apps.organizations.models import Membership, Organization
 
-from . import services
-from .services import default_cycle, register_student, register_teacher, unique_username
+from apps.onboarding import services
+from apps.onboarding.services import default_cycle, register_student, register_teacher, unique_username
 
 pytestmark = pytest.mark.django_db
 

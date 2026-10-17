@@ -112,6 +112,17 @@ ruff check .                       # lint
 python manage.py makemigrations --check --dry-run   # ¿faltan migraciones?
 ```
 
+Las pruebas viven en un paquete `tests/` dentro de cada app, con un archivo por funcionalidad:
+
+```
+apps/<app>/tests/
+├── factories.py          # fábricas de datos (factory_boy) de la app
+├── test_<tema>.py        # servicios y vistas de una misma funcionalidad
+└── migrations/           # pruebas de migraciones de datos (solo courses, grades y organizations)
+```
+
+`conftest.py` (en la raíz) define las fixtures compartidas (`professor`, `student`, `course`, `professor_client`…). `core/tests/` prueba las utilidades del proyecto. Para correr una sola app o archivo: `pytest apps/grades` o `pytest apps/grades/tests/test_gradesheet.py`.
+
 El CI (`.github/workflows/ci.yml`) corre estas tres comprobaciones con PostgreSQL y Redis en cada push a `main` y `develop`.
 
 ---

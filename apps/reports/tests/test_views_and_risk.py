@@ -16,7 +16,7 @@ from apps.grades.services.gradebook import grade_activity
 from apps.grades.services.schemes import ensure_scheme
 from apps.grades.services.submissions import submit
 
-from .services import risk
+from apps.reports.services import risk
 
 pytestmark = pytest.mark.django_db
 

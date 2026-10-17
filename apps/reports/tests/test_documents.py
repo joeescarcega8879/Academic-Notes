@@ -16,8 +16,8 @@ from apps.grades.services.gradesheet import build_gradesheet
 from apps.grades.services.schemes import ensure_scheme
 from apps.grades.services.submissions import submit
 
-from .services import pdf, workbook
-from .services.transcript import build_transcripts
+from apps.reports.services import pdf, workbook
+from apps.reports.services.transcript import build_transcripts
 
 pytestmark = pytest.mark.django_db
 
