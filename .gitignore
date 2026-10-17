@@ -1,10 +1,11 @@
-# Credenciales de prueba (no subir al repo)
-credenciales-prueba/
-
 # Python
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# Cachés de herramientas
+.pytest_cache/
+.ruff_cache/
 
 # Entornos virtuales
 .venv/
