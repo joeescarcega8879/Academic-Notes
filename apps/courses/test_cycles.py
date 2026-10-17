@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Activity, Grade
-from apps.organizations.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory
 
 from .factories import AcademicYearFactory, CourseFactory, EnrollmentFactory, StudentRecordFactory
 from .models import AcademicYear, Course, Enrollment

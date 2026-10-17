@@ -15,7 +15,7 @@ from apps.courses.factories import EnrollmentFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.grades.models import Activity, Grade, GradeHistory, Submission
 from apps.messaging.models import Conversation, Message
-from apps.organizations.factories import MembershipFactory
+from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership, Organization
 from apps.quizzes.models import Question, QuizAttempt
 from apps.reports.services import risk

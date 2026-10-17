@@ -12,7 +12,7 @@ from apps.accounts import avatars
 from apps.accounts.avatars import process_avatar
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.accounts.models import ProfessorProfile, StudentProfile
-from apps.organizations.factories import MembershipFactory
+from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
 pytestmark = pytest.mark.django_db

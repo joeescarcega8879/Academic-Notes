@@ -2,7 +2,7 @@ import factory
 
 from apps.accounts.tests.factories import StudentFactory
 
-from .models import Membership, Organization
+from apps.organizations.models import Membership, Organization
 
 
 class OrganizationFactory(factory.django.DjangoModelFactory):

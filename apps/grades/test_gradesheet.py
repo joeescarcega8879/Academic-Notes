@@ -478,7 +478,7 @@ class TestColegaDeLaMismaOrganizacion:
     def grupo_del_colega(self, course):
         from apps.accounts.tests.factories import ProfessorFactory
         from apps.courses.factories import CourseFactory
-        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.tests.factories import MembershipFactory
         from apps.organizations.models import Membership
 
         colega = ProfessorFactory()

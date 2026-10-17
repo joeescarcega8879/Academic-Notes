@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from apps.accounts.tests.factories import PASSWORD, StudentFactory
 from apps.courses.factories import EnrollmentFactory
-from apps.organizations.factories import MembershipFactory
+from apps.organizations.tests.factories import MembershipFactory
 from apps.organizations.models import Membership
 
 pytestmark = pytest.mark.django_db

@@ -9,7 +9,7 @@ from apps.accounts.tests.factories import StudentFactory
 from apps.grades.factories import GradeFactory
 from apps.grades.models import Grade
 from apps.messaging.models import Conversation
-from apps.organizations.factories import OrganizationFactory
+from apps.organizations.tests.factories import OrganizationFactory
 from apps.organizations.models import Membership
 
 from .factories import EnrollmentFactory, StudentRecordFactory

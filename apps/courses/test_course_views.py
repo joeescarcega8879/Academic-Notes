@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from apps.grades.factories import ActivityFactory, GradeFactory
 from apps.grades.models import Grade
-from apps.organizations.factories import MembershipFactory, OrganizationFactory
+from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.models import Membership
 from apps.organizations.services import SESSION_KEY
 

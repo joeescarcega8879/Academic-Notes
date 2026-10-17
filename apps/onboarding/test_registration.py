@@ -305,7 +305,7 @@ class TestPrimerosPasos:
     def test_el_trabajo_de_un_colega_de_la_misma_organizacion_no_cuenta(self, professor_client, course):
         from apps.courses.factories import CourseFactory, EnrollmentFactory
         from apps.grades.factories import ActivityFactory
-        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.tests.factories import MembershipFactory
 
         colega = ProfessorFactory()
         MembershipFactory(user=colega, organization=course.organization, role=Membership.Role.TEACHER)

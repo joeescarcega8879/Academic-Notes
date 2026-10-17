@@ -18,11 +18,11 @@ from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 
-from .factories import MembershipFactory, OrganizationFactory
-from .managers import OrganizationQuerySet
-from .middleware import SESSION_KEY, OrganizationMiddleware
-from .models import Membership, Organization
-from .services import ensure_individual_organization, ensure_student_membership, teaching_organization
+from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
+from apps.organizations.managers import OrganizationQuerySet
+from apps.organizations.middleware import SESSION_KEY, OrganizationMiddleware
+from apps.organizations.models import Membership, Organization
+from apps.organizations.services import ensure_individual_organization, ensure_student_membership, teaching_organization
 
 pytestmark = pytest.mark.django_db
 

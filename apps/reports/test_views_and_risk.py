@@ -256,7 +256,7 @@ class TestAcceso:
     @pytest.mark.parametrize("nombre, args", URLS)
     def test_el_grupo_de_otro_docente_de_la_misma_organizacion_es_404(self, professor_client, course, nombre, args):
         from apps.accounts.tests.factories import ProfessorFactory
-        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.tests.factories import MembershipFactory
         from apps.organizations.models import Membership
 
         colega = ProfessorFactory()

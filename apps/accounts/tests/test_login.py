@@ -49,7 +49,7 @@ class TestLogin:
         assert response.url == reverse("profile")
 
     def test_el_rol_elegido_fija_la_organizacion_activa(self, client, professor, course):
-        from apps.organizations.factories import MembershipFactory
+        from apps.organizations.tests.factories import MembershipFactory
         from apps.organizations.models import Membership
 
         # Alumno en la organización de otro profesor y profesor en la suya.

@@ -18,9 +18,9 @@ from apps.messaging.tests.factories import MessageFactory
 from apps.messaging.models import Conversation, Message
 from apps.courses.factories import EnrollmentFactory, CourseFactory
 
-from .factories import MembershipFactory, OrganizationFactory
-from .models import Membership
-from .services import SESSION_KEY
+from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
+from apps.organizations.models import Membership
+from apps.organizations.services import SESSION_KEY
 
 pytestmark = pytest.mark.django_db
 
