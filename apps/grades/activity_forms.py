@@ -11,7 +11,7 @@ class ActivityForm(forms.ModelForm):
     class Meta:
         model = Activity
         fields = [
-            'title', 'type', 'criterion', 'max_score', 'weight', 'instructions', 'date',
+            'title', 'type', 'criterion', 'syllabus_week', 'max_score', 'weight', 'instructions', 'date',
             'opens_at', 'due_at', 'allow_late', 'late_penalty', 'published',
         ]
         widgets = {
@@ -41,6 +41,14 @@ class ActivityForm(forms.ModelForm):
         criterion.required = False
         criterion.empty_label = 'Automático según el tipo'
         criterion.label_from_instance = lambda c: f'{c.name} · {c.period.name}'
+        weeks = getattr(getattr(course, 'syllabus', None), 'weeks', None)
+        if weeks is None or not weeks.exists():
+            del self.fields['syllabus_week']  # sin temario o sin semanas no hay nada que elegir
+        else:
+            week = self.fields['syllabus_week']
+            week.queryset = weeks.all()
+            week.empty_label = 'Ninguna'
+            week.label_from_instance = lambda w: f'Semana {w.position}' + (f' · {w.title}' if w.title else '')
         for name, field in self.fields.items():
             if isinstance(field.widget, forms.CheckboxInput):
                 continue

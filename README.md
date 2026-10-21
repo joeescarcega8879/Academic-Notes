@@ -15,6 +15,7 @@ Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, 
 | Grupos y alumnos | `courses` | Ciclos escolares, grupos archivables y duplicables, lista de alumnos, importación Excel/CSV con vista previa, código de invitación |
 | Calificaciones | `grades` | Esquema de evaluación (periodos y criterios), actividades con borrador/publicación, entregas con archivos privados, calificar con penalización por tardía, historial, libreta con edición en línea, lista de calificaciones con búsqueda y filtros (grupo, fechas) y exportación CSV con los mismos filtros |
 | Quizzes | `quizzes` | Banco de preguntas por grupo (más preguntas generales sin grupo), constructor, resolver con plazo del servidor y autoguardado, calificación automática, importar preguntas, cierre de intentos vencidos |
+| Temario | `syllabus` | Temario del grupo (PDF, Word o texto), semanas editables, detección de semanas, actividades ligadas a cada semana; solo para el docente, en todos los planes |
 | Reportes | `reports` | Boleta PDF, concentrado Excel con columnas elegibles, alumnos en riesgo |
 | Mensajería | `messaging` | Conversaciones docente ↔ alumno y notificaciones |
 | Alta y precios | `onboarding` | Portada, registro de docente y de alumno, términos y privacidad (**borrador sin revisión legal**), primeros pasos, página de Precios con lista de espera, Ayuda |
@@ -57,7 +58,7 @@ Academic-Notes/
 ├── core/             # Settings (base/local/production/test), urls, Celery, throttle, utilidades
 ├── apps/
 │   ├── accounts/  courses/  grades/  messaging/
-│   └── onboarding/  organizations/  quizzes/  reports/
+│   └── onboarding/  organizations/  quizzes/  reports/  syllabus/
 ├── templates/        # Plantillas HTML (auth, emails, onboarding, partials…)
 ├── static/           # CSS y JS propios
 ├── requirements/     # base.txt, local.txt, production.txt
@@ -167,7 +168,7 @@ Se leen de `.env` (plantilla en `.env.example`). Las principales:
 
 ## 🧭 Estado y hoja de ruta
 
-- **Hecho:** organizaciones multi-tenant, ciclos y grupos, esquema de evaluación, actividades y entregas, quizzes, libreta, reportes, registro, planes y límites sin cobro, página de Precios.
+- **Hecho:** organizaciones multi-tenant, ciclos y grupos, esquema de evaluación, actividades y entregas, quizzes, libreta, reportes, registro, planes y límites sin cobro, página de Precios, temario por semanas.
 - **Siguiente:** corregir lo que salga de las pruebas manuales; luego la pasarela de pago en modo de prueba, y el despliegue con respaldos probados.
 - **Más adelante:** asistencia, rúbricas, proyectos por equipos, panel de dirección, API (`api/v1`) y app móvil. Detalle en [`New_Phases.md`](New_Phases.md).
 

@@ -464,7 +464,7 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 
 ## 13. Temario e IA asistida
 
-> **Estado (2026-10-17):** diseño con las decisiones del desarrollador incorporadas (al final de la sección), nada construido. Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, usando un código anónimo. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
+> **Estado (2026-10-21):** **T1 (temario y semanas, sin IA) está construido** en la app `syllabus`; falta todo lo de IA (T2 a T5). Diseño con las decisiones del desarrollador incorporadas (al final de la sección). Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, usando un código anónimo. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
 
 ### Temario y semanas (no usa IA)
 
@@ -541,7 +541,7 @@ Estimaciones (supuestos, no mediciones): generar 20 preguntas cuesta del orden d
 
 | Entrega | Contenido | Depende de |
 |---|---|---|
-| T1 | Temario y semanas (sin IA): subir, extraer texto, editor de semanas, enlazar actividades | — |
+| T1 | Temario y semanas (sin IA): subir, extraer texto, editor de semanas, enlazar actividades. **Hecho (2026-10-21):** PDF con texto, Word `.docx` o texto pegado; extracción en Celery; lista de semanas con editor (agregar, subir, bajar, dividir, unir, sin clase) y fechas a partir de un inicio de clases; «Detectar semanas» sin IA (busca «Semana N»); `Activity.syllabus_week` y «+ Crear actividad» desde cada semana; el duplicado de grupo copia el temario sin fechas | — |
 | T2 | Capa de IA: proveedor, cuotas por plan, `AIRequest`, interruptor por organización, aviso legal | Revisión legal |
 | T3 | IA para proponer la división del temario y generar preguntas de quiz, con aprobación | T1, T2, Sprint 4 |
 | T4 | IA para tareas y exámenes con aprobación | T3; exámenes: Fase 2 |

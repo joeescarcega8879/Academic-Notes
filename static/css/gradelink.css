@@ -2034,7 +2034,7 @@ table.gs tbody tr:hover > th, table.gs tbody tr:hover > td { background: var(--s
 .sy-list-head { display: flex; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid var(--border, #e6ebf1); }
 .sy-list-head h3 { margin: 0; }
 .sy-rows { list-style: none; margin: 0; padding: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 560px; overflow: auto; }
-.sy-row { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid transparent; color: inherit; text-decoration: none; }
+.sy-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 1px solid transparent; color: inherit; text-decoration: none; }
 .sy-row:hover { background: var(--surface-2, #f4f6f9); }
 .sy-row.is-sel { background: var(--brand-primary-50, #eaf0f7); border-color: rgba(30, 58, 95, .18); }
 .sy-row .n { width: 38px; height: 38px; border-radius: 12px; background: var(--surface-2, #f1f4f8); display: grid; place-items: center; font-weight: 700; color: var(--brand-primary); }
@@ -2043,6 +2043,13 @@ table.gs tbody tr:hover > th, table.gs tbody tr:hover > td { background: var(--s
 .sy-row .t { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sy-row .d { font-size: 12px; color: var(--text-muted); }
 .sy-row.is-off .t { color: var(--text-muted); text-decoration: line-through; }
+.sy-row .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border, #cfd8e3); }
+.sy-row .dot.ok { background: var(--brand-accent); }
+.sy-row .dot.warn { background: #f0b429; }
+.sy-block { border-top: 1px solid var(--border, #e6ebf1); padding-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.sy-block h4 { margin: 0; font-size: 14px; }
+.sy-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sy-chips a.chip { text-decoration: none; }
 .sy-list-foot { padding: 14px 20px 18px; border-top: 1px solid var(--border, #e6ebf1); display: flex; flex-direction: column; gap: 10px; }
 .sy-list-foot .line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
 .sy-list-foot .line .input { min-width: 150px; flex: 1; }

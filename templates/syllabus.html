@@ -132,6 +132,7 @@
                   <span class="t">{{ row.week.title|default:"Sin título" }}</span>
                   <span class="d">{% if row.dates %}{{ row.dates }}{% else %}Semana {{ row.week.position }}{% endif %}{% if row.is_now %} · esta semana{% endif %}{% if row.week.no_class %} · sin clase{% endif %}</span>
                 </span>
+                {% if not row.week.no_class %}<span class="dot {% if row.activities %}ok{% else %}warn{% endif %}" title="{% if row.activities %}{{ row.activities|length }} actividad{{ row.activities|length|pluralize:'es' }}{% else %}Sin actividades{% endif %}"></span>{% endif %}
               </a>
             </li>
           {% endfor %}
@@ -190,6 +191,15 @@
             <label class="sy-off-row" for="{{ week_form.no_class.id_for_label }}">
               {{ week_form.no_class }} <span>Semana sin clase</span> <span class="text-xs text-muted">(no cuenta para planear)</span>
             </label>
+            {% if not week.no_class %}
+              <div class="sy-block">
+                <h4>Actividades de esta semana</h4>
+                <div class="sy-chips">
+                  {% for activity in selected.activities %}<a class="chip{% if activity.published %} ok{% endif %}" href="{{ activity.get_absolute_url }}">{{ activity.title }}{% if not activity.published %} (borrador){% endif %}</a>{% empty %}<span class="chip warn">Sin actividades</span>{% endfor %}
+                  <a class="btn btn-ghost btn-sm" href="{% url 'grades:activity_create' course.pk %}?semana={{ week.pk }}">+ Crear actividad</a>
+                </div>
+              </div>
+            {% endif %}
             <div class="sy-foot">
               <button type="submit" name="action" value="save_week" class="btn btn-primary">Guardar semana</button>
               <button type="submit" name="action" value="move_up" class="btn btn-ghost btn-sm" {% if week.position == 1 %}disabled{% endif %}>Subir</button>

@@ -49,9 +49,12 @@ class SyllabusView(SyllabusAccessMixin, View):
         current = None
         if syllabus is not None:
             current = week_ops.current_week(syllabus, today)
-            for item in syllabus.weeks.all():
+            for item in syllabus.weeks.prefetch_related('activities'):
                 dates = week_ops.week_dates(syllabus, item)
-                rows.append({'week': item, 'dates': range_label(*dates) if dates else '', 'is_now': current is not None and item.pk == current.pk})
+                rows.append({
+                    'week': item, 'dates': range_label(*dates) if dates else '', 'activities': list(item.activities.all()),
+                    'is_now': current is not None and item.pk == current.pk,
+                })
             if week is None:
                 week = self.week_from_query(request, syllabus, current)
         selected = next((row for row in rows if week is not None and row['week'].pk == week.pk), None)

@@ -79,6 +79,7 @@ def merge_with_next(week):
     week.title = week.title or following.title
     week.no_class = week.no_class and following.no_class
     week.save(update_fields=['topics', 'objectives', 'title', 'no_class'])
+    following.activities.update(syllabus_week=week)  # las actividades de la semana que desaparece pasan a la unida
     following.delete()
     renumber(week.syllabus)
     return week

@@ -11,6 +11,7 @@ from django.views.generic import CreateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.courses.models import Course, Student
+from core.utils import parse_id
 
 from .activity_forms import ActivityForm
 from .models import Activity, Grade, GradeHistory, Submission
@@ -47,6 +48,14 @@ class ActivityCreateView(OwnActiveCourseMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs['course'] = self.course
         return kwargs
+
+    def get_initial(self):
+        # Desde el temario: «+ Crear actividad» llega con ?semana=<id> y la semana ya elegida (el formulario la valida).
+        initial = super().get_initial()
+        week = parse_id(self.request.GET.get('semana', ''))
+        if week is not None:
+            initial['syllabus_week'] = week
+        return initial
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(course=self.course, **kwargs)
