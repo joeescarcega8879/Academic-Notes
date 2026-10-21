@@ -1,6 +1,14 @@
 {% extends "auth/base_auth.html" %}
 {% block title %}{{ title }} · {{ site_name }}{% endblock %}
 
+{% block art_title %}{% if role == "teacher" %}Tu libreta lista en <span class="hl">5 minutos</span>.{% else %}Tus calificaciones, <span class="hl">siempre a la mano</span>.{% endif %}{% endblock %}
+{% block art_text %}{% if role == "teacher" %}Importa tu lista, define cuánto vale cada criterio y deja que los promedios se calculen solos.{% else %}Únete a tu grupo con el código de tu docente, entrega tareas y resuelve quizzes desde tu celular.{% endif %}{% endblock %}
+{% block art_list %}{% if role == "teacher" %}{{ block.super }}{% else %}
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Gratis para ti, siempre</li>
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Consulta tus calificaciones y entregas</li>
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Habla con tu docente en la misma plataforma</li>
+{% endif %}{% endblock %}
+
 {% block content %}
 <h1>{{ title }}</h1>
 <p class="sub">{{ lead }}</p>
@@ -13,7 +21,7 @@
       <div class="hp" aria-hidden="true">{{ field.label_tag }} {{ field }}</div>
     {% elif field.name == "accept_terms" %}
       <div class="field{% if field.errors %} has-error{% endif %}">
-        <label class="checkbox">{{ field }} Acepto los <a href="{% url 'terms' %}" target="_blank" rel="noopener">términos de uso</a> y el <a href="{% url 'privacy' %}" target="_blank" rel="noopener">aviso de privacidad</a></label>
+        <label class="checkbox">{{ field }} <span>Acepto los <a href="{% url 'terms' %}" target="_blank" rel="noopener">términos de uso</a> y el <a href="{% url 'privacy' %}" target="_blank" rel="noopener">aviso de privacidad</a></span></label>
         {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
       </div>
     {% else %}

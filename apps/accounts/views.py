@@ -36,7 +36,7 @@ class LoginView(View):
             memberships = active_memberships(user)
             if role and not self._has_role(user, memberships, role):
                 return render(request, self.template_name, {
-                    'form': form, 'next': next_url,
+                    'form': form, 'next': next_url, 'role': role,
                     'error': 'El rol seleccionado no coincide con esta cuenta.',
                 })
 
@@ -45,7 +45,7 @@ class LoginView(View):
             if membership is not None:
                 request.session[SESSION_KEY] = membership.organization_id
             return redirect(next_url or home_url_name(membership))
-        return render(request, self.template_name, {'form': form, 'next': next_url})
+        return render(request, self.template_name, {'form': form, 'next': next_url, 'role': role})
 
     @staticmethod
     def _has_role(user, memberships, role):

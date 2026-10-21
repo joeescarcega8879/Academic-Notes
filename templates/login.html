@@ -1,157 +1,44 @@
-{% load static %}
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Iniciar sesión — {{ site_name }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
-  </head>
+{% extends "auth/base_auth.html" %}
+{% block title %}Iniciar sesión · {{ site_name }}{% endblock %}
 
-  <body data-grade-style="pill">
-    <div class="login-view">
-      <!-- Panel izquierdo: decorativo -->
-      <aside class="login-art">
-        <div class="brand">
-          <div class="brand-mark">{{ site_name|first }}</div>
-          <div class="brand-name">{{ site_name }}</div>
-        </div>
-        <div class="shape-grid"></div>
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
-        <div class="pitch">
-          <h2>La conexión directa entre profesores y alumnos.</h2>
-          <p>
-            Gestiona calificaciones, abre canales de aclaración y mantén el
-            seguimiento académico de todo el ciclo en un solo lugar.
-          </p>
-        </div>
-      </aside>
+{% block art_title %}Qué bueno verte <span class="hl">de nuevo</span>.{% endblock %}
+{% block art_text %}Tus grupos, tu libreta y tus mensajes siguen donde los dejaste.{% endblock %}
 
-      <!-- Panel derecho: formulario -->
-      <div class="login-form">
-        <form method="post" class="login-card">
-          {% csrf_token %}
-          {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
-          <h1>Iniciar sesión</h1>
-          <p class="sub">
-            Accede con tu cuenta institucional de la Universidad del Plata Sur.
-          </p>
+{% block content %}
+<h1>Iniciar sesión</h1>
+<p class="sub">Entra con tu correo o con tu usuario.</p>
 
-          {% for message in messages %}
-          <div class="flash flash-{{ message.level_tag }}" role="status" style="margin-bottom: var(--pad-2)">{{ message }}</div>
-          {% endfor %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
 
-          {% if error %}
-          <div
-            class="alert alert-error"
-            style="
-              margin-bottom: var(--pad-2);
-              padding: var(--pad-1) var(--pad-2);
-              background: var(--bad);
-              color: #fff;
-              border-radius: var(--radius);
-              font-size: 0.9em;
-            "
-          >
-            {{ error }}
-          </div>
-          {% endif %}
+  {% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+  {% if form.non_field_errors %}<div class="flash flash-error" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
 
-          <!-- Selector de rol -->
-          <div class="role-picker">
-            <button
-              type="button"
-              class="role-card is-selected"
-              data-role="professor"
-            >
-              <i data-icon="users"></i>
-              <span class="label">Soy Profesor</span>
-              <span class="desc">Gestiono grupos y calificaciones</span>
-            </button>
-            <button type="button" class="role-card" data-role="student">
-              <i data-icon="graduation"></i>
-              <span class="label">Soy Alumno</span>
-              <span class="desc">Consulto mis calificaciones</span>
-            </button>
-          </div>
-          <input type="hidden" name="role" id="role-input" value="" />
+  <div class="field">
+    <label for="li-user">{{ form.username.label }}</label>
+    {{ form.username }}
+  </div>
 
-          <div class="field">
-            <label for="li-user">Usuario o correo</label>
-            <div class="input-wrap">
-              <i data-icon="at-sign"></i>
-              {{ form.username }}
-            </div>
-          </div>
+  <div class="field">
+    <label for="li-pass">{{ form.password.label }}</label>
+    {{ form.password }}
+  </div>
+  <div class="field-row"><a class="btn-link" href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a></div>
 
-          <div class="field">
-            <label for="li-pass">Contraseña</label>
-            <div class="input-wrap">
-              <i data-icon="lock"></i>
-              {{ form.password }}
-            </div>
-          </div>
-
-          <div class="field-row">
-            <label class="checkbox">
-              <input type="checkbox" checked /> Mantener sesión iniciada
-            </label>
-            <a class="btn-link" href="{% url 'password_reset' %}">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-
-          <button
-            id="login-submit"
-            type="submit"
-            class="btn btn-primary btn-block btn-lg"
-          >
-            Iniciar sesión
-          </button>
-
-          <p class="sub mt-22 text-center">
-            ¿No tienes cuenta?
-            <a class="btn-link" href="{% url 'register' %}">Crea tu cuenta de docente</a>
-            · <a class="btn-link" href="{% url 'register_student' %}">Soy alumno</a>
-            · <a class="btn-link" href="{% url 'pricing' %}">Precios</a>
-          </p>
-        </form>
-      </div>
+  <fieldset class="role-pick">
+    <legend>Entrar como <small>(opcional)</small></legend>
+    <div class="role-seg">
+      <label class="role-opt"><input type="radio" name="role" value="professor"{% if role == 'professor' %} checked{% endif %}><span><b>Docente</b><small>Grupos y calificaciones</small></span></label>
+      <label class="role-opt"><input type="radio" name="role" value="student"{% if role == 'student' %} checked{% endif %}><span><b>Alumno</b><small>Mis calificaciones</small></span></label>
     </div>
+  </fieldset>
 
-    <button id="tweaks-fab" class="tweaks-fab" title="Tweaks">
-      <i data-icon="settings"></i>
-    </button>
-    <aside class="tweaks-panel" id="tweaks-panel">
-      <header class="tweaks-head">
-        <h4>Tweaks</h4>
-        <button id="tweaks-close" aria-label="Cerrar">
-          <i data-icon="x"></i>
-        </button>
-      </header>
-      <div class="tweaks-body" id="tweaks-body"></div>
-    </aside>
+  <button type="submit" class="btn btn-primary btn-block btn-lg">Iniciar sesión</button>
+</form>
 
-    <script src="{% static 'js/icons.js' %}"></script>
-    <script src="{% static 'js/app.js' %}"></script>
-    <script>
-      document.querySelectorAll(".role-card").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          document.querySelectorAll(".role-card").forEach(function (c) {
-            c.classList.remove("is-selected");
-          });
-          this.classList.add("is-selected");
-          document.getElementById("role-input").value = this.dataset.role;
-        });
-      });
-    </script>
-  </body>
-</html>
+<p class="sub text-center mt-22">
+  ¿No tienes cuenta?<br>
+  <a href="{% url 'register' %}">Crea tu cuenta de docente</a> · <a href="{% url 'register_student' %}">Soy alumno</a>
+</p>
+{% endblock %}
