@@ -1,6 +1,7 @@
 """Alta de docentes y alumnos por cuenta propia, portada, páginas legales y primeros pasos."""
 
 import datetime
+import re
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -10,6 +11,7 @@ from django.urls import reverse
 
 from apps.accounts.tests.factories import PASSWORD, ProfessorFactory, StudentFactory
 from apps.courses.models import AcademicYear, Course
+from apps.organizations import plans
 from apps.organizations.models import Membership, Organization
 
 from apps.onboarding import services
@@ -235,9 +237,10 @@ class TestPortada:
         for enlace in (reverse("register"), reverse("register_student"), reverse("login"), reverse("terms"), reverse("privacy")):
             assert enlace in html
 
-    def test_no_promete_precios_ni_limites_que_aun_no_existen(self, client):
+    def test_no_dice_ningun_precio_que_no_este_en_la_tabla_de_planes(self, client):
         html = client.get("/").content.decode().lower()
-        assert "$" not in html and "mxn" not in html
+        precios = {int(p.replace(",", "")) for p in re.findall(r"\$([\d,]+)", html)}
+        assert precios == {0, plans.TEACHER.monthly_price, plans.TEACHER.annual_price}
 
     def test_con_sesion_cada_rol_va_a_su_inicio(self, professor_client, student_client, enrollment):
         assert professor_client.get("/").url == reverse("professor_dashboard")

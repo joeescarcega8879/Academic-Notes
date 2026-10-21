@@ -1,61 +1,283 @@
-{% load static %}<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ site_name }} · Tu libreta de calificaciones, lista en 5 minutos</title>
-    <meta name="description" content="Importa tu lista desde Excel, califica con ponderaciones por criterio, aplica quizzes que se califican solos y descarga boletas en PDF. En español y sin curva de aprendizaje." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
-  </head>
-  <body class="landing">
-    {% include 'onboarding/_nav.html' %}
+{% extends "onboarding/base_publica.html" %}
+{% load static %}
+{% block title %}{{ site_name }} · Tu libreta de calificaciones, lista en 5 minutos{% endblock %}
+{% block meta %}<meta name="description" content="Importa tu lista desde Excel, califica con ponderaciones por criterio, aplica quizzes que se califican solos y descarga boletas en PDF. En español y sin curva de aprendizaje." />{% endblock %}
 
-    <section class="landing-hero">
-      <h1>Tu libreta de calificaciones, tus actividades y tu comunicación con alumnos, en un solo lugar.</h1>
-      <p>Importa tu lista desde Excel, define cómo pesa cada criterio y deja que {{ site_name }} calcule los promedios. Sin hojas de cálculo que se rompen y sin curva de aprendizaje.</p>
-      <div class="landing-cta">
-        <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Crear mi cuenta de docente</a>
-        <a class="btn btn-ghost btn-lg" href="{% url 'register_student' %}">Soy alumno</a>
-      </div>
-      <p class="text-xs text-muted">Empieza gratis. No necesitas tarjeta. <a href="{% url 'pricing' %}">Ver precios</a></p>
-    </section>
+{% block main %}
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div class="hero-copy">
+            <span class="chip ok">Para docentes · Gratis para empezar</span>
+            <h1>Tu libreta lista en
+              <span class="mark">5 minutos<svg viewBox="0 0 200 20" preserveAspectRatio="none" aria-hidden="true"><path d="M3 12 C 30 2, 50 18, 80 9 S 130 3, 160 11 S 190 8, 197 6" fill="none" stroke="#ffc83d" stroke-width="8" stroke-linecap="round"/></svg></span>.
+            </h1>
+            <p class="lead">Importa tu lista desde Excel, define cuánto vale cada criterio y deja que {{ site_name }} calcule los promedios. Sin hojas de cálculo que se rompen.</p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Crear mi cuenta de docente</a>
+              <a class="btn btn-ghost btn-lg" href="{% url 'register_student' %}">Soy alumno</a>
+            </div>
+            <div class="hero-note">
+              <span><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>Sin tarjeta</span>
+              <span><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>En español</span>
+              <span><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>Tus alumnos nunca pagan</span>
+            </div>
+          </div>
 
-    <section class="landing-section">
-      <h2>Lo que resuelve</h2>
-      <div class="landing-grid">
-        <article class="card">
-          <h3>Libreta que calcula sola</h3>
-          <p>Alumnos por actividades en una sola tabla. Escribe la nota y el promedio ponderado por criterio y por periodo se actualiza al momento.</p>
-        </article>
-        <article class="card">
-          <h3>Tu lista, desde Excel</h3>
-          <p>Sube tu lista con matrícula y apellidos, revísala en una vista previa y listo. Volver a subirla no duplica alumnos.</p>
-        </article>
-        <article class="card">
-          <h3>Quizzes que se califican solos</h3>
-          <p>Banco de preguntas, tiempo límite y calificación automática. Lo que el docente fija a mano siempre manda.</p>
-        </article>
-        <article class="card">
-          <h3>Boletas y concentrado</h3>
-          <p>Boletas en PDF, concentrado en Excel con las columnas que tú elijas y una lista de alumnos en riesgo antes de que cierre el periodo.</p>
-        </article>
-      </div>
-    </section>
+          <div class="sheet-wrap">
+            <span class="sticker s1">Prueba: cambia una nota</span>
+            <div class="sheet" role="group" aria-labelledby="sheet-t">
+              <div class="sheet-head">
+                <div class="sheet-title" id="sheet-t">Matemáticas II · 3°B<small>Libreta de ejemplo, con datos inventados</small></div>
+                <div class="presets" role="group" aria-label="Peso de los criterios">
+                  <span>Pesos:</span>
+                  <button type="button" data-preset="0" aria-pressed="true">50 / 30 / 20</button>
+                  <button type="button" data-preset="1" aria-pressed="false">40 / 40 / 20</button>
+                  <button type="button" data-preset="2" aria-pressed="false">30 / 30 / 40</button>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Alumno</th>
+                      <th scope="col">Exámenes<b data-w="0">50%</b></th>
+                      <th scope="col">Tareas<b data-w="1">30%</b></th>
+                      <th scope="col">Proyecto<b data-w="2">20%</b></th>
+                      <th scope="col">Promedio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sheet-body">
+                    <tr><td>Ana Lucía Ramírez</td><td><input aria-label="Exámenes de Ana Lucía" type="number" min="0" max="10" step="0.1" value="9.5"></td><td><input aria-label="Tareas de Ana Lucía" type="number" min="0" max="10" step="0.1" value="9"></td><td><input aria-label="Proyecto de Ana Lucía" type="number" min="0" max="10" step="0.1" value="10"></td><td><span class="avg"><strong>9.5</strong><span class="chip ok">Muy bien</span></span></td></tr>
+                    <tr><td>Diego Hernández</td><td><input aria-label="Exámenes de Diego" type="number" min="0" max="10" step="0.1" value="7"></td><td><input aria-label="Tareas de Diego" type="number" min="0" max="10" step="0.1" value="8.5"></td><td><input aria-label="Proyecto de Diego" type="number" min="0" max="10" step="0.1" value="6"></td><td><span class="avg"><strong>7.3</strong><span class="chip warn">Aprobando</span></span></td></tr>
+                    <tr><td>Valeria Soto</td><td><input aria-label="Exámenes de Valeria" type="number" min="0" max="10" step="0.1" value="5"></td><td><input aria-label="Tareas de Valeria" type="number" min="0" max="10" step="0.1" value="6.5"></td><td><input aria-label="Proyecto de Valeria" type="number" min="0" max="10" step="0.1" value="7"></td><td><span class="avg"><strong>5.9</strong><span class="chip bad">En riesgo</span></span></td></tr>
+                    <tr><td>Mateo Cruz</td><td><input aria-label="Exámenes de Mateo" type="number" min="0" max="10" step="0.1" value="8"></td><td><input aria-label="Tareas de Mateo" type="number" min="0" max="10" step="0.1" value="9"></td><td><input aria-label="Proyecto de Mateo" type="number" min="0" max="10" step="0.1" value="8.5"></td><td><span class="avg"><strong>8.4</strong><span class="chip ok">Muy bien</span></span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="sheet-foot" aria-live="polite">
+                <span>Promedio del grupo: <strong id="group-avg">7.8</strong></span>
+                <span id="risk-count" class="chip bad">1 alumno en riesgo</span>
+              </div>
+            </div>
+            <span class="sticker s2">El promedio se calcula solo</span>
+          </div>
+        </div>
+      </section>
 
-    <section class="landing-section">
-      <h2>Cómo empiezas</h2>
-      <ol class="landing-steps">
-        <li><strong>Crea tu cuenta</strong><span>Un minuto, solo con tu correo.</span></li>
-        <li><strong>Importa tu lista</strong><span>De Excel o CSV, con vista previa.</span></li>
-        <li><strong>Configura tus criterios</strong><span>Exámenes, tareas, proyecto… con el peso que quieras.</span></li>
-        <li><strong>Califica y descarga</strong><span>En la libreta, y las boletas salen en PDF.</span></li>
-      </ol>
-      <p class="text-center"><a class="btn btn-primary btn-lg" href="{% url 'register' %}">Empezar ahora</a></p>
-    </section>
+      <section class="band alt" id="funciones">
+        <div class="wrap">
+          <div class="section-head">
+            <span class="eyebrow">Lo que resuelve</span>
+            <h2>Menos tiempo en la hoja de cálculo, más tiempo con tu grupo.</h2>
+            <p>Todo lo que haces al cerrar un periodo, en un solo lugar y sin fórmulas que cuidar.</p>
+          </div>
+          <div class="feat-grid">
 
-    {% include 'onboarding/_footer.html' %}
-  </body>
-</html>
+            <article class="feat">
+              <div class="viz t-green" aria-hidden="true">
+                <table class="mini-table">
+                  <thead><tr><th>Matrícula</th><th>Apellidos</th><th>Nombre</th></tr></thead>
+                  <tbody>
+                    <tr><td>230104</td><td>Ramírez Ortiz</td><td>Ana Lucía</td></tr>
+                    <tr><td>230117</td><td>Hernández Vega</td><td>Diego</td></tr>
+                    <tr><td>230122</td><td>Soto Méndez</td><td>Valeria</td></tr>
+                  </tbody>
+                </table>
+                <div class="viz-foot"><span class="chip ok">32 alumnos listos</span><span class="chip plain">0 duplicados</span></div>
+              </div>
+              <div class="feat-text">
+                <h3>Tu lista, desde Excel</h3>
+                <p>Sube tu archivo de Excel o CSV, revísalo en una vista previa y listo. Si lo vuelves a subir, no se duplican alumnos.</p>
+              </div>
+            </article>
+
+            <article class="feat">
+              <div class="viz t-sky" aria-hidden="true">
+                <div class="stack"><span class="a">Exámenes 50%</span><span class="b">Tareas 30%</span><span class="c">20%</span></div>
+                <div class="period"><span>Periodo 1</span><strong>Vale 40%</strong></div>
+                <div class="period"><span>Periodo 2</span><strong>Vale 60%</strong></div>
+              </div>
+              <div class="feat-text">
+                <h3>Pesos a tu manera</h3>
+                <p>Define periodos y criterios con el peso que quieras. El promedio ponderado se actualiza al momento, sin errores de redondeo.</p>
+              </div>
+            </article>
+
+            <article class="feat">
+              <div class="viz t-sun" aria-hidden="true">
+                <div class="flow"><span class="chip plain">Borrador</span><span class="arrow">→</span><span class="chip info">Publicada</span><span class="arrow">→</span><span class="chip ok">Calificada</span></div>
+                <div class="upload"><span>Tarea 4 · Ana Lucía</span><span class="chip ok">A tiempo</span></div>
+                <div class="upload"><span>Tarea 4 · Diego</span><span class="late">Tarde</span></div>
+              </div>
+              <div class="feat-text">
+                <h3>Actividades y entregas</h3>
+                <p>Prepara en borrador y publica cuando quieras. Los alumnos entregan sus archivos y la penalización por entrega tardía se aplica sola.</p>
+              </div>
+            </article>
+
+            <article class="feat">
+              <div class="viz t-plain" data-quiz>
+                <p class="quiz-q">¿Cuál es la raíz cuadrada de 144?</p>
+                <button type="button" class="opt" data-ok="0">10</button>
+                <button type="button" class="opt" data-ok="1">12</button>
+                <button type="button" class="opt" data-ok="0">14</button>
+                <p class="quiz-res" aria-live="polite">Toca una respuesta.</p>
+              </div>
+              <div class="feat-text">
+                <h3>Quizzes que se califican solos</h3>
+                <p>Arma un banco de preguntas, pon tiempo límite y recibe las calificaciones sin revisar una por una. Lo que fijes a mano siempre manda.</p>
+              </div>
+            </article>
+
+            <article class="feat">
+              <div class="viz t-green" aria-hidden="true">
+                <div class="paper">
+                  <div class="row"><span>Boleta · Ana Lucía Ramírez</span><span class="pdf-tag">PDF</span></div>
+                  <div class="ln" style="width:92%"></div><div class="ln" style="width:76%"></div><div class="ln" style="width:84%"></div>
+                  <div class="row"><span>Promedio final</span><b>9.5</b></div>
+                </div>
+                <div class="viz-foot"><span class="chip info">Excel con las columnas que elijas</span></div>
+              </div>
+              <div class="feat-text">
+                <h3>Boletas y concentrado</h3>
+                <p>Descarga boletas en PDF, una por alumno o de todo el grupo, y un concentrado en Excel con solo las columnas que necesitas.</p>
+              </div>
+            </article>
+
+            <article class="feat">
+              <div class="viz t-sun" aria-hidden="true">
+                <div class="risk"><span>Valeria Soto</span><span class="bar"><i class="bad" style="width:59%"></i></span><span class="chip bad">5.9</span></div>
+                <div class="risk"><span>Luis Pérez</span><span class="bar"><i class="bad" style="width:63%"></i></span><span class="chip bad">6.3</span></div>
+                <div class="risk"><span>Diego Hernández</span><span class="bar"><i class="warn" style="width:73%"></i></span><span class="chip warn">7.3</span></div>
+              </div>
+              <div class="feat-text">
+                <h3>Alumnos en riesgo, a tiempo</h3>
+                <p>Mira quién necesita apoyo antes de que cierre el periodo, y escríbele desde la misma plataforma.</p>
+              </div>
+            </article>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="empezar">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="eyebrow">Cómo empiezas</span>
+            <h2>De cero a tu primera calificación en una tarde.</h2>
+          </div>
+          <ol class="steps">
+            <li><strong>Crea tu cuenta</strong><span>Solo con tu correo, sin tarjeta.</span><span class="chip ok time">1 minuto</span></li>
+            <li><strong>Importa tu lista</strong><span>Desde Excel o CSV, con vista previa.</span><span class="chip warn time">2 minutos</span></li>
+            <li><strong>Configura tus criterios</strong><span>Exámenes, tareas, proyecto… con el peso que quieras.</span><span class="chip info time">2 minutos</span></li>
+            <li><strong>Califica y descarga</strong><span>Escribe las notas en la libreta y baja las boletas.</span><span class="chip plain time">Cuando quieras</span></li>
+          </ol>
+          <div class="center-cta"><a class="btn btn-primary btn-lg" href="{% url 'register' %}">Empezar ahora</a></div>
+        </div>
+      </section>
+
+      <section class="band alt" id="alumnos">
+        <div class="wrap">
+          <div class="section-head">
+            <span class="eyebrow">Para los dos lados del salón</span>
+            <h2>Docentes y alumnos, en la misma página.</h2>
+          </div>
+          <figure class="photo-wide">
+            <img src="{% static 'images/portada-aula.jpg' %}" width="1600" height="900" loading="lazy" alt="Un docente de pie frente a un grupo de alumnos sentados en un salón de clases." />
+            <figcaption><span class="chip ok">Pensado para el salón de clases</span></figcaption>
+          </figure>
+          <div class="dual">
+            <article class="who teacher">
+              <h3>Si eres docente</h3>
+              <ul>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Libreta con promedios ponderados por criterio y por periodo.</span></li>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Grupos que archivas o duplicas al empezar un nuevo ciclo.</span></li>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Un historial de cada cambio de calificación.</span></li>
+              </ul>
+              <div class="bubbles" aria-hidden="true">
+                <div class="bubble in">Profe, ¿puedo entregar mi proyecto mañana?</div>
+                <div class="bubble out">Sí, con la penalización de siempre. Ánimo.</div>
+              </div>
+            </article>
+            <article class="who student">
+              <h3>Si eres alumno</h3>
+              <ul>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Te unes al grupo con el código de tu docente y ves tus calificaciones.</span></li>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Entregas tareas y resuelves quizzes desde tu celular o tu computadora.</span></li>
+                <li><svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg><span>Hablas con tu docente sin pasar por otras apps. Y nunca pagas.</span></li>
+              </ul>
+              <div class="join-code" aria-hidden="true"><small>Código del grupo (ejemplo)</small><code>MAT2-K7QX</code></div>
+              <div class="cta-row"><a class="btn btn-primary" href="{% url 'register_student' %}">Crear mi cuenta de alumno</a></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" id="precios">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="eyebrow">Precios</span>
+            <h2>Empieza gratis. Paga solo cuando lo necesites.</h2>
+            <p>Tus alumnos nunca pagan. Precios en pesos mexicanos.</p>
+          </div>
+          <div class="plans">
+            <article class="plan">
+              <h3>{{ free.name }}</h3>
+              <div class="price"><strong>$0</strong><span>para siempre</span></div>
+              <ul>
+                {% for line in free_bullets %}<li><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>{{ line }}</li>{% endfor %}
+              </ul>
+              <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Empezar gratis</a>
+            </article>
+            <article class="plan featured">
+              <span class="chip warn tag">Próximamente</span>
+              <h3>{{ paid.name }}</h3>
+              <div class="price"><strong>${{ paid.monthly_price }}</strong><span>al mes</span></div>
+              <p class="alt-price">o ${{ paid.annual_price|floatformat:"0g" }} al año (2 meses gratis)</p>
+              <ul>
+                {% for line in paid_bullets %}<li><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>{{ line }}</li>{% endfor %}
+              </ul>
+              <a class="btn btn-ghost btn-lg" href="{% url 'pricing' %}#aviso">Avísame cuando esté disponible</a>
+            </article>
+          </div>
+          <p class="plans-foot">Todavía no cobramos en línea. ¿Necesitas el plan {{ paid.name }} ya? <a href="{% url 'pricing' %}">Mira los detalles</a> y escríbenos.</p>
+        </div>
+      </section>
+
+      <section class="band alt" id="preguntas">
+        <div class="wrap">
+          <div class="section-head center"><h2>Preguntas frecuentes</h2></div>
+          <div class="faq">
+            <details open><summary>¿Mis alumnos tienen que pagar?</summary><p>No, nunca. Solo el docente o la escuela pagan. Los alumnos crean su cuenta gratis, se unen a tu grupo con tu código y ven sus calificaciones.</p></details>
+            <details><summary>¿Necesito tarjeta para empezar?</summary><p>No. Creas tu cuenta con tu correo y empiezas en el plan Gratis.</p></details>
+            <details><summary>¿Funciona en mi celular?</summary><p>Sí. Funciona desde el navegador de tu celular o de tu computadora. No necesitas instalar nada.</p></details>
+            <details><summary>¿Qué pasa con mis datos si dejo de pagar?</summary><p>Nada se borra. Sigues viendo y exportando todo lo que ya tienes; lo único que cambia es que no puedes crecer más allá de los límites del plan Gratis.</p></details>
+            <details><summary>¿Puedo cancelar cuando quiera?</summary><p>Sí. Y como tus datos se conservan, puedes volver al plan {{ paid.name }} cuando lo necesites.</p></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <div class="final">
+            <div class="final-copy">
+              <h2>Tu próxima libreta puede estar lista hoy.</h2>
+              <p>Crea tu cuenta gratis, importa tu lista y deja que los promedios se calculen solos.</p>
+              <div class="cta-row">
+                <a class="btn btn-primary btn-lg" href="{% url 'register' %}">Crear mi cuenta de docente</a>
+                <a class="btn btn-ghost btn-lg" href="{% url 'register_student' %}">Soy alumno</a>
+              </div>
+            </div>
+            <div class="final-photo">
+              <img src="{% static 'images/portada-equipo.jpg' %}" width="1400" height="933" loading="lazy" alt="Tres personas riendo mientras trabajan juntas con sus laptops en una mesa." />
+            </div>
+          </div>
+          <div class="school">
+            <span class="chip info">Piloto gratuito</span>
+            <span>¿Eres una escuela? Estamos abriendo un piloto con las primeras escuelas. <a href="mailto:{{ support_email }}?subject={{ 'Quiero un piloto para mi escuela'|urlencode }}">Cuéntanos</a>.</span>
+          </div>
+        </div>
+      </section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/portada.js' %}?v=1"></script>{% endblock %}

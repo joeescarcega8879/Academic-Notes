@@ -6,20 +6,29 @@ from .avatars import process_avatar
 from .models import User, StudentProfile, ProfessorProfile
 
 class LoginForm(AuthenticationForm):
+    error_messages = {
+        # El mismo aviso para un usuario que no existe y para una contraseña mala: no se da pista de cuál fue.
+        'invalid_login': 'El correo o la contraseña no son correctos. Revísalos e inténtalo de nuevo.',
+        'inactive': 'Esta cuenta está desactivada. Escríbenos si crees que es un error.',
+    }
     username = forms.CharField(
-        label='Email or Username',
+        label='Correo o usuario',
         widget=forms.TextInput(attrs={
-          'class':'input with-icon',
-          'placeholder':'Email or Username',
-          'id':'li-user'
+          'class':'input',
+          'placeholder':'tucorreo@ejemplo.com',
+          'id':'li-user',
+          'autocomplete':'username',
+          'autofocus': True,
         })
     )
     
     password = forms.CharField(
+        label='Contraseña',
         widget=forms.PasswordInput(attrs={
-            'class': 'input with-icon',
+            'class': 'input',
             'placeholder': '••••••••',
             'id': 'li-pass',
+            'autocomplete': 'current-password',
         })
     )
     

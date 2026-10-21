@@ -6,13 +6,44 @@
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/gradelink.css' %}?v=25" />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/portada.css' %}?v=4" />
+    <link rel="stylesheet" href="{% static 'css/acceso.css' %}?v=1" />
   </head>
-  <body>
-    <main class="auth-shell">
-      <a class="auth-brand" href="{% url 'home' %}"><span class="brand-mark">{{ site_name|first }}</span> {{ site_name }}</a>
-      <div class="auth-card">
+  <body class="portada acceso">
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-logo" viewBox="0 0 34 34"><rect width="34" height="34" rx="10" fill="#1e3a5f"/><rect x="8" y="7" width="18" height="21" rx="3" fill="#fff"/><path d="M12 18l3.6 3.6L22 14" fill="none" stroke="#2ecc71" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="12" y="10" width="10" height="2" rx="1" fill="#1e3a5f" opacity=".35"/></symbol>
+    </svg>
+
+    <aside class="acceso-art">
+      <a class="logo" href="{% url 'home' %}" aria-label="{{ site_name }}, inicio">
+        <svg width="34" height="34" aria-hidden="true"><use href="#i-logo"/></svg>
+        {{ site_name }}
+      </a>
+      <div class="art-copy">
+        <p class="art-title">{% block art_title %}Tu libreta lista en <span class="hl">5 minutos</span>.{% endblock %}</p>
+        <p class="art-text">{% block art_text %}Importa tu lista, define cuánto vale cada criterio y deja que los promedios se calculen solos.{% endblock %}</p>
+        <ul class="art-list">
+          {% block art_list %}
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Gratis para empezar, sin tarjeta</li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Tus alumnos nunca pagan</li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Boletas en PDF y alumnos en riesgo</li>
+          {% endblock %}
+        </ul>
+      </div>
+      <figure class="art-photo">
+        <img src="{% static 'images/portada-aula.jpg' %}" width="1600" height="900" loading="lazy" alt="" />
+        <span class="sticker s2">El promedio se calcula solo</span>
+      </figure>
+    </aside>
+
+    <main class="acceso-main">
+      <a class="logo acceso-top" href="{% url 'home' %}" aria-label="{{ site_name }}, inicio">
+        <svg width="34" height="34" aria-hidden="true"><use href="#i-logo"/></svg>
+        {{ site_name }}
+      </a>
+      <div class="acceso-card">
         {% if messages %}
           <div class="flash-list">
             {% for message in messages %}<div class="flash flash-{{ message.level_tag }}" role="status">{{ message }}</div>{% endfor %}
@@ -20,9 +51,11 @@
         {% endif %}
         {% block content %}{% endblock %}
       </div>
-      <p class="auth-foot text-xs">
+      <p class="acceso-foot">
         <a href="{% url 'pricing' %}">Precios</a> · <a href="{% url 'terms' %}">Términos</a> · <a href="{% url 'privacy' %}">Privacidad</a> · <a href="mailto:{{ support_email }}">{{ support_email }}</a>
       </p>
     </main>
+
+    <script src="{% static 'js/acceso.js' %}?v=1"></script>
   </body>
 </html>

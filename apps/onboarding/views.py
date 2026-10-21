@@ -29,7 +29,18 @@ class LandingView(View):
     def get(self, request):
         if request.user.is_authenticated:
             return redirect(home_url_name(request.membership))
-        return render(request, 'onboarding/landing.html')
+        return render(request, 'onboarding/landing.html', self.pricing_context())
+
+    @staticmethod
+    def pricing_context():
+        """Los dos planes de la portada, con los mismos números que ``/precios/`` (salen de ``plans``)."""
+        free = plans.FREE
+        free_bullets = [f'{label}: {free.limit(key)}' for key, label in plans.LIMITS if free.limit(key) is not None]
+        return {
+            'free': free, 'paid': plans.TEACHER,
+            'free_bullets': free_bullets + ['Boletas en PDF con marca de agua'],
+            'paid_bullets': PricingView.paid_bullets(),
+        }
 
 
 class RegisterView(View):
