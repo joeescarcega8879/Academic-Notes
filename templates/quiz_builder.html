@@ -75,12 +75,14 @@
               </form>
             {% endif %}
           </td>
-          <td style="white-space: nowrap">
+          <td>
             {% if not locked and not read_only %}
               <form method="post" class="inline-form">{% csrf_token %}<input type="hidden" name="question_id" value="{{ question.pk }}">
-                <button type="submit" name="action" value="up" class="btn btn-ghost"{% if forloop.first %} disabled{% endif %}>↑</button>
-                <button type="submit" name="action" value="down" class="btn btn-ghost"{% if forloop.last %} disabled{% endif %}>↓</button>
-                <button type="submit" name="action" value="remove" class="btn btn-ghost">Quitar</button>
+                <div class="row-actions">
+                  <button type="submit" name="action" value="up" class="btn btn-ghost btn-square" aria-label="Subir"{% if forloop.first %} disabled{% endif %}>↑</button>
+                  <button type="submit" name="action" value="down" class="btn btn-ghost btn-square" aria-label="Bajar"{% if forloop.last %} disabled{% endif %}>↓</button>
+                  <button type="submit" name="action" value="remove" class="btn btn-ghost">Quitar</button>
+                </div>
               </form>
             {% endif %}
           </td>

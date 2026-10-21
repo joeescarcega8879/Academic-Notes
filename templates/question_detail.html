@@ -27,16 +27,16 @@
         {% for course in duplicate_groups %}{% if course.pk != question.course_id %}<option value="{{ course.pk }}">En {{ course.name }}</option>{% endif %}{% endfor %}
         {% if question.course_id %}<option value="sin">Como pregunta general</option>{% endif %}
       </select>
-      <button type="submit" class="btn btn-ghost">Duplicar</button>
+      <button type="submit" class="btn btn-ghost btn-action">Duplicar</button>
     </form>
     {% if can_edit %}
-      <a class="btn btn-ghost" href="{% url 'quizzes:question_update' question.pk %}">Editar</a>
+      <a class="btn btn-ghost btn-action" href="{% url 'quizzes:question_update' question.pk %}">Editar</a>
       <form method="post" action="{% url 'quizzes:question_archive' question.pk %}" class="inline-form">
-        {% csrf_token %}<button type="submit" class="btn btn-ghost">{% if question.is_archived %}Desarchivar{% else %}Archivar{% endif %}</button>
+        {% csrf_token %}<button type="submit" class="btn btn-ghost btn-action">{% if question.is_archived %}Desarchivar{% else %}Archivar{% endif %}</button>
       </form>
       <form method="post" action="{% url 'quizzes:question_delete' question.pk %}" class="inline-form"
             onsubmit="return confirm('¿Eliminar esta pregunta del banco? Los quizzes que ya la usan conservan su copia.')">
-        {% csrf_token %}<button type="submit" class="btn btn-ghost">Eliminar</button>
+        {% csrf_token %}<button type="submit" class="btn btn-ghost btn-action">Eliminar</button>
       </form>
     {% endif %}
   </div>

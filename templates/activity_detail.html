@@ -27,11 +27,11 @@
           {% csrf_token %}
           <button type="submit" class="btn btn-ghost">{% if activity.published %}Pasar a borrador{% else %}Publicar{% endif %}</button>
         </form>
-        <a class="btn btn-ghost" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>
+        <a class="btn btn-ghost btn-action" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>
         <form method="post" action="{% url 'grades:activity_delete' activity.pk %}" class="inline-form"
               onsubmit="return confirm('¿Eliminar esta actividad? No se puede deshacer.')">
           {% csrf_token %}
-          <button type="submit" class="btn btn-ghost">Eliminar</button>
+          <button type="submit" class="btn btn-ghost btn-action">Eliminar</button>
         </form>
       {% endif %}
     {% endif %}
