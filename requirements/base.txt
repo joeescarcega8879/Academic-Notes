@@ -14,5 +14,9 @@ redis>=5.2
 # ── Importación de listas (Excel) ─────────────────────────────────────
 openpyxl>=3.1
 
+# ── Temarios (extraer texto de PDF y Word) ────────────────────────────
+pypdf>=5.0,<7
+python-docx>=1.1,<2
+
 # ── Reportes (boleta PDF) ─────────────────────────────────────────────
 reportlab>=4.2,<5
