@@ -158,9 +158,19 @@ class TestNotasEnGrupoArchivado:
         assert list(form.fields["activity"].queryset) == []
         assert list(form.fields["student"].queryset) == []
 
-    def test_sigue_en_el_listado_y_la_exportacion(self, professor_client, nota):
-        assert [g.pk for g in professor_client.get(reverse("grades:list")).context["grades"]] == [nota.pk]
-        assert nota.student.email in professor_client.get(reverse("grades:export")).content.decode("utf-8-sig")
+    def test_por_omisión_no_sale_en_el_listado_ni_en_la_exportación(self, professor_client, nota):
+        assert list(professor_client.get(reverse("grades:list")).context["grades"]) == []
+        assert nota.student.email not in professor_client.get(reverse("grades:export")).content.decode("utf-8-sig")
+
+    def test_sigue_en_el_listado_y_la_exportacion_si_se_piden_los_archivados(self, professor_client, nota):
+        assert [g.pk for g in professor_client.get(reverse("grades:list"), {"archivados": "on"}).context["grades"]] == [nota.pk]
+        csv_texto = professor_client.get(reverse("grades:export"), {"archivados": "on"}).content.decode("utf-8-sig")
+        assert nota.student.email in csv_texto
+
+    def test_sigue_en_el_listado_y_la_exportacion_si_se_elige_el_grupo(self, professor_client, nota):
+        grupo = nota.activity.course_id
+        assert [g.pk for g in professor_client.get(reverse("grades:list"), {"grupo": grupo}).context["grades"]] == [nota.pk]
+        assert nota.student.email in professor_client.get(reverse("grades:export"), {"grupo": grupo}).content.decode("utf-8-sig")
 
     def test_la_validacion_del_formulario_rechaza_el_grupo_archivado(self, professor_client, nota, activity):
         # Aunque alguien fabrique la petición, ni el formulario ni el modelo lo aceptan.

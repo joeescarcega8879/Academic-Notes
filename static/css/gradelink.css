@@ -381,7 +381,7 @@ table.tbl tbody td {
 table.tbl tbody tr:last-child td { border-bottom: none; }
 table.tbl tbody tr:hover { background: var(--surface-2); }
 table.tbl td .mono { font-family: var(--font-mono); font-size: 13px; color: var(--text-muted); }
-.row-actions { display: flex; gap: 6px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .btn-ico {
   width: 32px; height: 32px;
   border-radius: 8px;

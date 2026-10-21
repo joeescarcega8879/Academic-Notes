@@ -57,3 +57,36 @@ class GradeForm(forms.ModelForm):
         if activity and score is not None and score > activity.max_score:
             raise forms.ValidationError(f'La calificación no puede superar el máximo de {activity.max_score}.')
         return cleaned
+
+
+class GradeFilterForm(forms.Form):
+    """Búsqueda y filtros de la lista de calificaciones; la exportación a CSV usa los mismos."""
+
+    q = forms.CharField(label='Buscar', required=False, max_length=100)
+    grupo = forms.ModelChoiceField(label='Grupo', required=False, queryset=Course.objects.none(), empty_label='Todos los grupos')
+    desde = forms.DateField(
+        label='Desde', required=False, input_formats=['%Y-%m-%d'], widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
+    )
+    hasta = forms.DateField(
+        label='Hasta', required=False, input_formats=['%Y-%m-%d'], widget=forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
+    )
+    archivados = forms.BooleanField(label='Incluir grupos archivados', required=False)
+
+    def __init__(self, *args, groups, teacher=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['grupo'].queryset = groups  # los grupos que el usuario puede ver: lo demás es una opción inválida
+        self.fields['q'].widget.attrs['placeholder'] = (
+            'Alumno, matrícula, evaluación o comentario' if teacher else 'Grupo, evaluación o comentario'
+        )
+        for name, field in self.fields.items():
+            if name == 'archivados':
+                continue
+            css = 'select' if isinstance(field.widget, forms.Select) else 'input'
+            field.widget.attrs.setdefault('class', css)
+
+    def clean(self):
+        cleaned = super().clean()
+        desde, hasta = cleaned.get('desde'), cleaned.get('hasta')
+        if desde and hasta and desde > hasta:
+            self.add_error('hasta', 'La fecha final es anterior a la inicial.')
+        return cleaned
