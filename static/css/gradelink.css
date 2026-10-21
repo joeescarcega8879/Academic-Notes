@@ -20,23 +20,23 @@
   --bad-bg: #f8e3e3;
 
   /* Neutrals (light) */
-  --bg: #f7f8fb;
+  --bg: #f5f8fc;
   --surface: #ffffff;
-  --surface-2: #f2f4f8;
-  --border: #e6e8ee;
-  --border-strong: #d7dae3;
+  --surface-2: #eaf0f8;
+  --border: #dfe6f0;
+  --border-strong: #cfd9e8;
   --text: #14202f;
-  --text-muted: #5b6473;
+  --text-muted: #56627a;
   --text-faint: #8a93a3;
-  --shadow-sm: 0 1px 2px rgba(20, 32, 47, 0.05);
-  --shadow-md: 0 4px 14px rgba(20, 32, 47, 0.07);
+  --shadow-sm: 0 1px 2px rgba(20, 32, 47, 0.04), 0 4px 14px -8px rgba(30, 58, 95, 0.18);
+  --shadow-md: 0 1px 2px rgba(20, 32, 47, 0.06), 0 12px 28px -12px rgba(30, 58, 95, 0.28);
   --shadow-lg: 0 18px 40px rgba(20, 32, 47, 0.18);
 
   /* Geometry */
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
 
   /* Density (overridden by .density-*) */
   --pad-1: 8px;
@@ -53,6 +53,14 @@
 
   /* Type */
   --font: 'Roboto', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Roboto', system-ui, sans-serif;
+
+  /* Acentos de la portada: amarillo y celeste, además del azul y el verde de la marca */
+  --sun: #ffc83d;
+  --sun-50: #fff3cd;
+  --sun-ink: #6b4b00;
+  --sky: #2b8fd6;
+  --sky-50: #e1f1fd;
   --font-mono: 'Roboto Mono', ui-monospace, monospace;
 }
 
@@ -73,6 +81,11 @@
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
   --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
   --shadow-lg: 0 18px 40px rgba(0,0,0,0.55);
+  --brand-accent-50: rgba(46,204,113,0.14);
+  --sun-50: rgba(255,200,61,0.14);
+  --sun-ink: #ffd873;
+  --sky: #6cc0ff;
+  --sky-50: rgba(76,175,239,0.14);
 }
 
 /* Density */
@@ -1898,3 +1911,57 @@ table.gs tfoot .gs-name, table.gs tfoot .gs-final { z-index: 4; }
 .landing-steps span { color: var(--text-muted); font-size: 14px; }
 .landing-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; max-width: 1080px; margin: 0 auto; padding: 24px; border-top: 1px solid var(--border); color: var(--text-muted); }
 @media (max-width: 640px) { .landing-hero h1 { font-size: 27px; } }
+/* ===========================================================
+   Tema de la portada en las páginas internas
+   Misma paleta (azul, verde, amarillo, celeste), esquinas más redondas y títulos con Bricolage Grotesque.
+   Los colores base viven en :root y .theme-dark; aquí solo los componentes.
+   =========================================================== */
+.topbar h1, .table-head h3, .group-head h3, .stat .stat-value, .brand-name, .card > h2, .card > h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+.topbar h1 { font-size: 22px; font-weight: 800; }
+.table-head h3, .group-head h3 { font-weight: 700; }
+.stat .stat-value { font-weight: 800; }
+.brand-name { font-weight: 800; font-size: 17px; }
+
+/* tarjetas y tablas */
+.card, .stat, .table-wrap, .group-card { box-shadow: var(--shadow-sm); }
+.group-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.group-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+/* los tres recuadros de arriba, cada uno con su color */
+.stat .stat-label > .i {
+  width: 32px; height: 32px; padding: 7px;
+  border-radius: 10px;
+  opacity: 1;
+}
+.stat-grid .stat:nth-child(3n+1) .stat-label > .i { background: var(--brand-accent-50); color: var(--ok); }
+.stat-grid .stat:nth-child(3n+2) .stat-label > .i { background: var(--sun-50); color: var(--sun-ink); }
+.stat-grid .stat:nth-child(3n) .stat-label > .i { background: var(--sky-50); color: var(--sky); }
+.theme-dark .stat-grid .stat .stat-label > .i { color: inherit; }
+/* el script de iconos anida un segundo .i dentro del primero: que no repita el recuadro */
+.stat .stat-label > .i .i { width: 100%; height: 100%; padding: 0; background: none; border-radius: 0; color: inherit; }
+.theme-dark .stat-grid .stat:nth-child(3n+1) .stat-label > .i { color: var(--brand-accent); }
+.theme-dark .stat-grid .stat:nth-child(3n+2) .stat-label > .i { color: var(--sun-ink); }
+.theme-dark .stat-grid .stat:nth-child(3n) .stat-label > .i { color: var(--sky); }
+
+/* botones: redondos, y la acción principal en verde como en la portada */
+.btn { border-radius: 999px; font-weight: 700; }
+.btn-primary { background: var(--brand-accent); color: #0b2540; box-shadow: 0 6px 16px -8px rgba(46, 204, 113, 0.9); }
+.btn-primary:hover { background: #29bd68; }
+.btn-ico { border-radius: 12px; }
+
+/* campos */
+.input, .select { border-radius: 12px; }
+.input:focus, .select:focus { border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-50); }
+
+/* barra lateral */
+.nav a { border-radius: 12px; }
+.nav a.is-active { background: rgba(46, 204, 113, 0.18); }
+.brand-mark { border-radius: 10px; }
+
+/* avisos y etiquetas */
+.flash { border-radius: var(--radius); }
+.chip.warn { background: var(--sun-50); color: var(--sun-ink); border-color: transparent; }
+.chip.info { background: var(--sky-50); color: var(--sky); border-color: transparent; }
