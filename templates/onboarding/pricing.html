@@ -1,19 +1,19 @@
 {% extends "onboarding/base_publica.html" %}
 {% block title %}Precios · {{ site_name }}{% endblock %}
-{% block meta %}<meta name="description" content="Empieza gratis, sin tarjeta. Cuando tus grupos crezcan, el plan {{ paid.name }} cuesta ${{ paid.monthly_price }} MXN al mes o ${{ paid.annual_price|floatformat:'0g' }} MXN al año. Tus alumnos nunca pagan." />{% endblock %}
+{% block meta %}<meta name="description" content="Empieza gratis, sin tarjeta. Cuando tus grupos crezcan, el plan {{ paid.name }} cuesta ${{ paid.monthly_price }} MXN al mes y, con inteligencia artificial, el plan {{ plus.name }} ${{ plus.monthly_price }}. Tus alumnos nunca pagan." />{% endblock %}
 
 {% block main %}
 <section class="hero page-hero">
   <div class="wrap">
     <span class="chip ok">Precios en pesos mexicanos</span>
     <h1>Empieza gratis. Paga solo cuando lo necesites.</h1>
-    <p class="lead">Tu libreta con calificación ponderada, tu lista desde Excel y tus boletas, sin tarjeta. Cuando tus grupos crezcan, pasas al plan {{ paid.name }}. Tus alumnos nunca pagan.</p>
+    <p class="lead">Tu libreta con calificación ponderada, tu lista desde Excel y tus boletas, sin tarjeta. Cuando tus grupos crezcan, pasas al plan {{ paid.name }}; y si quieres que la IA te ayude a planear y calificar, al plan {{ plus.name }}. Tus alumnos nunca pagan.</p>
   </div>
 </section>
 
 <section class="band tight" aria-label="Planes">
   <div class="wrap">
-    <div class="plans">
+    <div class="plans three">
 
       <article class="plan" aria-labelledby="plan-gratis">
         <h2 id="plan-gratis">{{ free.name }}</h2>
@@ -40,33 +40,20 @@
           {% for line in paid_bullets %}<li><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>{{ line }}</li>{% endfor %}
         </ul>
 
-        <div id="aviso" class="waitlist">
-          {% if joined %}
-            <div class="flash flash-success" role="status">¡Listo! Te avisaremos por correo cuando el plan {{ paid.name }} esté disponible.</div>
-          {% else %}
-            <p class="waitlist-note"><strong>Todavía no cobramos en línea.</strong> Déjanos tu correo y te avisamos cuando esté listo.</p>
-            <form method="post" action="{% url 'pricing' %}#aviso" novalidate>
-              {% csrf_token %}
-              {% if form.non_field_errors %}<div class="flash flash-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-              <div class="field{% if form.email.errors %} has-error{% endif %}">
-                <label for="{{ form.email.id_for_label }}" class="sr-only">{{ form.email.label }}</label>
-                {{ form.email }}
-                {% for error in form.email.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
-              </div>
-              <div class="hp" aria-hidden="true"><label>No llenar<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
-              <div class="field{% if form.accept.errors %} has-error{% endif %}">
-                <label class="checkbox">
-                  {{ form.accept }} <span>Acepto que guarden mi correo solo para avisarme (<a href="{% url 'privacy' %}">aviso de privacidad</a>)</span>
-                </label>
-                {% for error in form.accept.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
-              </div>
-              <button type="submit" class="btn btn-primary btn-lg">Avísame cuando esté disponible</button>
-            </form>
-          {% endif %}
-          <p class="text-xs text-muted">
-            ¿Ya necesitas el plan {{ paid.name }}? <a class="btn-link" href="mailto:{{ support_email }}?subject={{ 'Quiero el plan Pro'|urlencode }}">Escríbenos</a> y lo activamos nosotros.
-          </p>
-        </div>
+        {% include "onboarding/_waitlist.html" with slug="pro" anchor="aviso" plan_value="teacher" plan_name=paid.name form=forms.pro subject="Quiero el plan Pro" %}
+      </article>
+
+      <article class="plan ai" aria-labelledby="plan-plus-titulo" id="plan-plus">
+        <span class="chip info tag">Próximamente</span>
+        <h2 id="plan-plus-titulo">{{ plus.name }}</h2>
+        <p class="plan-for">Para que la IA te ahorre horas de planeación y de revisión.</p>
+        <div class="price"><strong>${{ plus.monthly_price }}</strong><span>MXN al mes</span></div>
+        <p class="alt-price">o ${{ plus.annual_price|floatformat:"0g" }} MXN al año (2 meses gratis)</p>
+        <ul>
+          {% for line in plus_bullets %}<li><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>{{ line }}</li>{% endfor %}
+        </ul>
+        <p class="text-xs text-muted">La IA todavía está en construcción: te avisamos cuando se estrene. El precio puede ajustarse antes del lanzamiento.</p>
+        {% include "onboarding/_waitlist.html" with slug="plus" anchor="aviso-plus" plan_value="teacher_plus" plan_name=plus.name form=forms.plus subject="Quiero el plan Plus" %}
       </article>
 
     </div>
@@ -78,7 +65,7 @@
     <div class="section-head center"><h2 id="comparar">Compara los planes</h2></div>
     <div class="table-wrap">
       <table class="plan-compare">
-        <thead><tr><th scope="col"><span class="sr-only">Característica</span></th><th scope="col">{{ free.name }}</th><th scope="col">{{ paid.name }}</th></tr></thead>
+        <thead><tr><th scope="col"><span class="sr-only">Característica</span></th><th scope="col">{{ free.name }}</th><th scope="col">{{ paid.name }}</th><th scope="col">{{ plus.name }}</th></tr></thead>
         <tbody>
           {% for row in comparison %}
             <tr>
@@ -86,9 +73,11 @@
               {% if row.feature %}
                 <td>{% if row.free %}<span class="chip ok">Sí</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                 <td>{% if row.paid %}<span class="chip ok">Sí</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td>{% if row.plus %}<span class="chip ok">Sí</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
               {% else %}
                 <td>{% if row.free is None %}Sin tope{% else %}{{ row.free }}{% endif %}</td>
                 <td>{% if row.paid is None %}Sin tope{% else %}{{ row.paid }}{% endif %}</td>
+                <td>{% if row.plus is None %}Sin tope{% else %}{{ row.plus }}{% endif %}</td>
               {% endif %}
             </tr>
           {% endfor %}
@@ -115,7 +104,8 @@
     <div class="faq">
       <details open><summary>¿Mis alumnos tienen que pagar?</summary><p>No, nunca. Solo el docente o la escuela pagan. Los alumnos crean su cuenta gratis, se unen a tu grupo con tu código y ven sus calificaciones.</p></details>
       <details><summary>¿Necesito tarjeta para empezar?</summary><p>No. Creas tu cuenta con tu correo y empiezas en el plan Gratis.</p></details>
-      <details><summary>¿Cuándo puedo pagar?</summary><p>Todavía no cobramos en línea. Mientras tanto, si ya necesitas el plan {{ paid.name }}, escríbenos y lo activamos nosotros; o déjanos tu correo y te avisamos cuando el pago esté disponible.</p></details>
+      <details><summary>¿Qué incluye el plan {{ plus.name }}?</summary><p>Todo lo del plan {{ paid.name }} y, además, la IA: genera borradores de tareas, quizzes y exámenes a partir de tu temario, y te sugiere calificaciones para tus tareas con el código anónimo del alumno (su nombre no se envía). Tú revisas y apruebas todo antes de que llegue a tus alumnos. Tiene una cuota mensual de usos. Todavía está en construcción.</p></details>
+      <details><summary>¿Cuándo puedo pagar?</summary><p>Todavía no cobramos en línea. Mientras tanto, si ya necesitas el plan {{ paid.name }}, escríbenos y lo activamos nosotros; o déjanos tu correo y te avisamos cuando el pago esté disponible. El plan {{ plus.name }} se abrirá cuando la IA esté lista.</p></details>
       <details><summary>¿Qué pasa con mis datos si no pago o dejo de pagar?</summary><p>Nada se borra. Sigues viendo y exportando todo lo que ya tienes; lo único que cambia es que no puedes crecer más allá de los límites del plan Gratis.</p></details>
       <details><summary>¿Puedo cancelar cuando quiera?</summary><p>Sí. Y como tus datos se conservan, puedes volver al plan {{ paid.name }} cuando lo necesites.</p></details>
     </div>

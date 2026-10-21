@@ -240,7 +240,7 @@ class TestPortada:
     def test_no_dice_ningun_precio_que_no_este_en_la_tabla_de_planes(self, client):
         html = client.get("/").content.decode().lower()
         precios = {int(p.replace(",", "")) for p in re.findall(r"\$([\d,]+)", html)}
-        assert precios == {0, plans.TEACHER.monthly_price, plans.TEACHER.annual_price}
+        assert precios == {0, plans.TEACHER.monthly_price, plans.TEACHER.annual_price, plans.PLUS.monthly_price, plans.PLUS.annual_price}
 
     def test_con_sesion_cada_rol_va_a_su_inicio(self, professor_client, student_client, enrollment):
         assert professor_client.get("/").url == reverse("professor_dashboard")

@@ -1,0 +1,29 @@
+{# «Avísame» de un plan de pago. Recibe: slug ('pro' | 'plus'), plan_value, plan_name, form, joined, anchor, subject (asunto del correo). #}
+<div id="{{ anchor }}" class="waitlist">
+  {% if joined == slug %}
+    <div class="flash flash-success" role="status">¡Listo! Te avisaremos por correo cuando el plan {{ plan_name }} esté disponible.</div>
+  {% else %}
+    <p class="waitlist-note"><strong>Todavía no cobramos en línea.</strong> Déjanos tu correo y te avisamos cuando esté listo.</p>
+    <form method="post" action="{% url 'pricing' %}#{{ anchor }}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="plan" value="{{ plan_value }}">
+      {% if form.non_field_errors %}<div class="flash flash-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="field{% if form.email.errors %} has-error{% endif %}">
+        <label for="{{ form.email.id_for_label }}-{{ slug }}" class="sr-only">{{ form.email.label }}</label>
+        <input type="email" name="email" id="{{ form.email.id_for_label }}-{{ slug }}" class="input" maxlength="254" autocomplete="email" placeholder="tucorreo@ejemplo.com" value="{{ form.email.value|default_if_none:'' }}" required>
+        {% for error in form.email.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="hp" aria-hidden="true"><label>No llenar<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="field{% if form.accept.errors %} has-error{% endif %}">
+        <label class="checkbox">
+          <input type="checkbox" name="accept" id="id_accept_{{ slug }}"> <span>Acepto que guarden mi correo solo para avisarme (<a href="{% url 'privacy' %}">aviso de privacidad</a>)</span>
+        </label>
+        {% for error in form.accept.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg">Avísame cuando esté disponible</button>
+    </form>
+  {% endif %}
+  <p class="text-xs text-muted">
+    ¿Ya necesitas el plan {{ plan_name }}? <a class="btn-link" href="mailto:{{ support_email }}?subject={{ subject|urlencode }}">Escríbenos</a> y lo activamos nosotros.
+  </p>
+</div>
