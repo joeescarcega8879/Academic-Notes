@@ -97,7 +97,7 @@ class TestEnlaces:
             assert f'href="{URL}"' in pie, url
 
     def test_la_barra_de_la_portada_lleva_a_precios(self):
-        barra = Client().get('/').content.decode().split('<header class="landing-nav">')[1].split('</header>')[0]
+        barra = Client().get('/').content.decode().split('<header class="nav portada-nav">')[1].split('</header>')[0]
         assert f'href="{URL}"' in barra
 
     def test_sin_sesion_la_barra_ofrece_entrar_y_crear_cuenta(self):
