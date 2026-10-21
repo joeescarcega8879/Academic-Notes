@@ -1,4 +1,4 @@
-"""Banco de preguntas de la organización."""
+"""Banco de preguntas: por grupo, más las generales (sin grupo)."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -18,16 +18,22 @@ from core.utils import parse_id
 from .forms import BankFilterForm, QuestionForm, TrueFalseForm, choice_formset
 from .models import Question, QuizConfig
 from .services import builder
-from .services.bank import TRUE_FALSE_LABELS, can_edit_question, duplicate_question, save_question
+from .services.bank import (
+    TRUE_FALSE_LABELS, UNSET, bank_courses, can_edit_question, duplicate_question, save_question, teaching_courses,
+    visible_questions,
+)
 
 PAGE_SIZE = 20
 
 
 class BankMixin(TeacherRequiredMixin):
-    """El banco es de la organización activa: lo ven y lo reutilizan todos sus docentes."""
+    """El banco de la organización activa, por grupo: cada docente ve el de sus grupos y las preguntas generales."""
 
     def questions(self):
-        return Question.objects.for_organization(self.request.organization).select_related('author').prefetch_related('choices')
+        return (
+            visible_questions(self.request.organization, self.request.user)
+            .select_related('author', 'course').prefetch_related('choices')
+        )
 
     def get_question(self, pk):
         return get_object_or_404(self.questions(), pk=pk)
@@ -41,9 +47,14 @@ class BankMixin(TeacherRequiredMixin):
 
 class BankView(BankMixin, View):
     def get(self, request):
-        form = BankFilterForm(request.GET)
+        form = BankFilterForm(request.GET, groups=bank_courses(request.user, request.organization))
         data = form.cleaned_data if form.is_valid() else {}
         questions = self.questions().filter(is_archived=bool(data.get('archived')))
+        group = data.get('grupo', '')
+        if group == 'sin':
+            questions = questions.filter(course__isnull=True)
+        elif group:
+            questions = questions.filter(course_id=int(group))
         if data.get('q'):
             questions = questions.filter(Q(text__icontains=data['q']) | Q(topic__icontains=data['q']))
         if data.get('topic'):
@@ -51,7 +62,7 @@ class BankView(BankMixin, View):
         if data.get('kind'):
             questions = questions.filter(kind=data['kind'])
         topics = (
-            Question.objects.for_organization(request.organization).exclude(topic='')
+            visible_questions(request.organization, request.user).exclude(topic='')
             .order_by('topic').values_list('topic', flat=True).distinct()
         )
         page = Paginator(questions, PAGE_SIZE).get_page(request.GET.get('page'))
@@ -60,20 +71,35 @@ class BankView(BankMixin, View):
         return render(request, 'bank.html', {
             'form': form, 'page': page, 'topics': topics, 'querystring': query.urlencode(),
             'showing_archived': bool(data.get('archived')),
+            # Las preguntas nuevas se proponen en el grupo que se está viendo.
+            'group_query': f'?grupo={group}' if group.isdigit() else '',
         })
 
 
 class QuestionFormMixin(BankMixin):
     template_name = 'question_form.html'
 
+    def initial_course(self):
+        """El grupo con el que se abre el formulario de una pregunta nueva: el que se estaba viendo, el del quiz o el único."""
+        groups = teaching_courses(self.request.user, self.request.organization)
+        wanted = parse_id(self.request.GET.get('grupo', ''))
+        if wanted is not None and groups.filter(pk=wanted).exists():
+            return wanted
+        target = self.quiz_to_add_to(self.request)
+        if target is not None:
+            return target.activity.course_id
+        only = list(groups.values_list('pk', flat=True)[:2])
+        return only[0] if len(only) == 1 else None
+
     def forms_for(self, kind, data=None, question=None):
+        who = {'user': self.request.user, 'organization': self.request.organization}
+        initial = {'course': self.initial_course()} if question is None and data is None else {}
         if kind == Question.Kind.TRUE_FALSE:
-            initial = {}
             if question is not None:
                 verdadero = next(c for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
                 initial['correct'] = 'true' if verdadero.is_correct else 'false'
-            return TrueFalseForm(data, instance=question, initial=initial), None
-        return QuestionForm(data, instance=question), choice_formset(data, question=question)
+            return TrueFalseForm(data, instance=question, initial=initial, **who), None
+        return QuestionForm(data, instance=question, initial=initial, **who), choice_formset(data, question=question)
 
     def render_page(self, request, kind, form, formset, question=None):
         return render(request, self.template_name, {
@@ -91,7 +117,7 @@ class QuestionFormMixin(BankMixin):
                     explanation=form.cleaned_data['explanation'], topic=form.cleaned_data['topic'],
                     choices=formset.cleaned_choices if formset is not None else None,
                     true_is_correct=(form.cleaned_data['correct'] == 'true') if formset is None else None,
-                    question=question,
+                    question=question, course=form.cleaned_data['course'],
                 )
             except ValidationError as error:
                 form.add_error(None, error)
@@ -157,13 +183,24 @@ class QuestionDetailView(BankMixin, View):
         question = self.get_question(pk)
         return render(request, 'question_detail.html', {
             'question': question, 'can_edit': can_edit_question(request.user, request.membership, question),
+            'duplicate_groups': teaching_courses(request.user, request.organization),
         })
 
 
 class QuestionDuplicateView(BankMixin, View):
     def post(self, request, pk):
+        question = self.get_question(pk)
+        # ``grupo`` vacío: en el mismo grupo; «sin»: general; un número: en el banco de ese grupo (uno suyo y activo).
+        raw, course = request.POST.get('grupo', ''), UNSET
+        if raw == 'sin':
+            course = None
+        elif raw:
+            course = teaching_courses(request.user, request.organization).filter(pk=parse_id(raw) or 0).first()
+            if course is None:
+                messages.error(request, 'Elige uno de tus grupos activos para la copia.')
+                return redirect('quizzes:question_detail', pk=question.pk)
         try:
-            copy = duplicate_question(self.get_question(pk), by=request.user)
+            copy = duplicate_question(question, by=request.user, course=course)
         except PlanLimitError as error:
             limits.flash_limit_error(request, error)
             return redirect('quizzes:bank')

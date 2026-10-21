@@ -14,12 +14,20 @@
 <div class="card mw-760">
   <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
     <span class="chip">{{ question.get_kind_display }}</span>
+    <span class="chip {% if question.course %}ok{% endif %}">{% if question.course %}{{ question.course.name }}{% else %}General: sirve en todos mis grupos{% endif %}</span>
     {% if question.topic %}<span class="chip brand">{{ question.topic }}</span>{% endif %}
     <span class="chip">{{ question.points|floatformat:"-2" }} punto{{ question.points|pluralize }}</span>
     {% if question.is_archived %}<span class="chip">Archivada</span>{% endif %}
     <div class="spacer"></div>
-    <form method="post" action="{% url 'quizzes:question_duplicate' question.pk %}" class="inline-form">
-      {% csrf_token %}<button type="submit" class="btn btn-ghost">Duplicar</button>
+    <form method="post" action="{% url 'quizzes:question_duplicate' question.pk %}" class="inline-form flex-row gap-10">
+      {% csrf_token %}
+      <label class="sr-only" for="duplicar-en">Duplicar en el banco de</label>
+      <select class="select" id="duplicar-en" name="grupo" title="Dónde queda la copia">
+        <option value="">En el mismo grupo</option>
+        {% for course in duplicate_groups %}{% if course.pk != question.course_id %}<option value="{{ course.pk }}">En {{ course.name }}</option>{% endif %}{% endfor %}
+        {% if question.course_id %}<option value="sin">Como pregunta general</option>{% endif %}
+      </select>
+      <button type="submit" class="btn btn-ghost">Duplicar</button>
     </form>
     {% if can_edit %}
       <a class="btn btn-ghost" href="{% url 'quizzes:question_update' question.pk %}">Editar</a>

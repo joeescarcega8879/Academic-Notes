@@ -1,34 +1,25 @@
-{% extends "base.html" %} 
-{% block title %}Calificaciones · {{ site_name }}{%endblock %} 
+{% extends "base.html" %}
+{% block title %}Calificaciones · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
   <h1>Calificaciones</h1>
-  <span class="sub"
-    >{% if is_teacher %}Panel del profesor{% else %}Mis
-    calificaciones{% endif %}</span
-  >
+  <span class="sub">{% if is_teacher %}Panel del profesor{% else %}Mis calificaciones{% endif %}</span>
   <div class="spacer"></div>
   {% if is_teacher %}
-  <a class="btn btn-primary" href="{% url 'grades:create' %}"
-    ><i data-icon="plus"></i> Nueva calificación</a>
+  <a class="btn btn-primary" href="{% url 'grades:create' %}"><i data-icon="plus"></i> Nueva calificación</a>
   {% endif %}
   {% include 'partials/notifications.html' %}
 </header>
-{% endblock %} 
+{% endblock %}
 
 {% block content %}
 <!-- Fila de estadísticas -->
 <div class="stat-grid">
   <div class="stat">
     <div class="stat-label">
-      <span class="i"
-        ><i
-          data-icon="{% if is_teacher %}book-open{% else %}clipboard{% endif %}"
-        ></i
-      ></span>
-      {% if is_teacher %}Grupos activos{% else %}Grupos
-      inscritos{% endif %}
+      <span class="i"><i data-icon="{% if is_teacher %}book-open{% else %}clipboard{% endif %}"></i></span>
+      {% if is_teacher %}Grupos activos{% else %}Grupos inscritos{% endif %}
     </div>
     <div class="stat-value">{{ courses|length }}</div>
     <div class="stat-trend">este período</div>
@@ -39,52 +30,71 @@
       Promedio {% if is_teacher %}del grupo{% else %}general{% endif %}
     </div>
     <div class="stat-value">{{ average|floatformat:2|default:"—" }}</div>
-    <div class="stat-trend">según calificaciones</div>
+    <div class="stat-trend">{% if filtering %}de lo que ves abajo{% else %}según calificaciones{% endif %}</div>
   </div>
   <div class="stat">
     <div class="stat-label">
       <span class="i"><i data-icon="clipboard"></i></span> Calificaciones
     </div>
-    <div class="stat-value">{{ grades|length }}</div>
-    <div class="stat-trend">registradas</div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-trend">{% if filtering %}con estos filtros{% else %}registradas{% endif %}</div>
   </div>
 </div>
+
+<!-- Búsqueda y filtros -->
+<form method="get" action="{% url 'grades:list' %}" class="card mb-12" role="search">
+  <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end">
+    <div class="field" style="flex: 2 1 240px; min-width: 200px">
+      <label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>
+      {{ filter_form.q }}
+    </div>
+    <div class="field" style="flex: 1 1 180px; min-width: 160px">
+      <label for="{{ filter_form.grupo.id_for_label }}">{{ filter_form.grupo.label }}</label>
+      {{ filter_form.grupo }}
+    </div>
+    <div class="field" style="flex: 0 1 150px">
+      <label for="{{ filter_form.desde.id_for_label }}">Calificada desde</label>
+      {{ filter_form.desde }}
+    </div>
+    <div class="field" style="flex: 0 1 150px">
+      <label for="{{ filter_form.hasta.id_for_label }}">Hasta</label>
+      {{ filter_form.hasta }}
+    </div>
+    <div class="field"><label>{{ filter_form.archivados }} {{ filter_form.archivados.label }}</label></div>
+    <div class="flex-row gap-10" style="margin-bottom: 14px">
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+      {% if filtering %}<a class="btn btn-ghost" href="{% url 'grades:list' %}">Limpiar</a>{% endif %}
+    </div>
+  </div>
+  {% if filter_form.errors %}
+  <div class="flash flash-error" role="alert" style="margin: 0">
+    Revisa los filtros: {% for field, errors in filter_form.errors.items %}{{ errors|join:" " }} {% endfor %}
+    Se muestra la lista sin filtrar.
+  </div>
+  {% endif %}
+</form>
 
 <!-- Tabla de calificaciones -->
 <div class="table-wrap">
   <div class="table-head">
-    <h3>
-      {% if is_teacher %}Calificaciones de tus grupos{% else %}Tus calificaciones{% endif %}
-    </h3>
-    <span class="grade style-pill ok">{{ grades|length }}</span>
+    <h3>{% if is_teacher %}Calificaciones de tus grupos{% else %}Tus calificaciones{% endif %}</h3>
+    <span class="grade style-pill ok">{{ total }}</span>
     <div class="spacer"></div>
-    <form class="export-bar" method="get" action="{% url 'grades:export' %}">
-      {% if is_teacher %}
-      <select class="select" name="grupo" title="Grupo">
-        <option value="">Todos los grupos</option>
-        {% for s in courses %}
-        <option value="{{ s.pk }}">{{ s.name }}</option>
-        {% endfor %}
-      </select>
-      {% endif %}
-      <input class="input" type="date" name="desde" title="Desde" />
-      <input class="input" type="date" name="hasta" title="Hasta" />
-      <button class="btn btn-ghost" type="submit"><i data-icon="clipboard"></i> Exportar CSV</button>
-    </form>
+    <a class="btn btn-ghost" href="{% url 'grades:export' %}{% if querystring %}?{{ querystring }}{% endif %}">
+      <i data-icon="clipboard"></i> Exportar CSV{% if filtering %} (con estos filtros){% endif %}
+    </a>
   </div>
+  <div class="table-scroll">
   <table class="tbl">
     <thead>
       <tr>
-        {% if is_teacher %}
-        <th>Alumno</th>
-        {% endif %}
+        {% if is_teacher %}<th>Alumno</th>{% endif %}
         <th>Grupo</th>
         <th>Evaluación</th>
+        <th>Fecha</th>
         <th>Calificación</th>
         <th>Comentario</th>
-        {% if is_teacher %}
-        <th>Acciones</th>
-        {% endif %}
+        {% if is_teacher %}<th>Acciones</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -93,40 +103,42 @@
         {% if is_teacher %}
         <td><div class="person-cell">{% include 'partials/avatar.html' with person=grade.student cls='sm' %}<span>{{ grade.student.get_full_name|default:grade.student.email }}</span></div></td>
         {% endif %}
-        <td>{{ grade.activity.course.name }}</td>
+        <td>{{ grade.activity.course.name }}{% if grade.activity.course.is_archived %} <span class="chip">Archivado</span>{% endif %}</td>
         <td>{{ grade.activity.title }}</td>
-        <td>
-          <span class="grade style-pill ok"
-            >{{ grade.score|floatformat:2 }}</span
-          >
-        </td>
-        <td class="text-muted">
-          {{ grade.feedback|default:"—"|truncatewords:10 }}
-        </td>
+        <td class="text-muted" style="white-space: nowrap" title="{{ grade.graded_at|date:'d/m/Y H:i' }}">{{ grade.graded_at|date:"d/m/Y" }}</td>
+        <td><span class="grade style-pill ok">{{ grade.score|floatformat:2 }}</span></td>
+        <td class="text-muted">{{ grade.feedback|default:"—"|truncatewords:10 }}</td>
         {% if is_teacher %}
         <td>
-          <a class="btn btn-ghost" href="{% url 'grades:update' grade.pk %}"
-            >Editar</a
-          >
-          <a class="btn btn-ghost" href="{% url 'grades:delete' grade.pk %}"
-            >Eliminar</a
-          >
+          <div class="row-actions">
+            <a class="btn btn-ghost btn-sm" href="{% url 'grades:update' grade.pk %}">Editar</a>
+            <a class="btn btn-ghost btn-sm" href="{% url 'grades:delete' grade.pk %}">Eliminar</a>
+          </div>
         </td>
         {% endif %}
       </tr>
       {% empty %}
       <tr>
-        <td
-          colspan="{% if is_teacher %}6{% else %}4{% endif %}"
-          class="text-muted"
-        >
-          {% if is_teacher %} Aún no has registrado
-          calificaciones. Pulsa "Nueva calificación". {% else %} Todavía no
-          tienes calificaciones publicadas. {% endif %}
+        <td colspan="{% if is_teacher %}7{% else %}5{% endif %}" class="text-muted">
+          {% if filtering %}
+            Ninguna calificación coincide con tu búsqueda o tus filtros.
+          {% elif is_teacher %}
+            Aún no has registrado calificaciones en tus grupos activos. Pulsa "Nueva calificación".
+          {% else %}
+            Todavía no tienes calificaciones publicadas.
+          {% endif %}
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="flex-row gap-14" style="padding: 10px 14px">
+    {% if page_obj.has_previous %}<a class="btn btn-ghost" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>{% endif %}
+    <span class="text-sm text-muted">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-ghost" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Siguiente</a>{% endif %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

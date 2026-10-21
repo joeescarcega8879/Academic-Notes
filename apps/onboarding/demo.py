@@ -67,6 +67,20 @@ BANK = [
     ('mc', '¿Cuántos grados suman los ángulos interiores de un triángulo?', [('180', True), ('90', False), ('360', False), ('270', False)], 'Geometría'),
 ]
 
+# Banco de Español II y preguntas generales (sin grupo, sirven en todos los grupos).
+BANK_SPANISH = [
+    ('mc', '¿Cuál de estas palabras lleva tilde?', [('canción', True), ('camion', False), ('lapiz', False), ('arbol', False)], 'Ortografía'),
+    ('mc', '¿Qué tipo de texto cuenta una historia con personajes y un final?', [('Narrativo', True), ('Instructivo', False), ('Informativo', False), ('Publicitario', False)], 'Lectura'),
+    ('tf', 'El sujeto de una oración siempre aparece al inicio.', False, 'Gramática'),
+    ('mc', '¿Cuál es un sinónimo de «rápido»?', [('Veloz', True), ('Lento', False), ('Pesado', False), ('Quieto', False)], 'Vocabulario'),
+    ('tf', 'Un párrafo debe tener una idea principal.', True, 'Redacción'),
+    ('mc', '¿Qué signo cierra una pregunta en español?', [('?', True), ('!', False), ('.', False), (',', False)], 'Ortografía'),
+]
+BANK_GENERAL = [
+    ('tf', 'Repasar un poco cada día ayuda más que estudiar todo la noche anterior.', True, 'Hábitos de estudio'),
+    ('mc', '¿Qué conviene hacer antes de entregar una tarea?', [('Revisarla', True), ('Copiarla', False), ('Dejarla para después', False), ('Borrar el nombre', False)], 'Hábitos de estudio'),
+]
+
 CONVERSATIONS = [
     ('¿Maestra, puedo entregar la Tarea 2 mañana? Tuve un problema con mi internet.', 'student'),
     ('Claro, te la recibo con la penalización normal. Que no se repita, por favor.', 'teacher'),
@@ -183,18 +197,19 @@ class Builder:
                 self.counts['attempts'] += 1
 
 
-def _make_bank(teacher, organization):
+def _make_bank(teacher, organization, rows, course=None):
+    """Crea las preguntas de ``rows`` en el banco de ``course`` (sin grupo: generales)."""
     questions = []
-    for kind, text, options, topic in BANK:
+    for kind, text, options, topic in rows:
         if kind == 'tf':
             questions.append(save_question(
                 organization=organization, author=teacher, kind=Question.Kind.TRUE_FALSE, text=text, points=1,
-                true_is_correct=options, topic=topic, explanation='Revisa el tema en tu cuaderno.',
+                true_is_correct=options, topic=topic, explanation='Revisa el tema en tu cuaderno.', course=course,
             ))
         else:
             questions.append(save_question(
                 organization=organization, author=teacher, kind=Question.Kind.MULTIPLE_CHOICE, text=text, points=1,
-                choices=options, topic=topic,
+                choices=options, topic=topic, course=course,
             ))
     return questions
 
@@ -224,13 +239,13 @@ def build_demo(*, seed=SEED, now=None):
         end_date=current.end_date.replace(year=current.end_date.year - 1),
     )
 
-    bank = _make_bank(teacher, organization)
-
     # ── Matemáticas II: esquema por defecto ──
     maths = Course.objects.create(
         name='Matemáticas II', code='MAT2-A', professor=teacher, organization=organization, academic_year=current,
         schedule='Lun, Mié y Vie 8:00–9:00', color='#2563eb', description='Fracciones, ecuaciones y geometría.',
     )
+    bank = _make_bank(teacher, organization, BANK, maths)
+    general = _make_bank(teacher, organization, BANK_GENERAL)
     levels = [4.2, 4.8, 5.1] + [6.1, 6.4, 6.7, 6.9] + [None] * 21
     maths_students = [b.new_student(maths, level=lvl) for lvl in levels]
     weak = {s.pk for s in maths_students[:3]}
@@ -267,6 +282,7 @@ def build_demo(*, seed=SEED, now=None):
         name='Español II', code='ESP2-B', professor=teacher, organization=organization, academic_year=current,
         schedule='Mar y Jue 10:00–11:00', color='#7c3aed', description='Lectura, redacción y comunicación.',
     )
+    spanish_bank = _make_bank(teacher, organization, BANK_SPANISH, spanish)
     scheme = ensure_scheme(spanish)
     first = scheme.periods.get()
     first.name, first.weight = 'Primer parcial', 50
@@ -331,7 +347,8 @@ def build_demo(*, seed=SEED, now=None):
 
     counts = {
         **b.counts, 'courses': 3, 'students': Student.objects.filter(organization=organization).count(),
-        'enrollments': Enrollment.objects.filter(course__organization=organization).count(), 'questions': len(bank),
+        'enrollments': Enrollment.objects.filter(course__organization=organization).count(),
+        'questions': len(bank) + len(spanish_bank) + len(general),
     }
     return DemoSummary(
         organization=organization, teacher=teacher, students=linked, courses=[maths, spanish, history], counts=counts,

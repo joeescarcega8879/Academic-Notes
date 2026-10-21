@@ -13,8 +13,8 @@ Plataforma web para docentes: grupos, lista de alumnos, esquema de evaluación, 
 | Organizaciones | `organizations` | Multi-tenant por fila: `Organization`, `Membership`, selector de organización activa, planes y límites (`plans.py`, `limits.py`), pantalla «Plan y facturación» |
 | Cuentas | `accounts` | Login por correo o usuario, confirmación de correo, restablecer y cambiar contraseña, perfil editable y foto privada |
 | Grupos y alumnos | `courses` | Ciclos escolares, grupos archivables y duplicables, lista de alumnos, importación Excel/CSV con vista previa, código de invitación |
-| Calificaciones | `grades` | Esquema de evaluación (periodos y criterios), actividades con borrador/publicación, entregas con archivos privados, calificar con penalización por tardía, historial, libreta con edición en línea |
-| Quizzes | `quizzes` | Banco de preguntas, constructor, resolver con plazo del servidor y autoguardado, calificación automática, importar preguntas, cierre de intentos vencidos |
+| Calificaciones | `grades` | Esquema de evaluación (periodos y criterios), actividades con borrador/publicación, entregas con archivos privados, calificar con penalización por tardía, historial, libreta con edición en línea, lista de calificaciones con búsqueda y filtros (grupo, fechas) y exportación CSV con los mismos filtros |
+| Quizzes | `quizzes` | Banco de preguntas por grupo (más preguntas generales sin grupo), constructor, resolver con plazo del servidor y autoguardado, calificación automática, importar preguntas, cierre de intentos vencidos |
 | Reportes | `reports` | Boleta PDF, concentrado Excel con columnas elegibles, alumnos en riesgo |
 | Mensajería | `messaging` | Conversaciones docente ↔ alumno y notificaciones |
 | Alta y precios | `onboarding` | Portada, registro de docente y de alumno, términos y privacidad (**borrador sin revisión legal**), primeros pasos, página de Precios con lista de espera, Ayuda |

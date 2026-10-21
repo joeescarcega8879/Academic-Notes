@@ -4,7 +4,7 @@
 {% block topbar %}
 <header class="topbar">
   <h1>Revisar importación</h1>
-  <span class="sub">{{ filename }}</span>
+  <span class="sub">{{ filename }} · {% if course %}al banco de {{ course.name }}{% else %}como preguntas generales{% endif %}</span>
 </header>
 {% endblock %}
 

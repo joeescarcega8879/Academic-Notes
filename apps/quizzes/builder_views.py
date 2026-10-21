@@ -16,6 +16,7 @@ from core.utils import parse_id
 from .forms import BankFilterForm, QuizConfigForm
 from .models import Question, QuizConfig, QuizQuestion
 from .services import builder
+from .services.bank import questions_for_course
 
 PICKER_PAGE_SIZE = 15
 
@@ -52,7 +53,7 @@ class BuilderView(OwnQuizMixin, View):
         count, total = builder.totals(quiz)
         archived_course = self.activity.course.is_archived
 
-        picker = Question.objects.for_organization(request.organization).filter(is_archived=False).exclude(
+        picker = questions_for_course(request.organization, self.activity.course).filter(is_archived=False).exclude(
             pk__in=quiz.questions.exclude(source=None).values_list('source_id', flat=True),
         ).select_related('author').prefetch_related('choices')
         filters = BankFilterForm({'q': request.GET.get('bq', ''), 'topic': request.GET.get('btopic', ''), 'kind': request.GET.get('bkind', '')})
@@ -95,7 +96,7 @@ class BuilderView(OwnQuizMixin, View):
                 messages.success(request, 'Se guardó la configuración del quiz.')
             elif action == 'add':
                 ids = [i for i in map(parse_id, request.POST.getlist('question')) if i is not None]
-                questions = Question.objects.for_organization(request.organization).filter(pk__in=ids)
+                questions = questions_for_course(request.organization, self.activity.course).filter(pk__in=ids)
                 added = builder.add_questions(self.quiz, questions)
                 messages.success(request, f'Se agregaron {len(added)} preguntas.' if added else 'No había preguntas nuevas que agregar.')
             elif action in ('remove', 'up', 'down', 'points'):

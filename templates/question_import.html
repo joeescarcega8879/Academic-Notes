@@ -20,7 +20,7 @@
     <li>Opción múltiple: llena <strong>Opción A, B, C…</strong> (hasta 8) y en <strong>Correcta</strong> escribe la letra (B), el número (2) o el texto de la opción.</li>
     <li>Verdadero/falso: deja las opciones vacías y escribe «Verdadero» o «Falso» en <strong>Correcta</strong>.</li>
     <li>Opcionales: <strong>Tipo</strong>, <strong>Puntos</strong> (1 si falta), <strong>Tema</strong> y <strong>Explicación</strong>.</li>
-    <li>Las preguntas que ya están en el banco se omiten, así que puedes volver a subir el archivo sin duplicar.</li>
+    <li>Las preguntas que ya están en el banco del grupo elegido se omiten, así que puedes volver a subir el archivo sin duplicar.</li>
     <li>Máximo 2 MB y 2000 preguntas por archivo.</li>
   </ul>
 
@@ -28,6 +28,14 @@
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    <div class="field">
+      <label for="grupo">Grupo de destino</label>
+      <select class="select" id="grupo" name="grupo">
+        {% for course in groups %}<option value="{{ course.pk }}"{% if course.pk == selected_group %} selected{% endif %}>{{ course.name }}</option>{% endfor %}
+        <option value="sin"{% if general_selected or not groups %} selected{% endif %}>Sin grupo (general: sirve en todos mis grupos)</option>
+      </select>
+      <small class="text-muted">Las preguntas se guardan en el banco de ese grupo y solo se ofrecen en sus quizzes.</small>
+    </div>
     <div class="field">
       <label for="file">Archivo</label>
       <input class="input" type="file" id="file" name="file" accept=".xlsx,.csv,.txt" required>

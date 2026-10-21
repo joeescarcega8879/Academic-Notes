@@ -1,7 +1,6 @@
 import csv
-from datetime import date
-
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -10,13 +9,14 @@ from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
-from apps.courses.models import Enrollment, Course
+from apps.courses.models import Course
 from core.utils import csv_safe, parse_id
 
 from .models import Grade
-from .forms import GradeForm
+from .forms import GradeFilterForm, GradeForm
 from .services.gradebook import grade_activity, remove_grade
 from .services.grading import overall_average
+from .services.listing import apply_filters, normalized_params, visible_courses
 
 def visible_grades(request):
     """Calificaciones que el usuario puede ver en la organización activa.
@@ -30,30 +30,49 @@ def visible_grades(request):
     return grades.filter(activity__course__professor=request.user)
 
 
+def filter_form(request):
+    """El formulario de búsqueda y filtros, con los parámetros de la petición (el viejo ``materia`` incluido)."""
+    return GradeFilterForm(
+        normalized_params(request.GET),
+        groups=visible_courses(request, include_archived=True), teacher=not request.membership.is_student,
+    )
+
+
 class GradeListView(OrganizationMemberMixin, ListView):
     model = Grade
     template_name = 'calificaciones.html'
     context_object_name = 'grades'
+    paginate_by = 25
 
     def get_queryset(self):
-        return visible_grades(self.request)
+        request = self.request
+        self.filter_form = form = filter_form(request)
+        # Con filtros inválidos se avisa y se muestra la lista sin filtrar (solo los grupos activos).
+        self.filters = form.cleaned_data if form.is_valid() else {}
+        return apply_filters(visible_grades(request), self.filters, teacher=not request.membership.is_student)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user = self.request.user
+        request = self.request
+        form = self.filter_form
 
-        # Promedio ponderado sobre las mismas calificaciones que ya se listan
-        context['average'] = overall_average(context['grades'])
+        # Promedio ponderado sobre todas las calificaciones que pasan los filtros, no solo la página que se ve
+        context['average'] = overall_average(self.object_list)
+        context['total'] = context['paginator'].count
 
-        organization = self.request.organization
-        if self.request.membership.is_teacher:
-            context['courses'] = (
-                Course.objects.for_organization(organization).filter(professor=user).prefetch_related('activities')
-            )
-        else:
-            context['courses'] = (
-                Enrollment.objects.for_organization(organization).filter(student__user=user).select_related('course')
-            )
+        # El selector ofrece los grupos activos (y los archivados si se piden, o el que ya se eligió).
+        selected = self.filters.get('grupo')
+        options = visible_courses(request, include_archived=True)
+        if not self.filters.get('archivados'):
+            options = options.filter(Q(status=Course.Status.ACTIVE) | Q(pk=selected.pk if selected else 0))
+        form.fields['grupo'].queryset = options
+
+        context['courses'] = visible_courses(request)  # los activos: lo que cuenta el recuadro de arriba
+        context['filter_form'] = form
+        context['filtering'] = any(self.filters.get(name) for name in ('q', 'grupo', 'desde', 'hasta', 'archivados'))
+        query = request.GET.copy()
+        query.pop('page', None)
+        context['querystring'] = query.urlencode()
         return context
 
 class GradeSaveMixin:
@@ -107,29 +126,14 @@ class GradeExportView(OrganizationMemberMixin, View):
     """Exporta a CSV las calificaciones que el usuario puede ver."""
 
     def get(self, request):
-        grades = visible_grades(request)
-
-        # ``materia`` era el nombre del parámetro antes de llamarle «grupo»: los enlaces viejos siguen sirviendo.
-        course_id = (request.GET.get('grupo') or request.GET.get('materia') or '').strip()
-        if course_id:
-            course_id = parse_id(course_id)
-            if course_id is None:
-                return HttpResponseBadRequest('El parámetro "grupo" debe ser un número.')
-            grades = grades.filter(activity__course_id=course_id)
-
-        for param, lookup in (('desde', 'graded_at__date__gte'), ('hasta', 'graded_at__date__lte')):
-            raw = request.GET.get(param, '').strip()
-            if not raw:
-                continue
-            try:
-                day = date.fromisoformat(raw)
-            except ValueError:
-                return HttpResponseBadRequest('El parámetro "%s" debe tener el formato AAAA-MM-DD.' % param)
-            grades = grades.filter(**{lookup: day})
-
-        grades = grades.order_by(
-            'activity__course__name', 'student__last_name', 'activity__date',
-        )
+        # Los mismos filtros de la pantalla (``materia``, el nombre viejo de ``grupo``, también sirve).
+        form = filter_form(request)
+        if not form.is_valid():
+            problems = '; '.join(f'{name}: {" ".join(errors)}' for name, errors in form.errors.items())
+            return HttpResponseBadRequest(f'Filtros no válidos ({problems}). Fechas con el formato AAAA-MM-DD.')
+        grades = apply_filters(
+            visible_grades(request), form.cleaned_data, teacher=not request.membership.is_student,
+        ).order_by('activity__course__name', 'student__last_name', 'activity__date')
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = (

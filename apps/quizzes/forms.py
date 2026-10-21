@@ -1,7 +1,9 @@
 from django import forms
 
+from apps.courses.models import Course
+
 from .models import Question, QuizConfig
-from .services.bank import MAX_CHOICES, validate_choices
+from .services.bank import MAX_CHOICES, teaching_courses, validate_choices
 
 
 def _style(form):
@@ -15,15 +17,25 @@ def _style(form):
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
-        fields = ['text', 'points', 'topic', 'explanation']
+        fields = ['course', 'text', 'points', 'topic', 'explanation']
         widgets = {
             'text': forms.Textarea(attrs={'rows': 3}),
             'explanation': forms.Textarea(attrs={'rows': 2}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, user=None, organization=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style(self)
+        # Solo se ofrecen los grupos activos del docente; al editar se conserva el actual aunque ya esté archivado.
+        groups = Course.objects.none()
+        if user is not None and organization is not None:
+            groups = teaching_courses(user, organization)
+        if self.instance.course_id:
+            groups = groups | Course.objects.filter(pk=self.instance.course_id)
+        field = self.fields['course']
+        field.queryset = groups
+        field.empty_label = 'Sin grupo (general: sirve en todos mis grupos)'
+        field.label = 'Grupo'
 
 
 class TrueFalseForm(QuestionForm):
@@ -89,10 +101,16 @@ class BankFilterForm(forms.Form):
     q = forms.CharField(label='Buscar', required=False)
     topic = forms.CharField(label='Tema', required=False)
     kind = forms.ChoiceField(label='Tipo', required=False, choices=[('', 'Todos')] + list(Question.Kind.choices))
+    grupo = forms.ChoiceField(label='Grupo', required=False, choices=[('', 'Todos los grupos'), ('sin', 'Sin grupo (generales)')])
     archived = forms.BooleanField(label='Ver archivadas', required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, groups=(), **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['grupo'].choices = (
+            [('', 'Todos los grupos')]
+            + [(str(course.pk), f'{course.name} (archivado)' if course.is_archived else course.name) for course in groups]
+            + [('sin', 'Sin grupo (generales)')]
+        )
         for name, field in self.fields.items():
             if name != 'archived':
                 field.widget.attrs['class'] = 'select' if isinstance(field.widget, forms.Select) else 'input'

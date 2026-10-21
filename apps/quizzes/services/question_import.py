@@ -216,8 +216,12 @@ def _key(text, kind):
     return (normalize_text(text), kind)
 
 
-def analyze(organization, headers, rows):
-    """Prevé qué haría la importación con cada fila (sin escribir nada)."""
+def analyze(organization, headers, rows, course=None):
+    """Prevé qué haría la importación con cada fila (sin escribir nada).
+
+    Una pregunta es repetida si ya está en el banco al que se importa: el de ``course``, o el de las generales
+    (``None``). La misma pregunta puede estar en el banco de dos grupos.
+    """
     columns, option_columns = detect_columns(headers)
     header_errors = []
     if 'text' not in columns:
@@ -229,7 +233,7 @@ def analyze(organization, headers, rows):
 
     existing = {
         _key(text, kind)
-        for text, kind in Question.objects.for_organization(organization).filter(is_archived=False).values_list('text', 'kind')
+        for text, kind in Question.objects.for_organization(organization).filter(is_archived=False, course=course).values_list('text', 'kind')
     }
     seen = {}
     items = []
@@ -249,8 +253,9 @@ def analyze(organization, headers, rows):
 
 
 @transaction.atomic
-def apply_import(organization, author, plan):
-    """Crea las preguntas nuevas del plan. Las filas con error y las repetidas se omiten. Devuelve un resumen.
+def apply_import(organization, author, plan, course=None):
+    """Crea las preguntas nuevas del plan en el banco de ``course`` (o como generales). Las filas con error y las
+    repetidas se omiten. Devuelve un resumen.
 
     Si pasan el tope del banco del plan se rechaza la importación completa (``PlanLimitError``).
     """
@@ -264,6 +269,7 @@ def apply_import(organization, author, plan):
             explanation=item.explanation, topic=item.topic,
             choices=item.choices if item.kind == Question.Kind.MULTIPLE_CHOICE else None,
             true_is_correct=item.true_is_correct if item.kind == Question.Kind.TRUE_FALSE else None,
+            course=course,
         )
         created += 1
     return {'created': created, 'duplicates': plan.count('duplicate'), 'errors': plan.count('error')}

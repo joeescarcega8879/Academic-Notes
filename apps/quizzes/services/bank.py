@@ -2,6 +2,7 @@
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 
 from apps.organizations import limits
 from apps.organizations.models import Membership
@@ -11,6 +12,39 @@ from ..models import Choice, Question
 MIN_CHOICES = 2
 MAX_CHOICES = 8
 TRUE_FALSE_LABELS = ('Verdadero', 'Falso')
+
+# «No toques el grupo» en ``save_question`` (``None`` ya significa «pregunta general»).
+UNSET = object()
+
+
+def teaching_courses(user, organization):
+    """Los grupos activos de ``user`` en la organización: donde puede crear preguntas y armar quizzes."""
+    from apps.courses.models import Course
+
+    return Course.objects.for_organization(organization).filter(professor=user, status=Course.Status.ACTIVE)
+
+
+def bank_courses(user, organization):
+    """Los grupos de ``user`` con banco: los activos y los archivados que aún conservan preguntas."""
+    from apps.courses.models import Course
+
+    return Course.objects.for_organization(organization).filter(professor=user).filter(
+        Q(status=Course.Status.ACTIVE) | Q(bank_questions__isnull=False),
+    ).distinct().order_by('name')
+
+
+def visible_questions(organization, user):
+    """Las preguntas que ``user`` ve en el banco: las de sus grupos y las generales (sin grupo)."""
+    from ..models import Question
+
+    return Question.objects.for_organization(organization).filter(Q(course__isnull=True) | Q(course__professor=user))
+
+
+def questions_for_course(organization, course):
+    """Las preguntas que se pueden poner en un quiz de ``course``: las de su banco y las generales."""
+    from ..models import Question
+
+    return Question.objects.for_organization(organization).filter(Q(course=course) | Q(course__isnull=True))
 
 
 def validate_choices(choices):
@@ -42,17 +76,22 @@ def can_edit_question(user, membership, question):
 @transaction.atomic
 def save_question(
     *, organization, author, kind, text, points, explanation='', topic='',
-    choices=None, true_is_correct=None, question=None,
+    choices=None, true_is_correct=None, question=None, course=UNSET,
 ):
     """Crea o actualiza una pregunta con sus opciones.
 
     Opción múltiple: ``choices`` es ``[(texto, es_correcta), ...]``. Verdadero o falso: ``true_is_correct`` dice si
     la respuesta correcta es "Verdadero". El tipo de una pregunta existente no cambia.
+
+    ``course`` es el grupo del banco (``None``: pregunta general). Sin indicarlo, una pregunta nueva es general y
+    una existente conserva su grupo.
     """
     if question is not None and question.kind != kind:
         raise ValidationError('El tipo de una pregunta no se puede cambiar.')
     if question is not None and question.organization_id != organization.pk:
         raise ValidationError('La pregunta es de otra organización.')
+    if course is not UNSET and course is not None and course.organization_id != organization.pk:
+        raise ValidationError('El grupo es de otra organización.')
 
     if kind == Question.Kind.TRUE_FALSE:
         if true_is_correct is None:
@@ -66,6 +105,8 @@ def save_question(
     if question is None:
         limits.check_limit(organization, 'questions')  # crear una pregunta cuenta contra el banco del plan
         question = Question(organization=organization, author=author, kind=kind)
+    if course is not UNSET:
+        question.course = course
     question.text = text.strip()
     question.points = points
     question.explanation = explanation.strip()
@@ -80,11 +121,16 @@ def save_question(
 
 
 @transaction.atomic
-def duplicate_question(question, *, by):
-    """Copia una pregunta (con sus opciones) a nombre de ``by``, lista para editar."""
+def duplicate_question(question, *, by, course=UNSET):
+    """Copia una pregunta (con sus opciones) a nombre de ``by``, lista para editar.
+
+    La copia queda en el mismo grupo, o en ``course`` (``None``: general) si se indica: así se reutiliza una pregunta
+    en el banco de otro grupo.
+    """
     copy = save_question(
         organization=question.organization, author=by, kind=question.kind, text=f'{question.text} (copia)',
         points=question.points, explanation=question.explanation, topic=question.topic,
+        course=question.course if course is UNSET else course,
         choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind == Question.Kind.MULTIPLE_CHOICE else None,
         true_is_correct=(
             next(c.is_correct for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
