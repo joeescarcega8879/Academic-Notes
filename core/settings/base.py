@@ -58,6 +58,7 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.courses",
     "apps.grades",
+    "apps.syllabus",
     "apps.quizzes",
     "apps.reports",
     "apps.messaging",
@@ -167,6 +168,11 @@ STORAGES = {
     "submissions": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
         "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT)},
+    },
+    # Temarios de los grupos: privados, como las entregas.
+    "syllabi": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": str(PRIVATE_MEDIA_ROOT / "syllabi")},
     },
     # Fotos de perfil: también privadas (son de menores); se sirven por una vista que revisa quién las puede ver.
     "avatars": {

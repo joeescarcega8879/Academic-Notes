@@ -132,6 +132,11 @@ class Activity(TenantModel):
     # Peso relativo (``weight``) dentro de su criterio. Si no se indica, se asigna según el tipo.
     # PROTECT: no se borra un criterio con actividades; hay que reasignarlas primero.
     criterion = models.ForeignKey(EvaluationCriterion, on_delete=models.PROTECT, related_name='activities', verbose_name='criterio')
+    # Semana del temario que cubre (opcional). Si la semana se quita, la actividad se queda sin semana.
+    syllabus_week = models.ForeignKey(
+        'syllabus.SyllabusWeek', on_delete=models.SET_NULL, null=True, blank=True, related_name='activities',
+        verbose_name='semana del temario',
+    )
 
     class Meta:
         ordering = ['-date', 'title']
@@ -152,6 +157,8 @@ class Activity(TenantModel):
     def clean(self):
         if self.criterion_id and self.course_id and self.criterion.period.scheme.course_id != self.course_id:
             raise ValidationError({'criterion': 'El criterio debe ser del esquema de este grupo.'})
+        if self.syllabus_week_id and self.course_id and self.syllabus_week.syllabus.course_id != self.course_id:
+            raise ValidationError({'syllabus_week': 'La semana debe ser del temario de este grupo.'})
         if self.opens_at and self.due_at and self.due_at < self.opens_at:
             raise ValidationError({'due_at': 'La fecha límite no puede ser anterior a la apertura.'})
         if self.published:

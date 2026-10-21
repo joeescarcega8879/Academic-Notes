@@ -14,6 +14,7 @@ urlpatterns = [
     path('', include('apps.organizations.urls')),
     path('', include('apps.courses.urls')),
     path('', include('apps.grades.urls')),
+    path('', include('apps.syllabus.urls')),
     path('', include('apps.quizzes.urls')),
     path('', include('apps.reports.urls')),
     path('', include('apps.messaging.urls')),
