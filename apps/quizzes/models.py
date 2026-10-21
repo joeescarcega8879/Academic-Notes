@@ -6,10 +6,13 @@ from apps.organizations.models import Organization, TenantModel
 
 
 class Question(TenantModel):
-    """Pregunta del banco de la organización, reutilizable en varios quizzes.
+    """Pregunta del banco, de un grupo o general, reutilizable en varios quizzes.
 
     Al agregarla a un quiz se **copia**: editar o borrar la del banco después no altera quizzes ya armados
     ni respuestas ya dadas.
+
+    ``course`` la liga al banco de un grupo: solo se ofrece en los quizzes de ese grupo. Sin grupo es una pregunta
+    **general**, disponible en todos los grupos de quien la creó.
     """
 
     class Kind(models.TextChoices):
@@ -19,6 +22,11 @@ class Question(TenantModel):
     # Como el grupo, la pregunta pertenece a la organización y la elige quien la crea.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
+    # Si el grupo desaparece, sus preguntas no: pasan a ser generales.
+    course = models.ForeignKey(
+        'courses.Course', null=True, blank=True, on_delete=models.SET_NULL, related_name='bank_questions',
+        verbose_name='grupo', help_text='Vacío = pregunta general: sirve en todos tus grupos.',
+    )
     kind = models.CharField('tipo', max_length=20, choices=Kind.choices)
     text = models.TextField('pregunta')
     points = models.DecimalField('puntos', max_digits=6, decimal_places=2, default=1, validators=[MinValueValidator(0.01)])

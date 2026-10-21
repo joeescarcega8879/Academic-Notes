@@ -92,7 +92,13 @@ class TestArmado(TestCase):
         assert Grade.objects.filter(source=Grade.Source.QUIZ).exists()
         borrador = Activity.objects.get(title="Quiz: Ecuaciones (borrador)")
         assert not borrador.published and borrador.quiz.questions.count() == 4
-        assert Question.objects.filter(organization=self.escuela.organization).count() == 12
+        assert Question.objects.filter(organization=self.escuela.organization).count() == 20
+
+    def test_cada_grupo_tiene_su_banco_y_hay_preguntas_generales(self):
+        mates, espanol, historia = self.escuela.courses
+        assert (mates.bank_questions.count(), espanol.bank_questions.count(), historia.bank_questions.count()) == (12, 6, 0)
+        assert Question.objects.filter(organization=self.escuela.organization, course__isnull=True).count() == 2
+        assert set(espanol.bank_questions.values_list("topic", flat=True)) >= {"Ortografía", "Redacción"}
 
     def test_hay_de_todo_en_aprobados_riesgo_y_reprobados(self):
         niveles = risk.risk_counts(risk.assess_course(self.escuela.courses[0]))
@@ -117,7 +123,7 @@ class TestArmado(TestCase):
     def test_las_cifras_del_resumen_son_verdad(self):
         c = self.escuela.counts
         assert c["grades"] <= Grade.objects.count()  # la cuenta de la base incluye las automáticas de los quizzes
-        assert c["students"] == 55 and c["questions"] == 12 and c["attempts"] == QuizAttempt.objects.count()
+        assert c["students"] == 55 and c["questions"] == 20 and c["attempts"] == QuizAttempt.objects.count()
         assert c["enrollments"] == Enrollment.objects.count() == 67
         assert c["submissions"] == Submission.objects.count()
 

@@ -6,9 +6,9 @@
   <h1>Banco de preguntas</h1>
   <span class="sub">{{ organization.name }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-primary" href="{% url 'quizzes:question_create' 'multiple_choice' %}">Nueva opción múltiple</a>
-  <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}">Nueva verdadero/falso</a>
-  <a class="btn btn-ghost" href="{% url 'quizzes:import' %}">Importar</a>
+  <a class="btn btn-primary" href="{% url 'quizzes:question_create' 'multiple_choice' %}{{ group_query }}">Nueva opción múltiple</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}{{ group_query }}">Nueva verdadero/falso</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:import' %}{{ group_query }}">Importar</a>
   {% include 'partials/notifications.html' %}
 </header>
 {% endblock %}
@@ -17,6 +17,7 @@
 <form method="get" class="card mb-12">
   <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end">
     <div class="field" style="min-width: 220px">{{ form.q.label_tag }}{{ form.q }}</div>
+    <div class="field" style="min-width: 180px">{{ form.grupo.label_tag }}{{ form.grupo }}</div>
     <div class="field" style="min-width: 160px">{{ form.topic.label_tag }}
       <input class="input" type="text" name="topic" id="id_topic" list="topics" value="{{ form.topic.value|default:'' }}">
       <datalist id="topics">{% for topic in topics %}<option value="{{ topic }}">{% endfor %}</datalist>
@@ -33,18 +34,19 @@
     <span class="grade style-pill ok">{{ page.paginator.count }}</span>
   </div>
   <table class="tbl">
-    <thead><tr><th>Pregunta</th><th>Tipo</th><th>Tema</th><th>Puntos</th><th>Autor</th></tr></thead>
+    <thead><tr><th>Pregunta</th><th>Grupo</th><th>Tipo</th><th>Tema</th><th>Puntos</th><th>Autor</th></tr></thead>
     <tbody>
       {% for question in page %}
         <tr>
           <td><a href="{% url 'quizzes:question_detail' question.pk %}">{{ question.text|truncatechars:90 }}</a></td>
+          <td>{% if question.course %}{{ question.course.name }}{% if question.course.is_archived %} <span class="chip">Archivado</span>{% endif %}{% else %}<span class="chip">General</span>{% endif %}</td>
           <td>{{ question.get_kind_display }}</td>
           <td>{{ question.topic|default:"—" }}</td>
           <td>{{ question.points|floatformat:"-2" }}</td>
           <td>{{ question.author.get_full_name|default:question.author.email|default:"—" }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="text-muted">
+        <tr><td colspan="6" class="text-muted">
           {% if showing_archived %}No hay preguntas archivadas.{% else %}Todavía no hay preguntas. Crea la primera o ajusta los filtros.{% endif %}
         </td></tr>
       {% endfor %}

@@ -21,6 +21,7 @@ class QuestionFactory(factory.django.DjangoModelFactory):
 
     author = factory.SubFactory(ProfessorFactory)
     organization = factory.LazyAttribute(lambda o: teaching_organization(o.author))
+    course = None  # el grupo del banco; sin él, una pregunta general
     kind = Question.Kind.MULTIPLE_CHOICE
     text = factory.Sequence(lambda n: f'Pregunta {n}')
     points = 1
@@ -34,7 +35,7 @@ class QuestionFactory(factory.django.DjangoModelFactory):
         kind = kwargs['kind']
         return save_question(
             organization=kwargs['organization'], author=kwargs['author'], kind=kind, text=kwargs['text'],
-            points=kwargs['points'], explanation=kwargs['explanation'], topic=kwargs['topic'],
+            points=kwargs['points'], explanation=kwargs['explanation'], topic=kwargs['topic'], course=kwargs['course'],
             choices=(choices or DEFAULT_CHOICES) if kind == Question.Kind.MULTIPLE_CHOICE else None,
             true_is_correct=true_is_correct if kind == Question.Kind.TRUE_FALSE else None,
         )

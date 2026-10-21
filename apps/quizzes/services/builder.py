@@ -46,6 +46,8 @@ def add_questions(quiz, questions):
     for question in questions:
         if question.organization_id != quiz.organization_id:
             raise ValidationError('La pregunta es de otra organización.')
+        if question.course_id is not None and question.course_id != quiz.activity.course_id:
+            raise ValidationError('La pregunta es del banco de otro grupo. Duplícala en este grupo para usarla aquí.')
         if question.is_archived:
             raise ValidationError('No se pueden agregar preguntas archivadas.')
         if question.pk in already:

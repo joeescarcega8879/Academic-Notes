@@ -10,7 +10,7 @@ class ChoiceInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('text', 'kind', 'topic', 'points', 'author', 'organization', 'is_archived')
-    list_filter = ('kind', 'is_archived', 'organization')
+    list_display = ('text', 'kind', 'course', 'topic', 'points', 'author', 'organization', 'is_archived')
+    list_filter = ('kind', 'is_archived', 'organization', 'course')
     search_fields = ('text', 'topic')
     inlines = [ChoiceInline]

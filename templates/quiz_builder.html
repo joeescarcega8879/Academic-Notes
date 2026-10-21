@@ -94,7 +94,8 @@
 
 {% if not locked and not read_only %}
 <div class="card">
-  <h3 class="section-title">Agregar desde el banco</h3>
+  <h3 class="section-title">Agregar desde el banco de {{ course.name }}</h3>
+  <p class="text-sm text-muted" style="margin-top: 0">Se ofrecen las preguntas de este grupo y las generales.</p>
   <form method="get" class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px">
     <div class="field"><label for="bq">Buscar</label><input class="input" type="text" id="bq" name="bq" value="{{ picker_filters.q }}"></div>
     <div class="field"><label for="btopic">Tema</label><input class="input" type="text" id="btopic" name="btopic" value="{{ picker_filters.topic }}"></div>
@@ -108,13 +109,14 @@
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="add">
+    <div class="table-scroll">
     <table class="tbl">
       <thead><tr><th></th><th>Pregunta</th><th>Tipo</th><th>Tema</th><th>Puntos</th></tr></thead>
       <tbody>
         {% for question in picker %}
           <tr>
             <td><input type="checkbox" name="question" value="{{ question.pk }}" id="q{{ question.pk }}"></td>
-            <td><label for="q{{ question.pk }}">{{ question.text|truncatechars:90 }}</label></td>
+            <td><label for="q{{ question.pk }}">{{ question.text|truncatechars:90 }}</label>{% if not question.course_id %} <span class="chip">General</span>{% endif %}</td>
             <td>{{ question.get_kind_display }}</td>
             <td>{{ question.topic|default:"—" }}</td>
             <td>{{ question.points|floatformat:"-2" }}</td>
@@ -124,6 +126,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
     {% if picker.has_other_pages %}
       <div class="flex-row gap-14" style="padding: 10px 0">
         {% if picker.has_previous %}<a class="btn btn-ghost" href="?{% if picker_querystring %}{{ picker_querystring }}&{% endif %}bp={{ picker.previous_page_number }}">Anterior</a>{% endif %}

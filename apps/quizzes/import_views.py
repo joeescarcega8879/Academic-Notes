@@ -12,10 +12,30 @@ from apps.courses.services import importing as file_reader
 from apps.organizations import limits
 from apps.organizations.limits import PlanLimitError
 
+from core.utils import parse_id
+
 from .services import question_import
+from .services.bank import teaching_courses
 
 SESSION_KEY = 'question_import'
 PREVIEW_ROWS = 200
+GENERAL = 'sin'
+
+
+def destination(request, raw):
+    """El grupo de destino que eligió el docente: ``(True, grupo)``, ``(True, None)`` si es general, o ``(False, None)``."""
+    if raw in ('', GENERAL):
+        return True, None
+    course = teaching_courses(request.user, request.organization).filter(pk=parse_id(raw) or 0).first()
+    return (course is not None), course
+
+
+def import_form_context(request, **extra):
+    """Los grupos entre los que se elige el destino y cuál viene marcado (el que se veía en el banco, o el único)."""
+    groups = list(teaching_courses(request.user, request.organization))
+    wanted = parse_id(request.POST.get('grupo') or request.GET.get('grupo') or '')
+    selected = wanted if wanted in {course.pk for course in groups} else (groups[0].pk if len(groups) == 1 else None)
+    return {'groups': groups, 'selected_group': selected, 'general_selected': request.POST.get('grupo') == GENERAL, **extra}
 
 
 class QuestionImportView(TeacherRequiredMixin, View):
@@ -24,9 +44,12 @@ class QuestionImportView(TeacherRequiredMixin, View):
     template_name = 'question_import.html'
 
     def get(self, request):
-        return render(request, self.template_name)
+        return render(request, self.template_name, import_form_context(request))
 
     def post(self, request):
+        valid, course = destination(request, request.POST.get('grupo', ''))
+        if not valid:
+            return self.fail(request, 'Elige uno de tus grupos activos, o «Sin grupo».')
         upload = request.FILES.get('file')
         if upload is None:
             return self.fail(request, 'Elige un archivo .xlsx o .csv.')
@@ -36,11 +59,13 @@ class QuestionImportView(TeacherRequiredMixin, View):
             headers, rows = file_reader.read_table(upload.name, upload.read())
         except file_reader.ImportFileError as error:
             return self.fail(request, str(error))
-        request.session[SESSION_KEY] = {'filename': upload.name, 'headers': headers, 'rows': rows}
+        request.session[SESSION_KEY] = {
+            'filename': upload.name, 'headers': headers, 'rows': rows, 'course_id': course.pk if course else None,
+        }
         return redirect('quizzes:import_preview')
 
     def fail(self, request, message):
-        return render(request, self.template_name, {'error': message})
+        return render(request, self.template_name, import_form_context(request, error=message))
 
 
 class QuestionImportPreviewView(TeacherRequiredMixin, View):
@@ -50,6 +75,11 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
 
     def load(self, request):
         return request.session.get(SESSION_KEY)
+
+    def course(self, request, data):
+        """El grupo de destino guardado al subir el archivo; ``(False, None)`` si dejó de ser uno suyo y activo."""
+        raw = data.get('course_id')
+        return destination(request, str(raw) if raw else GENERAL)
 
     def get(self, request):
         data = self.load(request)
@@ -63,12 +93,16 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
         if data is None:
             messages.error(request, 'La vista previa expiró. Sube el archivo de nuevo.')
             return redirect('quizzes:import')
+        valid, course = self.course(request, data)
+        if not valid:
+            messages.error(request, 'El grupo de destino ya no está disponible. Sube el archivo de nuevo.')
+            return redirect('quizzes:import')
         # Se vuelve a analizar al confirmar: el banco pudo cambiar desde la vista previa.
-        plan = question_import.analyze(request.organization, data['headers'], data['rows'])
+        plan = question_import.analyze(request.organization, data['headers'], data['rows'], course)
         if plan.header_errors:
             return self.render_preview(request, data)
         try:
-            summary = question_import.apply_import(request.organization, request.user, plan)
+            summary = question_import.apply_import(request.organization, request.user, plan, course)
         except PlanLimitError as error:
             limits.flash_limit_error(request, error)
             return self.render_preview(request, data)
@@ -82,7 +116,8 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
         return redirect('quizzes:bank')
 
     def render_preview(self, request, data):
-        plan = question_import.analyze(request.organization, data['headers'], data['rows'])
+        _, course = self.course(request, data)
+        plan = question_import.analyze(request.organization, data['headers'], data['rows'], course)
         limit_error = ''
         try:
             limits.check_limit(request.organization, 'questions', adding=plan.count_new)
@@ -91,7 +126,7 @@ class QuestionImportPreviewView(TeacherRequiredMixin, View):
         return render(request, self.template_name, {
             'filename': data['filename'], 'plan': plan, 'preview': plan.items[:PREVIEW_ROWS],
             'hidden': max(len(plan.items) - PREVIEW_ROWS, 0), 'can_confirm': plan.count_new > 0 and not limit_error,
-            'limit_error': limit_error,
+            'limit_error': limit_error, 'course': course,
         })
 
 
