@@ -1,0 +1,22 @@
+<div class="wrap">
+  <header class="nav portada-nav">
+    <a class="logo" href="{% url 'home' %}" aria-label="{{ site_name }}, inicio">
+      <svg width="34" height="34" aria-hidden="true"><use href="#i-logo"/></svg>
+      {{ site_name }}
+    </a>
+    <nav class="nav-links" aria-label="Secciones">
+      <a href="{% url 'home' %}#funciones">Funciones</a>
+      <a href="{% url 'home' %}#empezar">Cómo empiezas</a>
+      <a href="{% url 'pricing' %}"{% if request.resolver_match.url_name == 'pricing' %} aria-current="page"{% endif %}>Precios</a>
+      <a href="{% url 'home' %}#preguntas">Preguntas</a>
+    </nav>
+    <div class="nav-actions">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'home' %}">Ir a mi cuenta</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Iniciar sesión</a>
+        <a class="btn btn-primary" href="{% url 'register' %}">Crear cuenta</a>
+      {% endif %}
+    </div>
+  </header>
+</div>

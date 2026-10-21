@@ -1,0 +1,11 @@
+<footer class="foot-band">
+  <div class="wrap foot">
+    <span>© {% now "Y" %} {{ site_name }}</span>
+    <nav aria-label="Pie de página">
+      <a href="{% url 'pricing' %}">Precios</a>
+      <a href="{% url 'terms' %}">Términos</a>
+      <a href="{% url 'privacy' %}">Privacidad</a>
+      <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+    </nav>
+  </div>
+</footer>

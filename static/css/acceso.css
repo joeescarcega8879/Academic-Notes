@@ -1,6 +1,7 @@
 /* ===========================================================
    Academic Notes: pantallas de acceso (login, registro, restablecer contraseña).
-   Se carga junto con portada.css, que pone los colores, los botones y el logo.
+   Se carga junto con portada.css, que pone los colores, los botones, el logo,
+   los campos de formulario y los avisos.
    Panel de color a la izquierda y formulario a la derecha; en celular, solo el formulario.
    =========================================================== */
 
@@ -38,35 +39,7 @@ body.acceso { min-height: 100vh; display: grid; grid-template-columns: minmax(0,
 .acceso-foot { color: var(--muted); font-size: 13px; text-align: center; }
 .acceso-foot a { text-decoration: none; }
 .acceso-foot a:hover { text-decoration: underline; }
-
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.field label:not(.checkbox) { font-weight: 700; font-size: 14px; }
-.input { width: 100%; padding: 13px 14px; border: 2px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); font: 400 16px/1.3 var(--body); transition: border-color .15s ease, box-shadow .15s ease; }
-.input::placeholder { color: #8a96ab; }
-.input:hover { border-color: #c7d2e2; }
-.input:focus { outline: none; border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-50); }
-.has-error .input { border-color: var(--bad); }
-.field-error { color: var(--bad); font-size: 13px; font-weight: 500; }
-.field .checkbox, label.checkbox { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; font-weight: 400; color: var(--ink); }
-.checkbox input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--green); flex: none; }
-.checkbox a { color: #1d6fa8; }
-.text-xs { font-size: 12.5px; }
-.text-muted { color: var(--muted); }
-.text-center { text-align: center; }
-.portada .mt-22 { margin-top: 22px; }
-.btn-block { display: flex; width: 100%; }
-.btn-link { color: #1d6fa8; font-weight: 500; font-size: 14px; }
-.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .field-row { display: flex; justify-content: flex-end; margin: -6px 0 18px; }
-
-/* avisos */
-.flash-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
-.flash { padding: 11px 14px; border-radius: 14px; font-size: 14px; font-weight: 500; margin-bottom: 16px; }
-.flash-list .flash { margin-bottom: 0; }
-.flash-success { background: var(--green-50); color: var(--green-ink); }
-.flash-error { background: var(--bad-50); color: var(--bad); }
-.flash-warning { background: var(--sun-50); color: var(--sun-ink); }
-.flash-info, .flash-debug { background: var(--sky-50); color: #1d6fa8; }
 
 /* contraseña con botón de mostrar */
 .pw { position: relative; display: flex; }

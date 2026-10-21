@@ -78,6 +78,48 @@ class TestPlanes:
         assert f'href="{reverse("pricing")}#aviso"' in html
 
 
+PUBLICAS = ('/', '/precios/', '/terminos/', '/privacidad/')
+
+
+class TestPaginasPublicas:
+    """Portada, precios y legales comparten molde: misma cabecera, mismo pie y misma hoja de estilos."""
+
+    @pytest.mark.parametrize('url', PUBLICAS)
+    def test_comparten_cabecera_pie_y_estilos(self, url):
+        html = Client().get(url).content.decode()
+        assert '<header class="nav portada-nav">' in html and '<footer class="foot-band">' in html
+        assert 'css/portada.css' in html and 'css/gradelink.css' not in html
+        assert 'href="#contenido"' in html and '<main id="contenido">' in html
+
+    @pytest.mark.parametrize('url', PUBLICAS)
+    def test_sin_sesion_la_cabecera_ofrece_entrar_y_crear_cuenta(self, url):
+        cabecera = Client().get(url).content.decode().split('<header class="nav portada-nav">')[1].split('</header>')[0]
+        assert reverse('login') in cabecera and reverse('register') in cabecera and 'Ir a mi cuenta' not in cabecera
+
+    @pytest.mark.parametrize('url', PUBLICAS[1:])
+    def test_con_sesion_la_cabecera_ofrece_ir_a_la_cuenta(self, url):
+        cliente = Client()
+        cliente.force_login(ProfessorFactory())
+        cabecera = cliente.get(url).content.decode().split('<header class="nav portada-nav">')[1].split('</header>')[0]
+        assert 'Ir a mi cuenta' in cabecera and reverse('register') not in cabecera
+
+    def test_precios_marca_su_enlace_como_pagina_actual(self):
+        cabecera = Client().get('/precios/').content.decode().split('</header>')[0]
+        assert f'href="{reverse("pricing")}" aria-current="page"' in cabecera
+        assert 'aria-current' not in Client().get('/terminos/').content.decode().split('</header>')[0]
+
+    @pytest.mark.parametrize('url, titulo', [('/terminos/', 'Términos de uso'), ('/privacidad/', 'Aviso de privacidad')])
+    def test_las_legales_mantienen_el_aviso_de_borrador_y_se_leen_en_una_columna(self, url, titulo):
+        html = Client().get(url).content.decode()
+        assert f'<h1>{titulo}</h1>' in html and 'pendiente de revisión legal' in html
+        assert 'class="legal-card"' in html and 'acceso-art' not in html
+        assert html.count('<h2>') >= 5
+
+    def test_las_legales_se_enlazan_entre_si_y_con_el_inicio(self):
+        assert reverse('privacy') in Client().get('/terminos/').content.decode()
+        assert reverse('terms') in Client().get('/privacidad/').content.decode()
+
+
 class TestRecursos:
     @pytest.mark.parametrize('ruta', ['css/portada.css', 'js/portada.js', 'images/portada-aula.jpg', 'images/portada-equipo.jpg'])
     def test_los_archivos_estaticos_existen(self, ruta):
