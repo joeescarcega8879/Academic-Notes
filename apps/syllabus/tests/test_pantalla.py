@@ -13,6 +13,7 @@ from reportlab.pdfgen import canvas
 from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
 from apps.courses.models import Course
 from apps.courses.tests.factories import CourseFactory
+from apps.grades.tests.factories import ActivityFactory
 from apps.organizations.middleware import SESSION_KEY
 from apps.organizations.models import Membership
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
@@ -393,6 +394,44 @@ class TestSemanas:
             SyllabusWeekFactory(syllabus=temario, position=temario.weeks.count() + 1)
         pedir(professor_client, course, action='add_week')
         assert temario.weeks.count() == 60
+
+
+# ── Quitar todas las semanas ──────────────────────────────────────────
+
+class TestQuitarTodas:
+    def test_la_pantalla_ofrece_el_boton_con_confirmacion_solo_si_hay_semanas(self, professor_client, course, con_semanas):
+        html = professor_client.get(url(course)).content.decode()
+        assert 'Quitar todas las semanas' in html and 'confirm(' in html and 'las 3 semanas' in html
+        con_semanas.weeks.all().delete()
+        assert 'Quitar todas las semanas' not in professor_client.get(url(course)).content.decode()
+
+    def test_quita_todas_de_una_vez_y_conserva_las_actividades(self, professor_client, course, con_semanas):
+        actividad = ActivityFactory(course=course, syllabus_week=semana(con_semanas, 2))
+        respuesta = pedir(professor_client, course, action='delete_all_weeks')
+        assert respuesta.status_code == 302 and respuesta.url == url(course)
+        assert con_semanas.weeks.count() == 0
+        actividad.refresh_from_db()
+        assert actividad.syllabus_week is None
+        html = professor_client.get(respuesta.url).content.decode()
+        assert 'Se quitaron las 3 semanas' in html and 'Agregar la primera semana' in html
+
+    def test_conserva_el_temario_y_su_texto_para_volver_a_detectar(self, professor_client, course, con_semanas):
+        pedir(professor_client, course, action='delete_all_weeks')
+        con_semanas.refresh_from_db()
+        assert con_semanas.text == TEMARIO
+
+    def test_se_puede_repetir_sin_error(self, professor_client, course, temario):
+        assert pedir(professor_client, course, action='delete_all_weeks').status_code == 302
+
+    def test_otro_docente_y_el_alumno_no_pueden(self, course, con_semanas):
+        assert pedir(cliente(ProfessorFactory()), course, action='delete_all_weeks').status_code == 404
+        assert pedir(cliente(StudentFactory()), course, action='delete_all_weeks').status_code == 302
+        assert con_semanas.weeks.count() == 3
+
+    def test_otro_grupo_no_se_ve_afectado(self, professor_client, course, con_semanas):
+        otro = SyllabusWeekFactory()
+        pedir(professor_client, course, action='delete_all_weeks')
+        assert SyllabusWeek.objects.filter(pk=otro.pk).exists()
 
 
 # ── Fechas ────────────────────────────────────────────────────────────

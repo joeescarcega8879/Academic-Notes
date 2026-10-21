@@ -317,6 +317,163 @@ class TestDetectarSemanas:
         assert titulos(temario) == [(1, 'Números reales y desigualdades'), (2, 'Funciones'), (3, '')]
 
 
+# Formato real de un temario en PDF: resumen inicial, «SEMANA N» con el título en la línea de abajo, secciones sin
+# dos puntos, sesiones en tabla, encabezado y «Página N» en cada hoja, y secciones de cierre tras la última semana.
+TEMARIO_PDF = """Matemáticas II – Temario de 4 semanas
+Página 1
+Matemáticas II
+Duración
+4 semanas · 3 sesiones por semana
+Resumen del plan
+Semana
+Tema central
+Cierre de la semana
+1
+Antiderivadas e integral indefinida
+Quiz 1
+2
+Integral definida y áreas
+Examen parcial
+
+Matemáticas II – Temario de 4 semanas
+Página 2
+SEMANA 1
+Antiderivadas e integral indefinida
+Objetivo de la semana
+Comprender la integración como proceso inverso de la derivación y resolver integrales
+básicas y por cambio de variable.
+Sesión
+Contenidos
+Sesión 1
+Concepto de antiderivada y constante de integración. Relación entre
+derivada e integral.
+Sesión 2
+Fórmulas básicas: potencias y exponenciales. Propiedades
+de linealidad.
+Actividades de aprendizaje
+ Hoja de ejercicios de integrales inmediatas.
+ Resolver 10 integrales por sustitución.
+Entregable / evaluación
+Tarea 1 y Quiz 1 en la Sesión 2.
+SEMANA 2
+Integral definida y áreas
+Objetivo de la semana
+Interpretar la integral definida como área acumulada y evaluarla con el Teorema Fundamental del
+Cálculo.
+Sesión
+Contenidos
+Sesión 1
+Aproximación de áreas con rectángulos. Sumas de Riemann.
+
+Matemáticas II – Temario de 4 semanas
+Página 3
+Sesión 2
+Propiedades de la integral definida. Aplicación repetida.
+Entregable / evaluación
+Tarea 2 y Examen parcial.
+
+Matemáticas II – Temario de 4 semanas
+Página 4
+Evaluación sugerida
+Componente
+Peso
+Tareas semanales
+20%
+Bibliografía recomendada
+ Stewart, J. Cálculo de una variable.
+"""
+
+
+class TestDetectarFormatoReal:
+    @pytest.fixture
+    def detectadas(self):
+        return semanas.detect_weeks(TEMARIO_PDF)
+
+    def test_encuentra_las_dos_semanas_y_no_toma_el_resumen_inicial_por_una(self, detectadas):
+        assert len(detectadas) == 2
+
+    def test_el_titulo_es_la_linea_de_abajo_del_encabezado(self, detectadas):
+        assert [d['title'] for d in detectadas] == ['Antiderivadas e integral indefinida', 'Integral definida y áreas']
+
+    def test_el_objetivo_junta_las_lineas_que_el_pdf_corto(self, detectadas):
+        assert detectadas[0]['objectives'] == (
+            'Comprender la integración como proceso inverso de la derivación y resolver integrales básicas y por cambio de variable.'
+        )
+        assert detectadas[1]['objectives'].endswith('Teorema Fundamental del Cálculo.')  # «Cálculo.» no queda suelto
+
+    def test_cada_sesion_es_un_tema_con_su_contenido_completo(self, detectadas):
+        assert detectadas[0]['topics'].splitlines() == [
+            'Sesión 1: Concepto de antiderivada y constante de integración. Relación entre derivada e integral.',
+            'Sesión 2: Fórmulas básicas: potencias y exponenciales. Propiedades de linealidad.',
+        ]
+
+    def test_actividades_y_entregables_no_se_mezclan_con_los_temas(self, detectadas):
+        todo = ' '.join(d['topics'] + d['objectives'] for d in detectadas)
+        for ajeno in ('Hoja de ejercicios', 'Resolver 10 integrales', 'Tarea 1', 'Quiz 1 en la Sesión'):
+            assert ajeno not in todo
+
+    def test_el_encabezado_y_el_numero_de_pagina_no_se_cuelan(self, detectadas):
+        todo = ' '.join(d['title'] + d['topics'] + d['objectives'] for d in detectadas)
+        assert 'Página' not in todo and 'Temario de 4 semanas' not in todo
+
+    def test_una_sesion_que_cruza_de_pagina_sigue_en_su_semana(self, detectadas):
+        assert detectadas[1]['topics'].splitlines() == [
+            'Sesión 1: Aproximación de áreas con rectángulos. Sumas de Riemann.',
+            'Sesión 2: Propiedades de la integral definida. Aplicación repetida.',
+        ]
+
+    def test_la_ultima_semana_no_se_traga_la_evaluacion_ni_la_bibliografia(self, detectadas):
+        todo = detectadas[1]['topics'] + detectadas[1]['objectives']
+        for cierre in ('Evaluación sugerida', 'Tareas semanales', 'Bibliografía', 'Stewart'):
+            assert cierre not in todo
+
+    def test_cortar_en_el_cierre_aunque_la_ultima_seccion_de_la_semana_sea_de_temas(self):
+        lineas = ['SEMANA 1', 'Reales', 'Sesión 1', 'Intervalos y desigualdades.', 'Evaluación sugerida',
+                  'Tareas semanales 20%', 'Bibliografía recomendada', 'Stewart']
+        detectadas = semanas.detect_weeks('\n'.join(lineas))
+        assert detectadas[0]['topics'] == 'Sesión 1: Intervalos y desigualdades.'
+
+    def test_una_sesion_junta_todas_sus_lineas_aunque_una_termine_en_punto(self):
+        lineas = ['SEMANA 1', 'Reales', 'Sesión 1', 'Primera frase del contenido.', 'Segunda frase.', 'Sesión 2', 'Otra.']
+        detectadas = semanas.detect_weeks('\n'.join(lineas))
+        assert detectadas[0]['topics'].splitlines() == ['Sesión 1: Primera frase del contenido. Segunda frase.', 'Sesión 2: Otra.']
+
+    def test_con_saltos_de_linea_de_windows_da_lo_mismo(self):
+        assert semanas.detect_weeks(TEMARIO_PDF.replace('\n', '\r\n')) == semanas.detect_weeks(TEMARIO_PDF)
+
+    def test_un_parrafo_largo_tras_el_encabezado_no_se_toma_por_titulo(self):
+        largo = 'Esta semana revisaremos con calma todos los conceptos del bloque y resolveremos dudas de la clase anterior, ' * 2
+        detectadas = semanas.detect_weeks(f'Semana 1\n{largo.strip()}\nTemas: A, B')
+        assert detectadas[0]['title'] == '' and 'revisaremos' in detectadas[0]['topics']
+
+    def test_una_linea_que_empieza_con_semana_pero_es_prosa_larga_no_es_encabezado(self):
+        assert semanas.detect_weeks('Semana 3 ' + 'palabra ' * 30) == []
+
+    def test_varias_lineas_de_temas_sin_punto_se_quedan_separadas(self):
+        detectadas = semanas.detect_weeks('Semana 1: X\nTemas:\nDominio\nRango\nGráfica')
+        assert detectadas[0]['topics'].splitlines() == ['Dominio', 'Rango', 'Gráfica']
+
+    def test_un_titulo_con_barra_o_guion_se_lee_igual(self):
+        detectadas = semanas.detect_weeks('Semana 1 | Reales\nSemana 2 - Funciones\nSemana 3 – Límites')
+        assert [d['title'] for d in detectadas] == ['Reales', 'Funciones', 'Límites']
+
+
+# ── Quitar todas las semanas ──────────────────────────────────────────
+
+class TestQuitarTodas:
+    def test_quita_todas_y_dice_cuantas_eran(self):
+        temario = temario_con(5)
+        assert semanas.delete_all_weeks(temario) == 5 and temario.weeks.count() == 0
+
+    def test_sin_semanas_no_hace_nada(self):
+        assert semanas.delete_all_weeks(temario_con(0)) == 0
+
+    def test_no_toca_las_semanas_de_otros_temarios(self):
+        mio, otro = temario_con(2), temario_con(3)
+        semanas.delete_all_weeks(mio)
+        assert otro.weeks.count() == 3
+
+
 # ── Fechas ────────────────────────────────────────────────────────────
 
 class TestFechas:
