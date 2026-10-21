@@ -220,7 +220,7 @@
             <h2>Empieza gratis. Paga solo cuando lo necesites.</h2>
             <p>Tus alumnos nunca pagan. Precios en pesos mexicanos.</p>
           </div>
-          <div class="plans">
+          <div class="plans three">
             <article class="plan">
               <h3>{{ free.name }}</h3>
               <div class="price"><strong>$0</strong><span>para siempre</span></div>
@@ -239,8 +239,18 @@
               </ul>
               <a class="btn btn-ghost btn-lg" href="{% url 'pricing' %}#aviso">Avísame cuando esté disponible</a>
             </article>
+            <article class="plan ai">
+              <span class="chip info tag">Próximamente</span>
+              <h3>{{ plus.name }}</h3>
+              <div class="price"><strong>${{ plus.monthly_price }}</strong><span>al mes</span></div>
+              <p class="alt-price">o ${{ plus.annual_price|floatformat:"0g" }} al año (2 meses gratis)</p>
+              <ul>
+                {% for line in plus_bullets %}<li><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>{{ line }}</li>{% endfor %}
+              </ul>
+              <a class="btn btn-ghost btn-lg" href="{% url 'pricing' %}#aviso-plus">Avísame cuando esté disponible</a>
+            </article>
           </div>
-          <p class="plans-foot">Todavía no cobramos en línea. ¿Necesitas el plan {{ paid.name }} ya? <a href="{% url 'pricing' %}">Mira los detalles</a> y escríbenos.</p>
+          <p class="plans-foot">Todavía no cobramos en línea y la IA del plan {{ plus.name }} está en construcción. ¿Necesitas el plan {{ paid.name }} ya? <a href="{% url 'pricing' %}">Mira los detalles</a> y escríbenos.</p>
         </div>
       </section>
 

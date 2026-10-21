@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
+from apps.organizations.models import Organization
+
 
 def _input(**attrs):
     return forms.TextInput(attrs={'class': 'input', **attrs})
@@ -69,9 +71,17 @@ class WaitlistForm(forms.Form):
         error_messages={'required': 'Marca la casilla para que podamos guardar tu correo y avisarte.'},
     )
     website = forms.CharField(required=False, widget=forms.TextInput(attrs={'tabindex': '-1', 'autocomplete': 'off'}))
+    # Plan por el que se apunta; sin valor es Pro (la lista de espera de siempre).
+    plan = forms.ChoiceField(
+        required=False, widget=forms.HiddenInput,
+        choices=[(Organization.Plan.TEACHER, 'Pro'), (Organization.Plan.TEACHER_PLUS, 'Plus')],
+    )
 
     def clean_email(self):
         return self.cleaned_data['email'].strip().lower()
+
+    def clean_plan(self):
+        return self.cleaned_data['plan'] or Organization.Plan.TEACHER
 
     @property
     def is_bot(self):

@@ -100,7 +100,20 @@ class TestTablaDePlanes:
         assert (docente.groups, docente.students, docente.questions) == (None, None, None)
         assert docente.timed_quizzes and docente.custom_workbook and docente.clean_transcripts
 
-    @pytest.mark.parametrize('plan', [Plan.TEACHER_PLUS, Plan.BASIC, Plan.STANDARD, Plan.ENTERPRISE])
+    def test_plus_es_pro_mas_ia_y_cuesta_lo_propuesto(self):
+        plus = plans.PLUS
+        assert plans.spec_for(Plan.TEACHER_PLUS) is plus and plus.name == 'Plus'
+        assert (plus.monthly_price, plus.annual_price) == (249, 2490)
+        assert plus.annual_price == 10 * plus.monthly_price  # diez meses por doce, como Pro
+        assert plus.monthly_price > plans.TEACHER.monthly_price
+        assert plus.ai_assistant and not plans.TEACHER.ai_assistant and not plans.FREE.ai_assistant
+        assert (plus.groups, plus.students, plus.questions) == (None, None, None)
+        assert plus.timed_quizzes and plus.custom_workbook and plus.clean_transcripts
+
+    def test_solo_plus_lleva_ia_entre_los_planes_del_modelo(self):
+        assert {p for p in Plan if plans.spec_for(p).ai_assistant} == {Plan.TEACHER_PLUS}
+
+    @pytest.mark.parametrize('plan', [Plan.BASIC, Plan.STANDARD, Plan.ENTERPRISE])
     def test_los_planes_asignados_a_mano_no_tienen_topes_ni_precio_de_autoservicio(self, plan):
         spec = plans.spec_for(plan)
         assert spec.groups is None and spec.students is None and spec.questions is None

@@ -2,6 +2,8 @@
 
 from dataclasses import replace
 
+import re
+
 import pytest
 from django.contrib import admin
 from django.test import Client
@@ -68,8 +70,31 @@ class TestPagina:
 
     def test_no_promete_lo_que_no_existe(self):
         html = Client().get(URL).content.decode()
-        for prohibido in ('WhatsApp', 'inteligencia artificial', 'portal de padres', 'panel de dirección', 'Plus'):
+        for prohibido in ('WhatsApp', 'portal de padres', 'panel de dirección'):
             assert prohibido.lower() not in html.lower(), prohibido
+
+    def test_plus_se_anuncia_con_su_precio_pero_sin_poder_comprarse(self):
+        html = Client().get(URL).content.decode()
+        tarjeta = html.split('id="plan-plus"')[1].split('</article>')[0]
+        for esperado in ('Plus', '$249', '$2,490', '2 meses gratis', 'Próximamente', 'Todo lo del plan Pro',
+                         'Genera tareas, quizzes y exámenes desde tu temario', 'Calificación asistida', 'Tú apruebas todo',
+                         'todavía está en construcción'):
+            assert esperado.lower() in tarjeta.lower(), esperado
+        assert 'checkout' not in html.lower() and 'Pagar' not in html
+
+    def test_la_ia_es_solo_de_plus(self):
+        html = Client().get(URL).content.decode()
+        gratis = html.split('id="plan-gratis"')[1].split('</article>')[0]
+        pro = html.split('id="plan-docente"')[1].split('id="aviso"')[0]
+        assert 'tu temario' not in gratis and 'tu temario' not in pro and 'IA' not in pro
+        fila = re.search(r'IA para planear y calificar</th>(.*?)</tr>', html, re.S).group(1)
+        assert fila.count('<td>') == 3 and fila.count('Sí') == 1
+        assert fila.split('</td>')[2].count('Sí') == 1  # solo la tercera columna (Plus)
+
+    def test_el_precio_de_plus_sale_de_la_tabla_de_planes(self, monkeypatch):
+        monkeypatch.setattr(plans, 'PLUS', replace(plans.PLUS, monthly_price=299, annual_price=2990))
+        html = Client().get(URL).content.decode()
+        assert '$299' in html and '$2,990' in html and '$249' not in html
 
     def test_las_escuelas_van_a_un_piloto_por_correo(self, settings):
         settings.SUPPORT_EMAIL = 'ayuda@ejemplo.mx'
@@ -112,11 +137,12 @@ class TestEnlaces:
 class TestListaDeEspera:
     def test_guarda_el_correo_normalizado_y_confirma(self):
         respuesta = pedir(Client(), email='  Docente@Ejemplo.MX ')
-        assert respuesta.status_code == 302 and respuesta.url == f'{URL}?lista=ok#aviso'
+        assert respuesta.status_code == 302 and respuesta.url == f'{URL}?lista=pro#aviso'
         entrada = WaitlistEntry.objects.get()
         assert (entrada.email, entrada.plan, entrada.user) == ('docente@ejemplo.mx', Plan.TEACHER, None)
-        confirmacion = Client().get(f'{URL}?lista=ok').content.decode()
-        assert 'Te avisaremos por correo' in confirmacion and 'Avísame cuando esté disponible' not in confirmacion
+        confirmacion = Client().get(f'{URL}?lista=pro').content.decode()
+        assert confirmacion.count('Te avisaremos por correo') == 1
+        assert confirmacion.count('Avísame cuando esté disponible') == 1  # queda el de Plus
 
     def test_sin_el_parametro_no_se_ve_la_confirmacion(self):
         assert 'Te avisaremos por correo' not in Client().get(URL).content.decode()
@@ -172,9 +198,35 @@ class TestListaDeEspera:
         assert respuesta.status_code == 200
         assert '<script>alert(1)</script>' not in respuesta.content.decode()
 
-    def test_solo_hay_un_plan_en_la_lista_por_ahora(self):
+    def test_sin_plan_se_apunta_a_pro(self):
         pedir(Client())
         assert set(WaitlistEntry.objects.values_list('plan', flat=True)) == {Plan.TEACHER}
+
+    def test_se_puede_apuntar_a_plus_y_confirma_en_su_tarjeta(self):
+        respuesta = pedir(Client(), plan=Plan.TEACHER_PLUS)
+        assert respuesta.status_code == 302 and respuesta.url == f'{URL}?lista=plus#aviso-plus'
+        assert WaitlistEntry.objects.get().plan == Plan.TEACHER_PLUS
+        html = Client().get(respuesta.url).content.decode()
+        plus = html.split('id="plan-plus"')[1].split('</article>')[0]
+        assert 'Te avisaremos por correo cuando el plan Plus' in plus
+        assert 'Te avisaremos' not in html.split('id="plan-docente"')[1].split('id="plan-plus"')[0]
+
+    def test_el_mismo_correo_puede_estar_en_la_lista_de_pro_y_en_la_de_plus(self):
+        pedir(Client())
+        pedir(Client(), plan=Plan.TEACHER_PLUS)
+        assert WaitlistEntry.objects.count() == 2
+
+    def test_un_plan_que_no_esta_en_la_lista_se_rechaza(self):
+        respuesta = pedir(Client(), plan=Plan.ENTERPRISE)
+        assert respuesta.status_code == 200 and WaitlistEntry.objects.count() == 0
+
+    def test_el_error_de_un_formulario_no_aparece_en_el_otro(self):
+        respuesta = Client().post(URL, {'email': 'a@ejemplo.mx', 'website': '', 'plan': Plan.TEACHER_PLUS})
+        html = respuesta.content.decode()
+        assert respuesta.status_code == 200
+        plus = html.split('id="plan-plus"')[1].split('</article>')[0]
+        pro = html.split('id="plan-docente"')[1].split('id="plan-plus"')[0]
+        assert 'Marca la casilla' in plus and 'Marca la casilla' not in pro
 
 
 class TestAdminYPrivacidad:

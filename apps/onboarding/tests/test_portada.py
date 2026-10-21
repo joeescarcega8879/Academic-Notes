@@ -72,6 +72,18 @@ class TestPlanes:
         assert f'${plans.TEACHER.monthly_price}' in html
         assert f'{plans.FREE.groups}' in html and f'{plans.FREE.students}' in html and f'{plans.FREE.questions}' in html
 
+    def test_plus_aparece_con_su_precio_como_proximamente_y_con_la_ia(self):
+        html = portada()
+        tarjeta = html.split('<article class="plan ai">')[1].split('</article>')[0]
+        assert f'${plans.PLUS.monthly_price}' in tarjeta and f'${plans.PLUS.annual_price:,}' in tarjeta
+        assert 'Próximamente' in tarjeta and 'Todo lo del plan Pro' in tarjeta
+        assert 'desde tu temario' in tarjeta and 'Tú apruebas todo' in tarjeta
+        assert f'href="{reverse("pricing")}#aviso-plus"' in tarjeta
+
+    def test_las_tarjetas_de_gratis_y_pro_no_prometen_ia(self):
+        antes_de_plus = portada().split('<article class="plan ai">')[0]
+        assert 'IA' not in antes_de_plus.split('id="precios"')[1]
+
     def test_el_plan_de_pago_se_presenta_como_proximamente_y_sin_cobro(self):
         html = portada()
         assert 'Próximamente' in html and 'Todavía no cobramos en línea' in html

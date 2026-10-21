@@ -59,7 +59,7 @@
 
 | | Gratis | Pro | Plus |
 |---|---|---|---|
-| Precio | $0 | **$149 MXN/mes** · **$1,490 MXN/año** (2 meses gratis) | **$249 MXN/mes** · **$2,490 MXN/año** (hipótesis) |
+| Precio | $0 | **$149 MXN/mes** · **$1,490 MXN/año** (2 meses gratis) | **$249 MXN/mes** · **$2,490 MXN/año** (precio de lista, ajustable) |
 | Grupos activos | 2 | Ilimitados | Ilimitados |
 | Alumnos en grupos activos | 60 | Ilimitados (uso razonable) | Ilimitados (uso razonable) |
 | Esquema ponderado, libreta, importar lista, código de invitación, mensajes, duplicar para nuevo ciclo | Sí | Sí | Sí |
@@ -74,7 +74,7 @@
 
 - **Boletas con marca de agua, no bloqueadas.** El docente gratis ve la boleta bien hecha; cuando tiene decenas que entregar y no quiere la marca, paga. Es el momento de mayor disposición a pagar, y la marca muestra el producto a padres y alumnos.
 - **Nombres de los planes (decidido el 2026-10-17):** Gratis, Pro y Plus. El plan que se llamaba «Docente» (`Plan.TEACHER`, $149) se muestra como **Pro**, y `Plan.TEACHER_PLUS` como **Plus** (aplicado en el código el 2026-10-17). Las llaves internas no cambiaron: solo hay una migración de `choices`, sin tocar datos.
-- **Plus = Pro + IA, con costo extra.** Incluye la IA del temario (generar tareas, quizzes y exámenes y calificación asistida; ver sección 13) con una cuota mensual de usos, y WhatsApp y almacenamiento ampliado cuando existan. Referencia $249 MXN/mes y $2,490 MXN/año (diez meses por doce, como Pro): hipótesis a ajustar con el costo real de la IA. **No se publica todavía:** se agrega cuando exista la primera función de IA; no se vende nada que no esté. Mientras tanto se asigna a mano desde el admin.
+- **Plus = Pro + IA, con costo extra.** Incluye la IA del temario (generar tareas, quizzes y exámenes y calificación asistida; ver sección 13) con una cuota mensual de usos, y WhatsApp y almacenamiento ampliado cuando existan. Referencia $249 MXN/mes y $2,490 MXN/año (diez meses por doce, como Pro): hipótesis a ajustar con el costo real de la IA. **Visible desde el 2026-10-20, sin venderse:** la portada y Precios muestran Plus con su precio y la etiqueta «Próximamente» (con lista de espera propia, `WaitlistEntry.plan = teacher_plus`); la IA se promete en palabras, sin cifras de cuota. Se abre la compra cuando exista la primera función de IA. Mientras tanto se asigna a mano desde el admin. Todo lo de IA va **solo en Plus**; el temario (T1) va en todos los planes.
 - **El plan anual** cobra 10 meses por 12 y es donde vive el margen. Si la pasarela lo permite, el anual puede pagarse en una sola exhibición con OXXO o SPEI. Un pase semestral (por los ciclos escolares) queda por evaluar, no decidido.
 - **Los números son hipótesis iniciales.** Los topes (2 grupos, 60 alumnos y 30 preguntas) y los precios viven en una sola tabla (`services/limits.py`) y se ajustan con evidencia: conversión de Gratis a pago (sección 11) y uso real. Sin tope de almacenamiento por organización por ahora (10 MB por archivo en todos los planes): limitarlo exige medir el tamaño de cada archivo y se hará cuando haga falta.
 

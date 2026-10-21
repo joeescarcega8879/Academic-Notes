@@ -37,9 +37,9 @@ class LandingView(View):
         free = plans.FREE
         free_bullets = [f'{label}: {free.limit(key)}' for key, label in plans.LIMITS if free.limit(key) is not None]
         return {
-            'free': free, 'paid': plans.TEACHER,
+            'free': free, 'paid': plans.TEACHER, 'plus': plans.PLUS,
             'free_bullets': free_bullets + ['Boletas en PDF con marca de agua'],
-            'paid_bullets': PricingView.paid_bullets(),
+            'paid_bullets': PricingView.paid_bullets(), 'plus_bullets': PricingView.plus_bullets(),
         }
 
 
@@ -120,14 +120,16 @@ class StudentRegisterView(RegisterView):
 
 
 class PricingView(View):
-    """Precios: los dos planes, lo que cambia entre ellos y la lista de espera del plan de pago.
+    """Precios: los tres planes, lo que cambia entre ellos y la lista de espera de los planes de pago.
 
     Todo sale de ``apps.organizations.plans``: si cambia un tope o un precio, esta página cambia sola. Todavía no
-    se cobra en línea, así que el plan de pago ofrece «Avísame» (lista de espera) en lugar de comprar.
+    se cobra en línea ni existe la IA de Plus, así que los planes de pago ofrecen «Avísame» (lista de espera) en
+    lugar de comprar.
     """
 
     template_name = 'onboarding/pricing.html'
     JOINED_PARAM = 'lista'
+    WAITLIST_PLANS = {Organization.Plan.TEACHER: 'pro', Organization.Plan.TEACHER_PLUS: 'plus'}
 
     @staticmethod
     def free_bullets():
@@ -151,15 +153,29 @@ class PricingView(View):
             lines.append(row['label'] if row.get('feature') else f'{row["label"]}: sin tope' if row['paid'] is None else f'{row["label"]}: {row["paid"]}')
         return lines
 
+    @staticmethod
+    def plus_bullets():
+        return ['Todo lo del plan Pro', *plans.AI_PROMISES]
+
     def context(self, request, form, **extra):
+        """Cada plan de pago tiene su formulario; el recién enviado (con sus errores) es ``form``, el otro va limpio."""
+        initial = {'email': request.user.email} if request.user.is_authenticated else {}
+        sent = self.WAITLIST_PLANS.get(form.data.get('plan') or Organization.Plan.TEACHER, 'pro') if form.is_bound else None
+        forms = {slug: form if slug == sent else WaitlistForm(initial=initial) for slug in self.WAITLIST_PLANS.values()}
         return {
-            'free': plans.FREE, 'paid': plans.TEACHER, 'free_bullets': self.free_bullets(), 'paid_bullets': self.paid_bullets(),
-            'comparison': plans.comparison_rows(), 'form': form, 'joined': request.GET.get(self.JOINED_PARAM) == 'ok', **extra,
+            'free': plans.FREE, 'paid': plans.TEACHER, 'plus': plans.PLUS,
+            'free_bullets': self.free_bullets(), 'paid_bullets': self.paid_bullets(), 'plus_bullets': self.plus_bullets(),
+            'comparison': plans.public_comparison_rows(), 'forms': forms,
+            'joined': self.WAITLIST_PLANS.get(self.joined_plan(request)), **extra,
         }
 
+    def joined_plan(self, request):
+        """El plan por el que acaba de apuntarse (``?lista=pro|plus``), o ``None``."""
+        value = request.GET.get(self.JOINED_PARAM)
+        return next((plan for plan, slug in self.WAITLIST_PLANS.items() if slug == value), None)
+
     def get(self, request):
-        initial = {'email': request.user.email} if request.user.is_authenticated else {}
-        return render(request, self.template_name, self.context(request, WaitlistForm(initial=initial)))
+        return render(request, self.template_name, self.context(request, WaitlistForm()))
 
     def post(self, request):
         form = WaitlistForm(request.POST)
@@ -172,11 +188,13 @@ class PricingView(View):
         if form.is_bot:
             return redirect('pricing')  # sin guardar nada y sin dar pistas
         # Repetir el correo no duplica ni avisa de que ya estaba: se responde igual.
+        plan = form.cleaned_data['plan']
         WaitlistEntry.objects.get_or_create(
-            email=form.cleaned_data['email'], plan=Organization.Plan.TEACHER,
+            email=form.cleaned_data['email'], plan=plan,
             defaults={'user': request.user if request.user.is_authenticated else None},
         )
-        return redirect(f'{reverse("pricing")}?{self.JOINED_PARAM}=ok#aviso')
+        slug = self.WAITLIST_PLANS[plan]
+        return redirect(f'{reverse("pricing")}?{self.JOINED_PARAM}={slug}#aviso{"" if slug == "pro" else "-" + slug}')
 
 
 class LegalView(TemplateView):
