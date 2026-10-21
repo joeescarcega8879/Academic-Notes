@@ -111,8 +111,8 @@
         {% if is_teacher %}
         <td>
           <div class="row-actions">
-            <a class="btn btn-ghost btn-sm" href="{% url 'grades:update' grade.pk %}">Editar</a>
-            <a class="btn btn-ghost btn-sm" href="{% url 'grades:delete' grade.pk %}">Eliminar</a>
+            <a class="btn btn-ghost" href="{% url 'grades:update' grade.pk %}">Editar</a>
+            <a class="btn btn-ghost" href="{% url 'grades:delete' grade.pk %}">Eliminar</a>
           </div>
         </td>
         {% endif %}

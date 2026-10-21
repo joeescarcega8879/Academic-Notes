@@ -340,6 +340,38 @@ function setupNavToggle() {
   });
 }
 
+// ---------- Barra lateral contraible (escritorio) ----------
+function setupSidebarCollapse() {
+  const btn = document.getElementById('sidebar-collapse');
+  if (!btn) return;
+  const root = document.documentElement;
+
+  // Con la barra contraída solo se ven los iconos: el texto pasa a ser el título (la ayuda al pasar el cursor).
+  document.querySelectorAll('.sidebar .nav a, .sidebar .nav-foot button').forEach((el) => {
+    const label = el.querySelector('.nav-label');
+    if (label && !el.title) el.title = label.textContent.trim();
+  });
+
+  const sync = () => {
+    const collapsed = root.classList.contains('sidebar-collapsed');
+    const text = collapsed ? 'Expandir menú' : 'Contraer menú';
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    btn.setAttribute('aria-label', text);
+    btn.title = text;
+    const label = btn.querySelector('.nav-label');
+    if (label) label.textContent = text;
+  };
+
+  btn.addEventListener('click', () => {
+    root.classList.toggle('sidebar-collapsed');
+    try {
+      localStorage.setItem('gl-sidebar', root.classList.contains('sidebar-collapsed') ? 'collapsed' : 'open');
+    } catch (e) { /* sin almacenamiento: vale para esta página */ }
+    sync();
+  });
+  sync();
+}
+
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
   hydrateIcons();
@@ -353,5 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupNotifications();
   setupNavToggle();
+  setupSidebarCollapse();
   setupChatScroll();
 });

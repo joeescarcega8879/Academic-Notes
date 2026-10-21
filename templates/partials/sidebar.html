@@ -32,37 +32,38 @@
   {% endif %}
   <nav class="nav">
     {% if is_teacher %}
-      <a href="{% url 'professor_dashboard' %}" class="{% if request.resolver_match.url_name == 'professor_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis grupos</a>
-      <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i> Calificaciones</a>
+      <a href="{% url 'professor_dashboard' %}" class="{% if request.resolver_match.url_name == 'professor_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i><span class="nav-label">Mis grupos</span></a>
+      <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i><span class="nav-label">Calificaciones</span></a>
       <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.app_name == 'messaging' %}is-active{% endif %}">
-        <i data-icon="message-square"></i> Mensajes{% if unread_count %}
+        <i data-icon="message-square"></i><span class="nav-label">Mensajes</span>{% if unread_count %}
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}
       </a>
-      <a href="{% url 'quizzes:bank' %}" class="{% if request.resolver_match.app_name == 'quizzes' %}is-active{% endif %}"><i data-icon="book-open"></i> Banco de preguntas</a>
-      <a href="{% url 'academic_years' %}" class="{% if request.resolver_match.view_name == 'academic_years' %}is-active{% endif %}"><i data-icon="calendar"></i> Ciclos escolares</a>
-      <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i> Perfil</a>
-      <a href="{% url 'organizations:settings' %}" class="{% if request.resolver_match.view_name == 'organizations:settings' %}is-active{% endif %}"><i data-icon="settings"></i> Ajustes</a>
+      <a href="{% url 'quizzes:bank' %}" class="{% if request.resolver_match.app_name == 'quizzes' %}is-active{% endif %}"><i data-icon="book-open"></i><span class="nav-label">Banco de preguntas</span></a>
+      <a href="{% url 'academic_years' %}" class="{% if request.resolver_match.view_name == 'academic_years' %}is-active{% endif %}"><i data-icon="calendar"></i><span class="nav-label">Ciclos escolares</span></a>
+      <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i><span class="nav-label">Perfil</span></a>
+      <a href="{% url 'organizations:settings' %}" class="{% if request.resolver_match.view_name == 'organizations:settings' %}is-active{% endif %}"><i data-icon="settings"></i><span class="nav-label">Ajustes</span></a>
       <div class="nav-sep"></div>
-      <a href="{% url 'help' %}" class="{% if request.resolver_match.view_name == 'help' %}is-active{% endif %}"><i data-icon="help-circle"></i> Ayuda</a>
+      <a href="{% url 'help' %}" class="{% if request.resolver_match.view_name == 'help' %}is-active{% endif %}"><i data-icon="help-circle"></i><span class="nav-label">Ayuda</span></a>
     {% else %}
-      <a href="{% url 'student_dashboard' %}" class="{% if request.resolver_match.view_name == 'student_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i> Mis grupos</a>
-      <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i> Mis Calificaciones</a>
+      <a href="{% url 'student_dashboard' %}" class="{% if request.resolver_match.view_name == 'student_dashboard' %}is-active{% endif %}"><i data-icon="book-open"></i><span class="nav-label">Mis grupos</span></a>
+      <a href="{% url 'grades:list' %}" class="{% if request.resolver_match.view_name == 'grades:list' %}is-active{% endif %}"><i data-icon="clipboard"></i><span class="nav-label">Mis Calificaciones</span></a>
       <a href="{% url 'messaging:list' %}" class="{% if request.resolver_match.app_name == 'messaging' %}is-active{% endif %}">
-        <i data-icon="message-square"></i> Mensajes{% if unread_count %}
+        <i data-icon="message-square"></i><span class="nav-label">Mensajes</span>{% if unread_count %}
           <span class="nav-badge">{{ unread_count }}</span>
         {% endif %}
       </a>
-      <a href="{% url 'join_course' %}" class="{% if request.resolver_match.view_name == 'join_course' %}is-active{% endif %}"><i data-icon="users"></i> Unirme a un grupo</a>
-      <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i> Perfil</a>
+      <a href="{% url 'join_course' %}" class="{% if request.resolver_match.view_name == 'join_course' %}is-active{% endif %}"><i data-icon="users"></i><span class="nav-label">Unirme a un grupo</span></a>
+      <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i><span class="nav-label">Perfil</span></a>
       <div class="nav-sep"></div>
-      <a href="{% url 'help' %}" class="{% if request.resolver_match.view_name == 'help' %}is-active{% endif %}"><i data-icon="help-circle"></i> Ayuda</a>
+      <a href="{% url 'help' %}" class="{% if request.resolver_match.view_name == 'help' %}is-active{% endif %}"><i data-icon="help-circle"></i><span class="nav-label">Ayuda</span></a>
     {% endif %}
   </nav>
   <div class="nav-foot">
+    <button type="button" id="sidebar-collapse" class="sidebar-collapse" aria-expanded="true" aria-label="Contraer menú"><i data-icon="chevron-left"></i><span class="nav-label">Contraer menú</span></button>
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
-      <button type="submit"><i data-icon="log-out"></i> Cerrar sesión</button>
+      <button type="submit"><i data-icon="log-out"></i><span class="nav-label">Cerrar sesión</span></button>
     </form>
   </div>
 </aside>
