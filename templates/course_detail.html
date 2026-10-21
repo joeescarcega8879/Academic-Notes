@@ -40,6 +40,7 @@
       <a class="btn btn-ghost" href="{% url 'reports:workbook' course.pk %}">Concentrado Excel</a>
       <a class="btn btn-ghost" href="{% url 'reports:transcripts' course.pk %}">Boletas PDF</a>
       {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
+      {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'syllabus:index' course.pk %}">Temario</a>{% endif %}
       <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
     </div>
   {% endif %}

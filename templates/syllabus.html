@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Temario · {{ course.name }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Temario</h1>
+  <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
+</header>
+{% endblock %}
+
+{% block content %}
+{% if syllabus is None %}
+
+  <!-- Sin temario todavía -->
+  <div class="card sy-start">
+    <h3 class="section-title">Empieza con tu temario</h3>
+    <p class="text-sm text-muted" style="margin: 0">Es solo para ti: tus alumnos no lo ven. Te sirve para planear qué actividad toca cada semana.</p>
+    <div class="sy-options">
+      <form class="sy-option" method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        <h4>Subir un archivo</h4>
+        <p class="text-sm text-muted" style="margin: 0">PDF, Word (.docx) o texto (.txt), hasta 10 MB. Lo guardamos en privado y sacamos el texto.</p>
+        <div class="field" style="margin: 0">{{ upload_form.file }}{% for error in upload_form.file.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>
+        <div><button type="submit" class="btn btn-primary">Subir temario</button></div>
+      </form>
+      <form class="sy-option" method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="paste">
+        <h4>Pegar el texto</h4>
+        <p class="text-sm text-muted" style="margin: 0">Copia el temario desde donde lo tengas.</p>
+        <div class="field" style="margin: 0">{{ paste_form.text }}{% for error in paste_form.text.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>
+        <div><button type="submit" class="btn btn-ghost">Guardar texto</button></div>
+      </form>
+    </div>
+    <form method="post" style="margin: 16px 0 0">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="manual">
+      <span class="text-xs text-muted">¿Prefieres no usar archivo?</span>
+      <button type="submit" class="btn-link-inline">Armar las semanas a mano</button>
+    </form>
+  </div>
+
+{% else %}
+
+  <!-- Barra del temario -->
+  <div class="card sy-bar">
+    <strong>Temario</strong>
+    {% if syllabus.status == 'pending' %}<span class="chip warn">Extrayendo texto…</span>
+    {% elif syllabus.status == 'failed' %}<span class="chip warn">No se pudo leer</span>
+    {% elif syllabus.file and syllabus.status == 'empty' %}<span class="chip warn">Sin texto legible</span>
+    {% elif syllabus.text %}<span class="chip ok">Texto listo</span>
+    {% else %}<span class="chip">Armado a mano</span>{% endif %}
+    {% if syllabus.original_name %}<span class="name">{{ syllabus.original_name }}</span>{% endif %}
+    {% if syllabus.text %}<span class="text-xs text-muted">{{ syllabus.word_count }} palabras</span>{% endif %}
+    <span class="grow"></span>
+    {% if syllabus.file %}<a class="btn btn-ghost btn-sm" href="{% url 'syllabus:file' course.pk %}">Descargar original</a>{% endif %}
+    {% if syllabus.text %}<a class="btn btn-ghost btn-sm" href="?detectar=1" title="Busca «Semana 1», «Semana 2»… en el texto y propone la división">Detectar semanas</a>{% endif %}
+  </div>
+
+  {% if syllabus.status == 'pending' %}
+    <div class="flash flash-info" style="margin-top: 12px">Estamos sacando el texto del archivo. Vuelve a abrir esta página en un momento.</div>
+  {% elif syllabus.status == 'failed' %}
+    <div class="flash flash-warning" style="margin-top: 12px">No pudimos leer el archivo (puede estar dañado o protegido con contraseña). Sube otro o pega el texto.</div>
+  {% elif syllabus.file and syllabus.status == 'empty' %}
+    <div class="flash flash-warning" style="margin-top: 12px">El archivo no trae texto que podamos leer (parece un escaneo). Pega el texto del temario para poder usarlo.</div>
+  {% endif %}
+
+  <details class="card sy-more" {% if show_forms %}open{% endif %}>
+    <summary>{% if syllabus.file or syllabus.text %}Reemplazar el temario o pegar otro texto{% else %}Subir un archivo o pegar el texto{% endif %}</summary>
+    <div class="sy-options">
+      <form class="sy-option" method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="upload">
+        <h4>Subir un archivo</h4>
+        <p class="text-xs text-muted" style="margin: 0">PDF, Word (.docx) o texto (.txt), hasta 10 MB. Reemplaza el temario actual.</p>
+        <div class="field" style="margin: 0">{{ upload_form.file }}{% for error in upload_form.file.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>
+        <div><button type="submit" class="btn btn-primary btn-sm">Subir temario</button></div>
+      </form>
+      <form class="sy-option" method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="paste">
+        <h4>Pegar el texto</h4>
+        <div class="field" style="margin: 0">{{ paste_form.text }}{% for error in paste_form.text.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>
+        <div><button type="submit" class="btn btn-ghost btn-sm">Guardar texto</button></div>
+      </form>
+    </div>
+  </details>
+
+  {% if syllabus.text %}
+    <details class="card sy-more">
+      <summary>Ver el texto extraído</summary>
+      <div class="sy-text">{{ syllabus.text }}</div>
+    </details>
+  {% endif %}
+
+  {% if proposals %}
+    <div class="card sy-detected">
+      <h3 class="section-title">Encontramos {{ proposals|length }} semana{{ proposals|length|pluralize }} en el texto</h3>
+      <ol class="sy-detected-list">
+        {% for item in proposals %}<li><strong>{{ item.title|default:"(sin título)" }}</strong>{% if item.topics %} <span class="text-muted">· {{ item.topics.splitlines|length }} tema{{ item.topics.splitlines|length|pluralize }}</span>{% endif %}</li>{% endfor %}
+      </ol>
+      <form method="post"{% if rows %} onsubmit="return confirm('Esto reemplaza las {{ rows|length }} semanas que ya tienes y deja sin semana a las actividades que apuntaban a ellas. ¿Continuar?')"{% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="apply_detected">
+        <div class="action-bar">
+          <button type="submit" class="btn btn-primary">Usar estas semanas</button>
+          <a class="btn btn-ghost" href="{% url 'syllabus:index' course.pk %}">No, gracias</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="sy-split">
+
+    <!-- Lista de semanas -->
+    <section class="card sy-list" aria-label="Semanas">
+      <div class="sy-list-head">
+        <h3 class="section-title">Semanas</h3>
+        <span class="chip">{{ rows|length }}</span>
+        {% if current %}<span class="chip info">Hoy: semana {{ current.position }}</span>{% endif %}
+      </div>
+      {% if rows %}
+        <ul class="sy-rows">
+          {% for row in rows %}
+            <li>
+              <a class="sy-row{% if selected and row.week.pk == selected.week.pk %} is-sel{% endif %}{% if row.week.no_class %} is-off{% endif %}" href="?semana={{ row.week.position }}"{% if selected and row.week.pk == selected.week.pk %} aria-current="true"{% endif %}>
+                <span class="n">{{ row.week.position }}</span>
+                <span class="sy-row-text">
+                  <span class="t">{{ row.week.title|default:"Sin título" }}</span>
+                  <span class="d">{% if row.dates %}{{ row.dates }}{% else %}Semana {{ row.week.position }}{% endif %}{% if row.is_now %} · esta semana{% endif %}{% if row.week.no_class %} · sin clase{% endif %}</span>
+                </span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-sm text-muted" style="padding: 18px 20px; margin: 0">Todavía no hay semanas.</p>
+      {% endif %}
+      <div class="sy-list-foot">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_week">
+          <button type="submit" class="btn btn-ghost" {% if rows|length >= week_limit %}disabled{% endif %}>+ Agregar semana</button>
+        </form>
+        <form method="post" class="line">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="start_date">
+          {% if selected %}<input type="hidden" name="week" value="{{ selected.week.pk }}">{% endif %}
+          <label class="text-xs text-muted" for="{{ start_form.start_date.id_for_label }}" style="white-space: nowrap">Inicio de clases</label>
+          {{ start_form.start_date }}
+          <button type="submit" class="btn btn-ghost btn-sm">Guardar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Editor de la semana elegida -->
+    <section class="card sy-edit" aria-live="polite">
+      {% if selected %}
+        {% with week=selected.week %}
+          <div class="sy-edit-head">
+            <div>
+              <h2>Semana {{ week.position }}</h2>
+              <div class="when">{% if selected.dates %}{{ selected.dates }}{% else %}Pon la fecha de inicio de clases para ver las fechas.{% endif %}</div>
+            </div>
+            {% if selected.is_now %}<span class="chip ok">Esta semana</span>{% endif %}
+            {% if week.no_class %}<span class="chip warn">Sin clase</span>{% endif %}
+          </div>
+          <form method="post" novalidate class="sy-form">
+            {% csrf_token %}
+            <input type="hidden" name="week" value="{{ week.pk }}">
+            {% if week_form.non_field_errors %}<div class="flash flash-error">{{ week_form.non_field_errors }}</div>{% endif %}
+            <div class="field">
+              <label for="{{ week_form.title.id_for_label }}">{{ week_form.title.label }}</label>
+              {{ week_form.title }}{% for error in week_form.title.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="two">
+              <div class="field">
+                <label for="{{ week_form.topics.id_for_label }}">{{ week_form.topics.label }}</label>
+                {{ week_form.topics }}<span class="text-xs text-muted">Un tema por línea.</span>
+                {% for error in week_form.topics.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+              </div>
+              <div class="field">
+                <label for="{{ week_form.objectives.id_for_label }}">{{ week_form.objectives.label }}</label>
+                {{ week_form.objectives }}{% for error in week_form.objectives.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+              </div>
+            </div>
+            <label class="sy-off-row" for="{{ week_form.no_class.id_for_label }}">
+              {{ week_form.no_class }} <span>Semana sin clase</span> <span class="text-xs text-muted">(no cuenta para planear)</span>
+            </label>
+            <div class="sy-foot">
+              <button type="submit" name="action" value="save_week" class="btn btn-primary">Guardar semana</button>
+              <button type="submit" name="action" value="move_up" class="btn btn-ghost btn-sm" {% if week.position == 1 %}disabled{% endif %}>Subir</button>
+              <button type="submit" name="action" value="move_down" class="btn btn-ghost btn-sm" {% if week.position == rows|length %}disabled{% endif %}>Bajar</button>
+              <button type="submit" name="action" value="split" class="btn btn-ghost btn-sm" title="Reparte los temas en dos semanas">Dividir</button>
+              <button type="submit" name="action" value="merge" class="btn btn-ghost btn-sm" title="Junta esta semana con la siguiente" {% if week.position == rows|length %}disabled{% endif %}>Unir con la siguiente</button>
+              <span class="grow"></span>
+              <button type="submit" name="action" value="delete_week" class="btn btn-ghost btn-sm sy-danger" formnovalidate
+                      onclick="return confirm('¿Quitar la semana {{ week.position }}?')">Quitar semana</button>
+            </div>
+          </form>
+        {% endwith %}
+      {% else %}
+        <div class="sy-empty">
+          <h3 class="section-title" style="margin: 0">Aún no hay semanas</h3>
+          <p class="text-sm text-muted" style="margin: 0">
+            {% if syllabus.text %}Puedes usar «Detectar semanas» si tu temario dice «Semana 1», «Semana 2»… o agregar las semanas a mano.{% else %}Agrega la primera semana y empieza a armar tu planeación.{% endif %}
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_week">
+            <button type="submit" class="btn btn-primary">Agregar la primera semana</button>
+          </form>
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+
+{% endif %}
+{% endblock %}
