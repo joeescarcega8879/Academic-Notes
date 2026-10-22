@@ -3,10 +3,10 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'quizzes:bank'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver al banco' %}
   <h1>Pregunta</h1>
   <span class="sub">{{ question.get_kind_display }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Volver al banco</a>
 </header>
 {% endblock %}
 

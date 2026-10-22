@@ -3,11 +3,11 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
   <h1>Entrega de {{ submission.student }}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
   {% if not course.is_archived %}<a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>{% endif %}
-  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
 </header>
 {% endblock %}
 

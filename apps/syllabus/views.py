@@ -127,6 +127,11 @@ class SyllabusView(SyllabusAccessMixin, View):
         extraction.get_or_create_syllabus(course)
         return self.back(course)
 
+    def do_delete_syllabus(self, request, course, syllabus):
+        extraction.delete_syllabus(syllabus)
+        messages.success(request, 'Se eliminó el temario. Tus actividades siguen ahí, solo que sin semana.')
+        return self.back(course)
+
     def do_start_date(self, request, course, syllabus):
         form = StartDateForm(request.POST)
         week = self.posted_week(request, syllabus, required=False)

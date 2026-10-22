@@ -3,21 +3,21 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
   <h1>Calificar</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Volver a la actividad</a>
 </header>
 {% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
+<form method="post" novalidate id="form-calificar">
   {% csrf_token %}
   <div class="table-wrap mb-12">
     <div class="table-head">
       <h3>Calificaciones sobre {{ activity.max_score|floatformat:"-2" }}</h3>
       <div class="spacer"></div>
-      <span class="text-sm text-muted">Las filas sin nota no se modifican.</span>
+      <span class="text-sm text-muted">Las filas sin nota no se modifican.{% if activity.accepts_submissions %} Si le pones nota a quien <strong>no entregó</strong> (fila resaltada), te pediremos confirmar al guardar.{% endif %}</span>
     </div>
     <table class="tbl">
       <thead>
@@ -30,14 +30,14 @@
       </thead>
       <tbody>
         {% for row in rows %}
-          <tr>
+          <tr{% if activity.accepts_submissions and not row.submission %} class="row-sin-entrega" data-sin-entrega data-alumno="{{ row.student }}"{% endif %}>
             <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<div>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></div></div></td>
             {% if activity.accepts_submissions %}
               <td>
                 {% if row.submission %}
                   <a href="{% url 'grades:submission_detail' row.submission.pk %}" target="_blank" rel="noopener">Ver entrega</a>
                   {% if row.submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% endif %}
-                {% else %}<span class="text-muted">Sin entrega</span>{% endif %}
+                {% else %}<span class="chip warn">Sin entrega</span>{% endif %}
               </td>
             {% endif %}
             <td>
@@ -70,4 +70,21 @@
     <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Cancelar</a>
   </div>
 </form>
+<script>
+  // Calificar a quien no entregó es válido (entrega en papel, por ejemplo), pero se confirma para evitar errores.
+  (function () {
+    var form = document.getElementById('form-calificar');
+    if (!form) return;
+    form.addEventListener('submit', function (event) {
+      var nombres = [];
+      form.querySelectorAll('tr[data-sin-entrega]').forEach(function (row) {
+        var input = row.querySelector('input[name^="score_"]');
+        if (input && input.value.trim() !== '' && input.value !== input.defaultValue) nombres.push(row.getAttribute('data-alumno'));
+      });
+      if (nombres.length && !confirm('Estos alumnos no entregaron y les pusiste nota:\n\n' + nombres.join('\n') + '\n\n¿Guardar de todos modos?')) {
+        event.preventDefault();
+      }
+    });
+  })();
+</script>
 {% endblock %}

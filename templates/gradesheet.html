@@ -4,13 +4,13 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=course.get_absolute_url label='Volver al grupo' %}
   <h1>Libreta</h1>
   <span class="sub">{{ course.name }} · {{ course.code }}</span>
   <div class="spacer"></div>
   {% if editable %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
   <a class="btn btn-ghost" href="{% url 'reports:risk' course.pk %}">Alumnos en riesgo</a>
   <a class="btn btn-ghost" href="{% url 'reports:workbook' course.pk %}">Excel</a>
-  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
 </header>
 {% endblock %}
 

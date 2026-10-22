@@ -3,10 +3,10 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'organizations:settings'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a Ajustes' %}
   <h1>Plan y facturación</h1>
   <span class="sub">· {{ organization.name }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{% url 'organizations:settings' %}">Volver a Ajustes</a>
 </header>
 {% endblock %}
 

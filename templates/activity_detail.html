@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=course.get_absolute_url label='Volver al grupo' %}
   <h1>{{ activity.title }}</h1>
   <span class="sub">· {{ course.name }}</span>
   <div class="spacer"></div>
@@ -17,25 +18,49 @@
     <span class="chip">{{ activity.get_type_display }}</span>
     {% if is_teacher %}
       {% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}
-      <div class="spacer"></div>
-      {% if activity.type == 'quiz' %}<a class="btn btn-primary" href="{% url 'quizzes:builder' activity.pk %}">Armar quiz</a>
-        <a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
-      <a class="btn btn-ghost" href="{% url 'grades:activity_history' activity.pk %}">Historial</a>
       {% if not course.is_archived %}
-        <a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>
         <form method="post" action="{% url 'grades:activity_publish' activity.pk %}" class="inline-form">
           {% csrf_token %}
-          <button type="submit" class="btn btn-ghost">{% if activity.published %}Pasar a borrador{% else %}Publicar{% endif %}</button>
+          <button type="submit" class="btn btn-ghost btn-sm">{% if activity.published %}Pasar a borrador{% else %}Publicar{% endif %}</button>
         </form>
-        <a class="btn btn-ghost btn-action" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>
-        <form method="post" action="{% url 'grades:activity_delete' activity.pk %}" class="inline-form"
-              onsubmit="return confirm('¿Eliminar esta actividad? No se puede deshacer.')">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-ghost btn-action">Eliminar</button>
-        </form>
+        <div class="spacer"></div>
+        <a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>
       {% endif %}
     {% endif %}
   </div>
+
+  {% if is_teacher %}
+    <div class="clusters">
+      {% if activity.type == 'quiz' or not course.is_archived %}
+        <div class="cluster">
+          <span class="cluster-label">Actividad</span>
+          <div class="cluster-btns">
+            {% if activity.type == 'quiz' %}<a class="btn btn-ghost" href="{% url 'quizzes:builder' activity.pk %}">Armar quiz</a>{% endif %}
+            {% if not course.is_archived %}<a class="btn btn-ghost btn-action" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>{% endif %}
+          </div>
+        </div>
+      {% endif %}
+      <div class="cluster">
+        <span class="cluster-label">Seguimiento</span>
+        <div class="cluster-btns">
+          {% if activity.type == 'quiz' %}<a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
+          <a class="btn btn-ghost" href="{% url 'grades:activity_history' activity.pk %}">Historial</a>
+        </div>
+      </div>
+      {% if not course.is_archived %}
+        <div class="cluster end">
+          <span class="cluster-label">Peligro</span>
+          <div class="cluster-btns">
+            <form method="post" action="{% url 'grades:activity_delete' activity.pk %}" class="inline-form"
+                  onsubmit="return confirm('¿Eliminar esta actividad? No se puede deshacer.')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-action btn-danger-ghost">Eliminar</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 
   <div class="kv-row"><div class="k">Puntos</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
   <div class="kv-row"><div class="k">Criterio</div><div class="v">{{ activity.criterion.name }} · {{ activity.criterion.period.name }}</div></div>

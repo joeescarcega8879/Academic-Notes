@@ -2073,3 +2073,20 @@ table.gs tbody tr:hover > th, table.gs tbody tr:hover > td { background: var(--s
   .sy-edit .two, .sy-options { grid-template-columns: minmax(0, 1fr); }
   .sy-edit { padding: 20px 18px; }
 }
+
+/* ── Navegación: flecha de regreso, pestañas del grupo y acciones por tipo ── */
+.topbar .back-btn { flex: 0 0 auto; text-decoration: none; margin-right: -4px; }
+a.tab { display: inline-block; text-decoration: none; }
+.tabs { margin-bottom: var(--pad-3, 16px); }
+.clusters { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.cluster { display: flex; flex-direction: column; gap: 6px; }
+.cluster.end { margin-left: auto; }
+.cluster-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.cluster-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.cluster-btns .inline-form { display: inline-flex; }
+.cluster-btns .btn-action { min-width: 0; }  /* dentro de un bloque todos miden por su texto, sin anchos que desentonen */
+.btn-danger-ghost { color: var(--bad, #c0392b); }
+.btn-danger-ghost:hover { background: rgba(192, 57, 43, 0.08); }
+.filter-check { display: flex; align-items: center; gap: 8px; height: 40px; margin: 0 0 14px; white-space: nowrap; font-weight: 400; cursor: pointer; }
+.filter-check input { margin: 0; }
+tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }

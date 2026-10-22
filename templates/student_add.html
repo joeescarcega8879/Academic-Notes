@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=course.get_absolute_url label='Volver al grupo' %}
   <h1>Agregar alumno</h1>
   <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
 </header>

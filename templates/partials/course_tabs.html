@@ -1,0 +1,5 @@
+{# Pestañas del grupo (solo docente, grupo activo). Recibe `course` y `active` ('resumen' o 'temario'). #}
+<nav class="tabs" aria-label="Secciones del grupo">
+  <a class="tab{% if active == 'resumen' %} is-active{% endif %}" href="{{ course.get_absolute_url }}"{% if active == 'resumen' %} aria-current="page"{% endif %}>Resumen</a>
+  <a class="tab{% if active == 'temario' %} is-active{% endif %}" href="{% url 'syllabus:index' course.pk %}"{% if active == 'temario' %} aria-current="page"{% endif %}>Temario</a>
+</nav>

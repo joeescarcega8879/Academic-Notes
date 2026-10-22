@@ -461,3 +461,49 @@ class TestFechas:
         con_semanas.save()
         html = professor_client.get(url(course)).content.decode()
         assert 'Hoy: semana 2' in html and '<h2>Semana 2</h2>' in html and 'Esta semana' in html
+
+
+# ── Eliminar el temario ───────────────────────────────────────────────
+
+class TestEliminarTemario:
+    def test_la_pantalla_ofrece_el_boton_con_confirmacion(self, professor_client, course, con_semanas):
+        html = professor_client.get(url(course)).content.decode()
+        assert 'Eliminar temario' in html and 'name="action" value="delete_syllabus"' in html
+        assert 'las 3 semanas' in html.split('delete_syllabus')[0].rsplit('confirm(', 1)[1]
+
+    def test_sin_temario_no_hay_que_eliminar(self, professor_client, course):
+        assert 'Eliminar temario' not in professor_client.get(url(course)).content.decode()
+
+    def test_borra_el_temario_sus_semanas_y_conserva_las_actividades(self, professor_client, course, con_semanas):
+        actividad = ActivityFactory(course=course, syllabus_week=semana(con_semanas, 2))
+        respuesta = pedir(professor_client, course, action='delete_syllabus')
+        assert respuesta.status_code == 302 and respuesta.url == url(course)
+        assert not Syllabus.objects.filter(course=course).exists() and not SyllabusWeek.objects.exists()
+        actividad.refresh_from_db()
+        assert actividad.syllabus_week is None
+        html = professor_client.get(respuesta.url).content.decode()
+        assert 'Se eliminó el temario' in html and 'Empieza con tu temario' in html
+
+    def test_borra_tambien_el_archivo_guardado(self, professor_client, course):
+        from apps.syllabus.services import extraction
+
+        guardado = extraction.save_uploaded_file(course, SimpleUploadedFile('temario.txt', b'Semana 1: Reales'))
+        nombre, almacen = guardado.file.name, guardado.file.storage
+        assert almacen.exists(nombre)
+        pedir(professor_client, course, action='delete_syllabus')
+        assert not almacen.exists(nombre)
+
+    def test_se_puede_volver_a_empezar_despues(self, professor_client, course, con_semanas):
+        pedir(professor_client, course, action='delete_syllabus')
+        pedir(professor_client, course, action='paste', text=TEMARIO)
+        assert Syllabus.objects.get(course=course).text.startswith('Semana 1')
+
+    def test_sin_temario_responde_404(self, professor_client, course):
+        assert pedir(professor_client, course, action='delete_syllabus').status_code == 404
+
+    def test_otro_docente_el_alumno_y_un_grupo_archivado_no_pueden(self, course, con_semanas, professor_client):
+        assert pedir(cliente(ProfessorFactory()), course, action='delete_syllabus').status_code == 404
+        assert pedir(cliente(StudentFactory()), course, action='delete_syllabus').status_code == 302
+        Course.objects.filter(pk=course.pk).update(status=Course.Status.ARCHIVED)
+        assert pedir(professor_client, course, action='delete_syllabus').status_code == 404
+        assert Syllabus.objects.filter(course=course).exists() and con_semanas.weeks.count() == 3

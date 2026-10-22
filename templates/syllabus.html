@@ -3,14 +3,15 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% include 'partials/back.html' with url=course.get_absolute_url label='Volver al grupo' %}
   <h1>Temario</h1>
   <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{{ course.get_absolute_url }}">Volver al grupo</a>
 </header>
 {% endblock %}
 
 {% block content %}
+{% include 'partials/course_tabs.html' with active='temario' %}
 {% if syllabus is None %}
 
   <!-- Sin temario todavía -->
@@ -58,6 +59,11 @@
     <span class="grow"></span>
     {% if syllabus.file %}<a class="btn btn-ghost btn-sm" href="{% url 'syllabus:file' course.pk %}">Descargar original</a>{% endif %}
     {% if syllabus.text %}<a class="btn btn-ghost btn-sm" href="?detectar=1" title="Busca «Semana 1», «Semana 2»… en el texto y propone la división">Detectar semanas</a>{% endif %}
+    <form method="post" class="inline-form" onsubmit="return confirm('¿Eliminar el temario? Se borran el archivo, el texto y las {{ rows|length }} semanas. Tus actividades no se borran: solo se quedan sin semana.')">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_syllabus">
+      <button type="submit" class="btn btn-ghost btn-sm sy-danger">Eliminar temario</button>
+    </form>
   </div>
 
   {% if syllabus.status == 'pending' %}
