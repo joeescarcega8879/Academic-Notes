@@ -146,6 +146,13 @@
           <input type="hidden" name="action" value="add_week">
           <button type="submit" class="btn btn-ghost" {% if rows|length >= week_limit %}disabled{% endif %}>+ Agregar semana</button>
         </form>
+        {% if rows %}
+          <form method="post" onsubmit="return confirm('¿Quitar las {{ rows|length }} semanas? Tus actividades no se borran: solo se quedan sin semana.')">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_all_weeks">
+            <button type="submit" class="btn btn-ghost btn-sm sy-danger">Quitar todas las semanas</button>
+          </form>
+        {% endif %}
         <form method="post" class="line">
           {% csrf_token %}
           <input type="hidden" name="action" value="start_date">

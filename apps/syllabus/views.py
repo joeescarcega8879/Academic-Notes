@@ -201,6 +201,12 @@ class SyllabusView(SyllabusAccessMixin, View):
     def do_merge(self, request, course, syllabus):
         return self.save_then(request, course, syllabus, week_ops.merge_with_next)
 
+    def do_delete_all_weeks(self, request, course, syllabus):
+        count = week_ops.delete_all_weeks(syllabus)
+        if count:
+            messages.success(request, f'Se quitaron las {count} semanas. Tus actividades siguen ahí, solo que sin semana.' if count > 1 else 'Se quitó la semana.')
+        return self.back(course)
+
     def do_delete_week(self, request, course, syllabus):
         week = self.posted_week(request, syllabus)
         position = week.position
