@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'student_dashboard'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a mis calificaciones' %}
   <h1>Unirme a un grupo</h1>
   <span class="sub">Enlaza tu cuenta con tu lugar en la lista</span>
 </header>

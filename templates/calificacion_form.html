@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'grades:list'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a Calificaciones' %}
   <h1>{% if object %}Editar calificación{% else %}Nueva calificación{% endif %}</h1>
   <span class="sub">Calificar a un alumno</span>
 </header>

@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% if object %}{% include 'partials/back.html' with url=object.get_absolute_url label='Volver al grupo' %}{% else %}{% url 'professor_dashboard' as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a mis grupos' %}{% endif %}
   <h1>{% if object %}Editar grupo{% else %}Nuevo grupo{% endif %}</h1>
   <span class="sub">{% if object %}{{ object.name }}{% else %}Crear un grupo{% endif %}</span>
 </header>

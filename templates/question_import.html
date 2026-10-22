@@ -3,10 +3,10 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'quizzes:bank'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver al banco' %}
   <h1>Importar preguntas</h1>
   <span class="sub">Desde Excel o CSV</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{% url 'quizzes:bank' %}">Volver al banco</a>
 </header>
 {% endblock %}
 

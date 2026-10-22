@@ -60,9 +60,10 @@
       <label for="{{ filter_form.hasta.id_for_label }}">Hasta</label>
       {{ filter_form.hasta }}
     </div>
-    <div class="field"><label>{{ filter_form.archivados }} {{ filter_form.archivados.label }}</label></div>
+    <label class="filter-check">{{ filter_form.archivados }} {{ filter_form.archivados.label }}</label>
     <div class="flex-row gap-10" style="margin-bottom: 14px">
-      <button type="submit" class="btn btn-primary">Filtrar</button>
+      <button type="submit" class="sr-only" tabindex="-1">Filtrar</button>
+      <noscript><button type="submit" class="btn btn-primary">Filtrar</button></noscript>
       {% if filtering %}<a class="btn btn-ghost" href="{% url 'grades:list' %}">Limpiar</a>{% endif %}
     </div>
   </div>
@@ -141,4 +142,11 @@
   </div>
   {% endif %}
 </div>
+<script>
+  // Cada cambio en un filtro actualiza la tabla; no hace falta un botón.
+  (function () {
+    var form = document.querySelector('form[role="search"]');
+    if (form) form.addEventListener('change', function () { form.requestSubmit(); });
+  })();
+</script>
 {% endblock %}

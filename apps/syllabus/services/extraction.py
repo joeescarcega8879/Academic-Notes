@@ -19,6 +19,11 @@ def _drop_file(syllabus):
         syllabus.file = ''
 
 
+def delete_syllabus(syllabus):
+    """Borra el temario del grupo: texto y semanas (la señal ``post_delete`` quita el archivo). Las actividades quedan sin semana."""
+    syllabus.delete()
+
+
 @transaction.atomic
 def save_uploaded_file(course, uploaded):
     """Guarda el archivo subido (reemplaza el anterior) y deja el temario pendiente de extracción.

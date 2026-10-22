@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% if is_teacher %}{% url 'professor_dashboard' as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a mis grupos' %}{% else %}{% url 'student_dashboard' as back_url %}{% include 'partials/back.html' with url=back_url label='Volver a mis calificaciones' %}{% endif %}
   <h1>{{ course.name }}</h1>
   <span class="sub">· {{ course.code }}</span>
   <div class="spacer"></div>
@@ -11,6 +12,7 @@
 {% endblock %}
 
 {% block content %}
+{% if is_teacher and not course.is_archived %}{% include 'partials/course_tabs.html' with active='resumen' %}{% endif %}
 
 <!-- Presentación del grupo -->
 <div class="card mb-12" style="border-top: 3px solid {{ course.color }}">
@@ -21,27 +23,43 @@
     {% if course.is_archived %}<span class="chip">Archivado</span>{% endif %}
   </div>
   {% if is_teacher %}
-    <div class="action-bar">
-      {% if course.is_archived %}
-        <form method="post" action="{% url 'course_unarchive' course.pk %}" class="inline-form">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-ghost btn-action">Desarchivar</button>
-        </form>
-      {% else %}
-        <a class="btn btn-ghost btn-action" href="{% url 'course_update' course.pk %}">Editar</a>
-        <form method="post" action="{% url 'course_archive' course.pk %}" class="inline-form"
-              onsubmit="return confirm('¿Archivar este grupo? Seguirá consultable, pero ya no admitirá cambios.')">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-ghost btn-action">Archivar</button>
-        </form>
-      {% endif %}
-      <a class="btn btn-primary" href="{% url 'grades:gradesheet' course.pk %}">Libreta</a>
-      <a class="btn btn-ghost" href="{% url 'reports:risk' course.pk %}">Alumnos en riesgo</a>
-      <a class="btn btn-ghost" href="{% url 'reports:workbook' course.pk %}">Concentrado Excel</a>
-      <a class="btn btn-ghost" href="{% url 'reports:transcripts' course.pk %}">Boletas PDF</a>
-      {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
-      {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'syllabus:index' course.pk %}">Temario</a>{% endif %}
-      <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
+    <div class="clusters">
+      <div class="cluster">
+        <span class="cluster-label">Calificar</span>
+        <div class="cluster-btns">
+          <a class="btn btn-primary" href="{% url 'grades:gradesheet' course.pk %}">Libreta</a>
+          {% if not course.is_archived %}<a class="btn btn-ghost" href="{% url 'grades:scheme' course.pk %}">Esquema de evaluación</a>{% endif %}
+        </div>
+      </div>
+      <div class="cluster">
+        <span class="cluster-label">Reportes</span>
+        <div class="cluster-btns">
+          <a class="btn btn-ghost" href="{% url 'reports:risk' course.pk %}">Alumnos en riesgo</a>
+          <a class="btn btn-ghost" href="{% url 'reports:workbook' course.pk %}">Concentrado Excel</a>
+          <a class="btn btn-ghost" href="{% url 'reports:transcripts' course.pk %}">Boletas PDF</a>
+        </div>
+      </div>
+      <div class="cluster end">
+        <span class="cluster-label">Grupo</span>
+        <div class="cluster-btns">
+          {% if course.is_archived %}
+            <form method="post" action="{% url 'course_unarchive' course.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-action">Desarchivar</button>
+            </form>
+          {% else %}
+            <a class="btn btn-ghost btn-action" href="{% url 'course_update' course.pk %}">Editar</a>
+          {% endif %}
+          <a class="btn btn-ghost" href="{% url 'course_clone' course.pk %}">Duplicar para nuevo ciclo</a>
+          {% if not course.is_archived %}
+            <form method="post" action="{% url 'course_archive' course.pk %}" class="inline-form"
+                  onsubmit="return confirm('¿Archivar este grupo? Seguirá consultable, pero ya no admitirá cambios.')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-ghost btn-action btn-danger-ghost">Archivar</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
     </div>
   {% endif %}
   <div class="text-sm text-muted" style="margin-top: 10px">

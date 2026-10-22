@@ -3,6 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'quizzes:bank'  as back_url %}{% include 'partials/back.html' with url=back_url label='Volver al banco' %}
   <h1>{% if question %}Editar pregunta{% else %}Nueva pregunta{% endif %}</h1>
   <span class="sub">{{ kind_label }}</span>
 </header>

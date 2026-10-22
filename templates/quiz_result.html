@@ -3,10 +3,10 @@
 
 {% block topbar %}
 <header class="topbar">
+  {% url 'quizzes:overview' activity.pk as back_url %}{% include 'partials/back.html' with url=back_url label='Volver al quiz' %}
   <h1>Resultado</h1>
   <span class="sub">{{ activity.title }} · intento {{ attempt.number }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{% url 'quizzes:overview' activity.pk %}">Volver al quiz</a>
 </header>
 {% endblock %}
 
