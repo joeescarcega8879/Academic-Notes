@@ -96,10 +96,11 @@ class TestAccionesPorTipo:
         html = pagina(professor_client, 'course_detail', course.pk)
         for rotulo in ('Calificar', 'Reportes', 'Grupo'):
             assert f'<span class="cluster-label">{rotulo}</span>' in html, rotulo
-        reportes = html.split('<span class="cluster-label">Reportes</span>')[1].split('<div class="cluster end">')[0]
+        reportes = html.split('<span class="cluster-label">Reportes</span>')[1].split('<span class="cluster-label">Grupo</span>')[0]
         for texto in ('Alumnos en riesgo', 'Concentrado Excel', 'Boletas PDF'):
             assert texto in reportes
-        grupo = html.split('<div class="cluster end">')[1].split('</div>\n      </div>')[0]
+        grupo = html.split('<span class="cluster-label">Grupo</span>')[1].split('Código de invitación')[0]
+        assert 'cluster end' not in html  # el bloque «Grupo» fluye a la izquierda: pegado a la derecha se veía suelto al bajar de fila
         assert 'btn-danger-ghost">Archivar' in grupo and 'Duplicar para nuevo ciclo' in grupo and 'Editar' in grupo
 
     def test_un_grupo_archivado_ofrece_desarchivar_y_no_el_esquema(self, professor_client, course):
@@ -185,3 +186,10 @@ class TestFiltrosAutomaticos:
         assert 'Limpiar' not in pagina(professor_client, 'grades:list')
         respuesta = professor_client.get(reverse('grades:list'), {'q': 'algo'})
         assert 'Limpiar' in respuesta.content.decode()
+
+
+class TestEstilosDeLosBloques:
+    def test_los_botones_de_un_bloque_miden_por_su_texto(self):
+        css = Path(finders.find('css/gradelink.css')).read_text(encoding='utf-8')
+        assert '.cluster-btns .btn-action { min-width: 0; }' in css
+        assert '.cluster.end { margin-left: auto; }' in css  # solo lo usa la actividad, donde «Peligro» cabe en la misma fila

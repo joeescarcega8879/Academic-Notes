@@ -2084,6 +2084,7 @@ a.tab { display: inline-block; text-decoration: none; }
 .cluster-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 .cluster-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .cluster-btns .inline-form { display: inline-flex; }
+.cluster-btns .btn-action { min-width: 0; }  /* dentro de un bloque todos miden por su texto, sin anchos que desentonen */
 .btn-danger-ghost { color: var(--bad, #c0392b); }
 .btn-danger-ghost:hover { background: rgba(192, 57, 43, 0.08); }
 .filter-check { display: flex; align-items: center; gap: 8px; height: 40px; margin: 0 0 14px; white-space: nowrap; font-weight: 400; cursor: pointer; }
