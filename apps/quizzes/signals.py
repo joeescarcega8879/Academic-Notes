@@ -2,10 +2,13 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from apps.courses.signals import course_cloned
 from apps.grades.hooks import activity_cloned, activity_publishing
 from apps.grades.models import Activity
+from apps.organizations.limits import PlanLimitError
 
 from .models import QuizConfig
+from .services.bank import copy_bank
 from .services.builder import copy_quiz_content
 
 
@@ -33,3 +36,18 @@ def copy_quiz_to_cloned_activity(sender, source, clone, **kwargs):
         origin = QuizConfig.objects.filter(activity=source).first()
         if origin is not None:
             copy_quiz_content(origin, clone)
+
+
+@receiver(course_cloned)
+def copy_bank_to_cloned_course(sender, source, clone, **kwargs):
+    """Al duplicar un grupo, su banco de preguntas viaja con él. Devuelve un aviso para mostrar al docente.
+
+    Si las preguntas no caben en el plan no se copia ninguna, pero el grupo se duplica igual.
+    """
+    try:
+        copied = copy_bank(source, clone)
+    except PlanLimitError as error:
+        return f'No se copió el banco de preguntas. {" ".join(error.messages)}'
+    if copied:
+        return 'Se copió 1 pregunta del banco.' if copied == 1 else f'Se copiaron {copied} preguntas del banco.'
+    return None

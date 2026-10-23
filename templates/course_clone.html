@@ -12,8 +12,9 @@
 {% block content %}
 <div class="card mw-640">
   <p class="text-sm text-muted" style="margin-top: 0">
-    Se copian los datos del grupo y sus evaluaciones (sin fechas). No se copian alumnos, inscripciones ni
-    calificaciones: el ciclo anterior queda tal cual.
+    Se copian los datos del grupo, sus evaluaciones (sin fechas), su temario y su banco de preguntas. No se copian
+    alumnos, inscripciones ni calificaciones: el ciclo anterior queda tal cual. Las preguntas copiadas cuentan en el
+    tope de preguntas de tu plan.
   </p>
   {% if form.fields.academic_year.queryset.exists %}
     <form method="post" novalidate>

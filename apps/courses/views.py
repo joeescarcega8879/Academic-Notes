@@ -280,6 +280,8 @@ class CourseCloneView(OwnCourseMixin, View):
                 form.add_error(None, error)
             else:
                 messages.success(request, f'Se duplicó "{course.name}" en el ciclo {clone.academic_year}.')
+                for note in clone.notes:
+                    messages.info(request, note)
                 return redirect(clone)
         return render(request, self.template_name, {'course': course, 'form': form})
 
