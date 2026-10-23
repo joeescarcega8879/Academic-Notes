@@ -2078,6 +2078,7 @@ table.gs tbody tr:hover > th, table.gs tbody tr:hover > td { background: var(--s
 /* ── Navegación: flecha de regreso, pestañas del grupo y acciones por tipo ── */
 .topbar .back-btn { flex: 0 0 auto; text-decoration: none; margin-right: -4px; }
 a.tab { display: inline-block; text-decoration: none; }
+.tab .tab-count { margin-left: 6px; }
 .tabs { margin-bottom: var(--pad-3, 16px); }
 .clusters { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 .cluster { display: flex; flex-direction: column; gap: 6px; }

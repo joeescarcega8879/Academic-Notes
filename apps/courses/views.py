@@ -153,9 +153,10 @@ class CourseDetailView(OrganizationMemberMixin, DetailView):
             for enrollment in enrollments:
                 enrollment.result = results.get((self.object.pk, enrollment.student_id))
         context['enrollments'] = enrollments
-        context['activities'] = list(
-            self.object.activities.select_related('criterion').annotate(graded=Count('grades'))
-        )
+        if self.object.is_archived:  # un grupo activo las lista en la pestaña «Actividades»
+            context['activities'] = list(
+                self.object.activities.select_related('criterion').annotate(graded=Count('grades'))
+            )
 
         # Vista alumno: evaluaciones del grupo + su calificación
         if self.request.membership.is_student:

@@ -1,5 +1,6 @@
-{# Pestañas del grupo (solo docente, grupo activo). Recibe `course` y `active` ('resumen' o 'temario'). #}
+{# Pestañas del grupo (solo docente, grupo activo). Recibe `course` y `active` ('resumen', 'actividades' o 'temario'). #}
 <nav class="tabs" aria-label="Secciones del grupo">
   <a class="tab{% if active == 'resumen' %} is-active{% endif %}" href="{{ course.get_absolute_url }}"{% if active == 'resumen' %} aria-current="page"{% endif %}>Resumen</a>
+  <a class="tab{% if active == 'actividades' %} is-active{% endif %}" href="{% url 'grades:activity_list' course.pk %}"{% if active == 'actividades' %} aria-current="page"{% endif %}>Actividades <span class="chip tab-count">{{ course.activities.count }}</span></a>
   <a class="tab{% if active == 'temario' %} is-active{% endif %}" href="{% url 'syllabus:index' course.pk %}"{% if active == 'temario' %} aria-current="page"{% endif %}>Temario</a>
 </nav>

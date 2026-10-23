@@ -181,7 +181,7 @@ class TestBorrador:
         assert [n for n in student_client.get(reverse("grades:list")).context["notifications"] if n["type"] == "grade"] == []
 
     def test_el_docente_si_la_ve_con_su_estado(self, professor_client, course, borrador):
-        html = professor_client.get(course.get_absolute_url()).content.decode()
+        html = professor_client.get(reverse("grades:activity_list", args=[course.pk])).content.decode()
         assert "Secreta" in html and "Borrador" in html
 
     def test_al_publicarla_el_alumno_la_ve_con_su_nota(self, student_client, course, borrador):
@@ -241,7 +241,7 @@ class TestDetalle:
 
     def test_enlaces_desde_el_grupo(self, professor_client, student_client, course, enrollment):
         actividad = ActivityFactory(course=course)
-        assert actividad.get_absolute_url() in professor_client.get(course.get_absolute_url()).content.decode()
+        assert actividad.get_absolute_url() in professor_client.get(reverse("grades:activity_list", args=[course.pk])).content.decode()
         assert actividad.get_absolute_url() in student_client.get(course.get_absolute_url()).content.decode()
 
     def test_las_instrucciones_se_escapan(self, student_client, course, enrollment):
@@ -252,7 +252,7 @@ class TestDetalle:
     def test_la_lista_del_grupo_cuenta_las_calificadas(self, professor_client, course, enrollment):
         actividad = ActivityFactory(course=course)
         GradeFactory(activity=actividad, student=enrollment.student)
-        (fila,) = professor_client.get(course.get_absolute_url()).context["activities"]
+        (fila,) = professor_client.get(reverse("grades:activity_list", args=[course.pk])).context["activities"]
         assert (fila.pk, fila.graded) == (actividad.pk, 1)
 
 
