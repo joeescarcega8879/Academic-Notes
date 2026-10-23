@@ -464,7 +464,7 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 
 ## 13. Temario e IA asistida
 
-> **Estado (2026-10-22):** el código anónimo se sustituyó por la **identificación por portada** (ver «Portada, identificación y calificación asistida de tareas»). **T1 (temario y semanas, sin IA) está construido** en la app `syllabus`; falta todo lo de IA (T2 a T5). Diseño con las decisiones del desarrollador incorporadas (al final de la sección). Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, identificándolo por la matrícula de la portada. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
+> **Estado (2026-10-22):** el código anónimo se sustituyó por la **identificación por portada** (ver «Portada, identificación y calificación asistida de tareas»). **T1 (temario y semanas, sin IA) y T2 (capa de IA) están construidos**; falta lo que usa la IA (T3 a T5). La revisión legal ya no frena la programación: es requisito del lanzamiento. Diseño con las decisiones del desarrollador incorporadas (al final de la sección). Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, identificándolo por la matrícula de la portada. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
 
 ### Temario y semanas (no usa IA)
 
@@ -567,8 +567,8 @@ Estimaciones (supuestos, no mediciones): generar 20 preguntas cuesta del orden d
 | Entrega | Contenido | Depende de |
 |---|---|---|
 | T1 | Temario y semanas (sin IA): subir, extraer texto, editor de semanas, enlazar actividades. **Hecho (2026-10-21):** PDF con texto, Word `.docx` o texto pegado; extracción en Celery; lista de semanas con editor (agregar, subir, bajar, dividir, unir, sin clase) y fechas a partir de un inicio de clases; «Detectar semanas» sin IA (busca «Semana N»); `Activity.syllabus_week` y «+ Crear actividad» desde cada semana; el duplicado de grupo copia el temario sin fechas | — |
-| T2 | Capa de IA: proveedor, cuotas por plan, `AIRequest`, interruptor por organización, aviso legal | Revisión legal |
-| T3 | IA para proponer la división del temario y generar preguntas de quiz, con aprobación | T1, T2, Sprint 4 |
+| T2 | Capa de IA: proveedor, cuotas por plan, `AIRequest`, interruptor por organización. **Hecha (2026-10-22)** en la app `ai`: interfaz de proveedor con uno de mentira (`fake`, por omisión, sin red) y Gemini (`google-genai`, probado con una clave real); un solo servicio `generate_json` que revisa plan Plus, interruptor de la organización (`Organization.ai_enabled`, apagado por omisión, lo enciende el propietario en Ajustes), cuota de 300 usos al mes (`PlanSpec.ai_monthly_uses`; solo cuentan las solicitudes correctas) y un candado que impide mandar datos de alumnos con una clave gratuita (`GEMINI_KEY_TIER`); cada uso queda en `AIRequest` sin guardar el contenido; comando `ai_probar`. El aviso legal se redacta con la revisión del abogado, antes del lanzamiento | Ninguna (la revisión legal es requisito del lanzamiento, no de la programación) |
+| T3 | IA para proponer la división del temario y generar preguntas de quiz, con aprobación | T1, T2 (hecha), Sprint 4 |
 | T4 | IA para tareas y exámenes con aprobación | T3; exámenes: Fase 2 |
 | T5 | Lote de PDFs e identificación por la matrícula de la portada (T5a) y lectura del cuerpo con OCR (T5b), **ambas sin IA**; calificación asistida con token por solicitud (T5c) | T5c: T2; rúbricas mejoran el resultado (Fase 2) |
 

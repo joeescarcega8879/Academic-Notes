@@ -202,10 +202,19 @@ class TestCheckLimit:
 
 
 class TestHasFeature:
-    @pytest.mark.parametrize('funcion', plans.FEATURE_KEYS)
+    @pytest.mark.parametrize('funcion', [key for key in plans.FEATURE_KEYS if key != 'ai_assistant'])
     def test_gratis_no_las_tiene_y_docente_si(self, docente, funcion):
         assert not limits.has_feature(org_de(docente), funcion)
         assert limits.has_feature(con_plan(docente, Plan.TEACHER), funcion)
+
+    def test_la_ia_asistida_solo_la_trae_plus(self, docente):
+        assert not limits.has_feature(org_de(docente), 'ai_assistant')
+        assert not limits.has_feature(con_plan(docente, Plan.TEACHER), 'ai_assistant')
+        assert limits.has_feature(con_plan(docente, Plan.TEACHER_PLUS), 'ai_assistant')
+
+    def test_plus_trae_300_usos_de_ia_al_mes_y_los_demas_planes_ninguno(self):
+        assert plans.PLUS.ai_monthly_uses == 300
+        assert plans.FREE.ai_monthly_uses == plans.TEACHER.ai_monthly_uses == 0
 
     def test_funcion_desconocida(self, org):
         with pytest.raises(ValueError):

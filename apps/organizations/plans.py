@@ -24,6 +24,8 @@ class PlanSpec:
     custom_workbook: bool = True
     clean_transcripts: bool = True
     ai_assistant: bool = False
+    # Usos de IA por mes calendario (``None`` = sin tope). Se mide en solicitudes correctas, no en tokens.
+    ai_monthly_uses: int | None = 0
     # Precios en MXN; None = no se vende por autoservicio
     monthly_price: int | None = None
     annual_price: int | None = None
@@ -48,7 +50,9 @@ FREE = PlanSpec(
 TEACHER = PlanSpec(key=Plan.TEACHER, name='Pro', monthly_price=149, annual_price=1490)
 
 # Plus = Pro + toda la IA (sección 13 de ``New_Phases.md``). Precio de lista: hipótesis a ajustar con el costo real de la IA.
-PLUS = replace(TEACHER, key=Plan.TEACHER_PLUS, name='Plus', ai_assistant=True, monthly_price=249, annual_price=2490)
+PLUS = replace(
+    TEACHER, key=Plan.TEACHER_PLUS, name='Plus', ai_assistant=True, ai_monthly_uses=300, monthly_price=249, annual_price=2490,
+)
 
 # Los demás planes se asignan a mano (piloto, instituciones): sin topes y con las funciones de Pro.
 PLANS = {
@@ -71,15 +75,16 @@ FEATURES = (
     ('custom_workbook', 'Excel con las columnas que elijas, en tu orden'),
     ('clean_transcripts', 'Boletas en PDF sin marca de agua'),
 )
-# Lo que promete Plus. La IA todavía no está construida, así que no entra en ``FEATURES`` (lo que se mide y se aplica).
+# Lo que promete Plus. Las funciones de IA aún no están construidas: ``ai_assistant`` se consulta con ``has_feature``, pero no
+# entra en ``FEATURES`` (la tabla que se muestra) hasta que existan.
 AI_PROMISES = (
     'Genera tareas, quizzes y exámenes desde tu temario',
-    'Calificación asistida de tareas con código anónimo del alumno',
+    'Calificación asistida de tareas sin enviar el nombre ni la matrícula del alumno',
     'Tú apruebas todo: nada llega a tus alumnos sin tu visto bueno',
     'Cuota mensual de usos de IA',
 )
 LIMIT_KEYS = tuple(key for key, _ in LIMITS)
-FEATURE_KEYS = tuple(key for key, _ in FEATURES)
+FEATURE_KEYS = tuple(key for key, _ in FEATURES) + ('ai_assistant',)
 
 
 def comparison_rows():

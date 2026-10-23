@@ -60,6 +60,7 @@ LOCAL_APPS = [
     "apps.grades",
     "apps.syllabus",
     "apps.quizzes",
+    "apps.ai",
     "apps.reports",
     "apps.messaging",
     "apps.onboarding",
@@ -230,6 +231,20 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': 60.0,
     },
 }
+
+
+# ── IA asistida (sección 13 de New_Phases.md) ─────────────────────────
+# ``fake``: proveedor de mentira, sin red ni costo (el de desarrollo y pruebas). ``gemini``: Google, con clave propia.
+AI_PROVIDER = env("AI_PROVIDER", default="fake")
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env("GEMINI_MODEL", default="")
+# ``free``: con una clave gratuita Google puede usar lo que recibe para mejorar sus productos, así que la capa de IA se
+# niega a enviarle datos de alumnos. Ponla en ``paid`` solo con una cuenta de facturación vinculada.
+GEMINI_KEY_TIER = env("GEMINI_KEY_TIER", default="free")
+AI_TIMEOUT_SECONDS = env.int("AI_TIMEOUT_SECONDS", default=60)
+# Precios para estimar el costo: {"modelo": (USD por millón de tokens de entrada, USD por millón de salida)}.
+# Vacío = sin estimación. Verifícalos en ai.google.dev antes de usarlos.
+AI_PRICING = {}
 
 
 # ── Logging ───────────────────────────────────────────────────────────

@@ -42,6 +42,7 @@ class PlanView(TeacherRequiredMixin, View):
         plan = limits.plan_for(organization)
         rows = limits.limit_rows(organization)
         subject = quote('Quiero el plan Pro')
+        ai_usage, ai_renews = self.ai_usage(organization)
         lines = [
             'Hola, quiero activar el plan Pro.', '',
             f'Organización: {organization.name} (id {organization.pk})', f'Correo: {request.user.email}',
@@ -49,9 +50,19 @@ class PlanView(TeacherRequiredMixin, View):
         body = quote('\n'.join(lines))
         return render(request, self.template_name, {
             'plan': plan, 'limit_rows': rows, 'feature_rows': limits.feature_rows(organization),
+            'ai_usage': ai_usage, 'ai_renews': ai_renews,
             'over_limit': any(row.over for row in rows), 'comparison': plans.comparison_rows(), 'paid_plan': plans.TEACHER,
             'upgrade_mailto': f'mailto:{settings.SUPPORT_EMAIL}?subject={subject}&body={body}',
         })
+
+
+    @staticmethod
+    def ai_usage(organization):
+        """Usos de IA del mes y cuándo se renuevan, o ``(None, '')`` si el plan no incluye IA."""
+        from apps.ai import services as ai
+
+        summary = ai.usage_summary(organization)
+        return summary, (ai.renewal_label() if summary else '')
 
 
 class SettingsView(TeacherRequiredMixin, View):
@@ -66,17 +77,27 @@ class SettingsView(TeacherRequiredMixin, View):
     def can_rename(request):
         return request.membership.role == Membership.Role.OWNER
 
+    @staticmethod
+    def can_manage_ai(request):
+        return request.membership.role == Membership.Role.OWNER
+
     def show(self, request, form):
+        from apps.ai import services as ai
+
         current_year = AcademicYear.objects.for_organization(request.organization).filter(is_current=True).first()
         return render(request, self.template_name, {
             'form': form, 'can_rename': self.can_rename(request), 'current_year': current_year,
             'plan': limits.plan_for(request.organization), 'limit_rows': limits.limit_rows(request.organization),
+            'ai_usage': ai.usage_summary(request.organization), 'ai_renews': ai.renewal_label(),
+            'can_manage_ai': self.can_manage_ai(request),
         })
 
     def get(self, request):
         return self.show(request, OrganizationNameForm(instance=request.organization))
 
     def post(self, request):
+        if request.POST.get('action') == 'ai':
+            return self.toggle_ai(request)
         if not self.can_rename(request):
             raise Http404
         # Siempre sobre la organización activa de la sesión, nunca una que venga en la petición.
@@ -86,3 +107,16 @@ class SettingsView(TeacherRequiredMixin, View):
             messages.success(request, 'Guardamos el nombre de tu organización.')
             return redirect('organizations:settings')
         return self.show(request, form)
+
+    def toggle_ai(self, request):
+        """Enciende o apaga la IA de la organización activa. Solo el propietario, y solo si su plan la incluye."""
+        if not self.can_manage_ai(request):
+            raise Http404
+        organization = request.organization
+        if not limits.has_feature(organization, 'ai_assistant'):
+            messages.warning(request, 'Tu plan no incluye la IA asistida. Está disponible en el plan Plus.')
+            return redirect('organizations:settings')
+        organization.ai_enabled = request.POST.get('enabled') == 'on'
+        organization.save(update_fields=['ai_enabled'])
+        messages.success(request, 'La IA asistida quedó encendida.' if organization.ai_enabled else 'La IA asistida quedó apagada.')
+        return redirect('organizations:settings')
