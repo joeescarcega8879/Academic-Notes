@@ -330,6 +330,43 @@ class TestFormulariosClasicos:
         })
         assert response.status_code == 200 and Grade.objects.get().score == 6
 
+    def test_calificar_sin_entrega_pide_confirmar_y_no_guarda(self, professor_client, tarea, alumno):
+        response = professor_client.post(reverse("grades:create"), {
+            "activity": tarea.pk, "student": alumno.pk, "score": "7", "feedback": "",
+        })
+        assert response.status_code == 200
+        assert response.context["form"].needs_confirmation
+        assert "no entregó" in response.content.decode()
+        assert "Guardar de todos modos" in response.content.decode()
+        assert not Grade.objects.exists()
+
+    def test_calificar_sin_entrega_confirmado_guarda(self, professor_client, tarea, alumno):
+        response = professor_client.post(reverse("grades:create"), {
+            "activity": tarea.pk, "student": alumno.pk, "score": "7", "feedback": "", "confirm_no_submission": "on",
+        })
+        assert response.status_code == 302
+        assert Grade.objects.get().score == 7
+
+    def test_editar_nota_sin_entrega_pide_confirmar_solo_si_cambia_la_nota(self, professor_client, tarea, alumno, professor):
+        nota = grade_activity(tarea, alumno, score=6, by=professor)
+        datos = {"activity": tarea.pk, "student": alumno.pk, "score": "6", "feedback": "solo comentario"}
+        assert professor_client.post(reverse("grades:update", args=[nota.pk]), datos).status_code == 302
+        datos["score"] = "9"
+        response = professor_client.post(reverse("grades:update", args=[nota.pk]), datos)
+        assert response.status_code == 200 and response.context["form"].needs_confirmation
+        nota.refresh_from_db()
+        assert nota.score == 6
+
+    def test_actividad_sin_entregas_no_pide_confirmar(self, professor_client, activity, enrollment):
+        response = professor_client.post(reverse("grades:create"), {
+            "activity": activity.pk, "student": enrollment.student.pk, "score": "7", "feedback": "",
+        })
+        assert response.status_code == 302
+
+    def test_el_formulario_tiene_las_etiquetas_en_espanol(self, professor_client):
+        form = professor_client.get(reverse("grades:create")).context["form"]
+        assert [f.label for f in form.visible_fields()] == ["Actividad", "Alumno", "Calificación", "Comentario"]
+
 
 # ── Historial y lo que ve el alumno ───────────────────────────────────
 
