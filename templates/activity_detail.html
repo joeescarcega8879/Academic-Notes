@@ -64,6 +64,11 @@
 
   <div class="kv-row"><div class="k">Puntos</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
   <div class="kv-row"><div class="k">Criterio</div><div class="v">{{ activity.criterion.name }} · {{ activity.criterion.period.name }}</div></div>
+  {% with week=activity.syllabus_week %}{% if week %}
+    <div class="kv-row"><div class="k">Semana del temario</div><div class="v">{{ week }}</div>
+      {% if is_teacher %}<a class="edit-link" href="{% url 'syllabus:index' course.pk %}?semana={{ week.position }}">Ver en el temario</a>{% endif %}
+    </div>
+  {% endif %}{% endwith %}
   {% if is_teacher %}<div class="kv-row"><div class="k">Peso en el criterio</div><div class="v">{{ activity.weight|floatformat:"-2" }}</div></div>{% endif %}
   {% if activity.date %}<div class="kv-row"><div class="k">Fecha</div><div class="v">{{ activity.date|date:"d/m/Y" }}</div></div>{% endif %}
   {% if activity.opens_at %}<div class="kv-row"><div class="k">Abre</div><div class="v">{{ activity.opens_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
