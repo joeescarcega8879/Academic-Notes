@@ -10,6 +10,7 @@ urlpatterns = [
     path('calificaciones/esquema/<int:pk>/', scheme_views.SchemeView.as_view(), name='scheme'),
     path('grupo/<int:course_pk>/libreta/', gradesheet_views.GradesheetView.as_view(), name='gradesheet'),
     path('grupo/<int:course_pk>/libreta/celda/', gradesheet_views.GradesheetCellView.as_view(), name='gradesheet_cell'),
+    path('grupo/<int:course_pk>/actividades/', activity_views.ActivityListView.as_view(), name='activity_list'),
     path('grupo/<int:course_pk>/actividades/nueva/', activity_views.ActivityCreateView.as_view(), name='activity_create'),
     path('actividades/<int:pk>/', activity_views.ActivityDetailView.as_view(), name='activity_detail'),
     path('actividades/<int:pk>/calificar/', activity_views.GradingView.as_view(), name='activity_grading'),

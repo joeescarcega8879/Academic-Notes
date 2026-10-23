@@ -37,7 +37,7 @@ class TestFlechaDeRegreso:
         assert flecha(pagina(student_client, 'course_detail', course.pk))[0] == reverse('student_dashboard')
 
     @pytest.mark.parametrize('nombre', [
-        'grades:gradesheet', 'grades:scheme', 'reports:risk', 'reports:workbook', 'syllabus:index',
+        'grades:gradesheet', 'grades:scheme', 'reports:risk', 'reports:workbook', 'syllabus:index', 'grades:activity_list',
         'student_add', 'student_import', 'course_clone', 'grades:activity_create',
     ])
     def test_las_pantallas_del_grupo_regresan_al_grupo(self, professor_client, course, nombre):
@@ -68,8 +68,9 @@ class TestFlechaDeRegreso:
 # ── Pestañas del grupo ────────────────────────────────────────────────
 
 class TestPestanasDelGrupo:
-    def test_el_resumen_y_el_temario_son_pestanas(self, professor_client, course):
+    def test_el_resumen_las_actividades_y_el_temario_son_pestanas(self, professor_client, course):
         resumen = pagina(professor_client, 'course_detail', course.pk)
+        assert 'class="tab" href="%s">Actividades' % reverse('grades:activity_list', args=[course.pk]) in resumen
         assert 'class="tab is-active" href="%s" aria-current="page">Resumen' % course.get_absolute_url() in resumen
         assert 'class="tab" href="%s">Temario' % reverse('syllabus:index', args=[course.pk]) in resumen
         temario = pagina(professor_client, 'syllabus:index', course.pk)
@@ -87,6 +88,34 @@ class TestPestanasDelGrupo:
     def test_el_alumno_no_las_ve(self, student_client, course, enrollment):
         html = pagina(student_client, 'course_detail', course.pk)
         assert 'class="tabs"' not in html and 'Temario' not in html
+
+
+class TestPestanaActividades:
+    def test_lista_las_actividades_con_su_contador_y_el_boton_de_nueva(self, professor_client, course, activity):
+        html = pagina(professor_client, 'grades:activity_list', course.pk)
+        assert 'class="tab is-active" href="%s" aria-current="page">Actividades' % reverse('grades:activity_list', args=[course.pk]) in html
+        assert activity.title in html and reverse('grades:activity_create', args=[course.pk]) in html
+        assert 'class="chip tab-count">1</span>' in html
+
+    def test_el_resumen_de_un_grupo_activo_ya_no_trae_la_tabla(self, professor_client, course, activity):
+        html = pagina(professor_client, 'course_detail', course.pk)
+        assert activity.title not in html and '<h3>Actividades</h3>' not in html
+        assert 'Alumnos inscritos' in html
+
+    def test_un_grupo_archivado_conserva_la_tabla_en_el_resumen_y_no_tiene_la_pestana(self, professor_client, course, activity):
+        Course.objects.filter(pk=course.pk).update(status=Course.Status.ARCHIVED)
+        html = pagina(professor_client, 'course_detail', course.pk)
+        assert activity.title in html and reverse('grades:activity_create', args=[course.pk]) not in html
+        assert professor_client.get(reverse('grades:activity_list', args=[course.pk])).status_code == 404
+
+    def test_el_grupo_de_otro_docente_no_se_ve(self, professor_client):
+        ajena = ActivityFactory()
+        assert professor_client.get(reverse('grades:activity_list', args=[ajena.course.pk])).status_code == 404
+
+    def test_el_alumno_y_el_anonimo_no_entran(self, student_client, client, course, enrollment):
+        url = reverse('grades:activity_list', args=[course.pk])
+        assert student_client.get(url).url == reverse('student_dashboard')
+        assert client.get(url).url.startswith('/login/?next=')
 
 
 # ── Acciones agrupadas por tipo ───────────────────────────────────────

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Actividades · {{ course.name }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=course.get_absolute_url label='Volver al grupo' %}
+  <h1>Actividades</h1>
+  <span class="sub">{{ course.name }} · {{ course.academic_year }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+{% include 'partials/course_tabs.html' with active='actividades' %}
+{% include 'partials/activity_table.html' %}
+{% endblock %}

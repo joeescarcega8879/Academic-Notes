@@ -3,6 +3,7 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Count
 from django.http import FileResponse, Http404
 from django.utils.functional import cached_property
 from django.shortcuts import get_object_or_404, redirect, render
@@ -33,6 +34,17 @@ class OwnActiveCourseMixin(TeacherRequiredMixin):
         return Activity.objects.for_organization(self.request.organization).filter(
             course__in=self.courses(),
         ).select_related('course', 'criterion__period')
+
+
+class ActivityListView(OwnActiveCourseMixin, View):
+    """Pestaña «Actividades» del grupo: la tabla de actividades con su botón «Nueva actividad»."""
+
+    def get(self, request, course_pk):
+        course = get_object_or_404(self.courses(), pk=course_pk)
+        activities = list(course.activities.select_related('criterion').annotate(graded=Count('grades')))
+        return render(request, 'activity_list.html', {
+            'course': course, 'activities': activities, 'enrollment_count': course.enrollments.count(),
+        })
 
 
 class ActivityCreateView(OwnActiveCourseMixin, CreateView):

@@ -1,0 +1,26 @@
+{# Tabla de actividades del grupo (docente). Recibe `course`, `activities` y `enrollment_count`. #}
+<div class="table-wrap mb-12">
+  <div class="table-head">
+    <h3>Actividades</h3>
+    <span class="grade style-pill ok">{{ activities|length }}</span>
+    <div class="spacer"></div>
+    {% if not course.is_archived %}<a class="btn btn-primary" href="{% url 'grades:activity_create' course.pk %}">Nueva actividad</a>{% endif %}
+  </div>
+  <table class="tbl">
+    <thead><tr><th>Actividad</th><th>Tipo</th><th>Criterio</th><th>Entrega</th><th>Estado</th><th>Calificadas</th></tr></thead>
+    <tbody>
+      {% for activity in activities %}
+        <tr>
+          <td><a href="{{ activity.get_absolute_url }}">{{ activity.title }}</a></td>
+          <td>{{ activity.get_type_display }}</td>
+          <td>{{ activity.criterion.name }}</td>
+          <td>{{ activity.due_at|date:"d/m/Y H:i"|default:"—" }}</td>
+          <td>{% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}</td>
+          <td>{{ activity.graded }} / {{ enrollment_count }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-muted">Aún no hay actividades. Crea la primera para empezar a calificar.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
