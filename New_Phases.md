@@ -133,7 +133,7 @@ Estrategia de entrada: piloto gratuito de un periodo para las primeras 5 escuela
 | 7 | Comunicación | Avisos al grupo, mensajes directos, correo; WhatsApp en Fase 3 | Ambas |
 | 8 | Portal del alumno | Ver actividades, entregar, ver calificaciones y retroalimentación | Ambas |
 | 9 | Institución | Ciclos escolares, planes de estudio, asignación docente-grupo-materia, panel del director, portal de padres | Institución |
-| 10 | Temario e IA asistida | Temario dividido por semanas; con IA, generar tareas, quizzes y exámenes desde el temario y calificar tareas con código anónimo, siempre con aprobación del docente (ver sección 13) | Temario: todos los planes; IA: plan Plus |
+| 10 | Temario e IA asistida | Temario dividido por semanas; con IA, generar tareas, quizzes y exámenes desde el temario y calificar tareas identificadas por su portada, sin enviar datos del alumno, siempre con aprobación del docente (ver sección 13) | Temario: todos los planes; IA: plan Plus |
 
 ### Alumnos, matrícula y ciclos escolares
 
@@ -279,7 +279,7 @@ Refactor de la base actual:
 ### Fase 3 — Escala (continuo, con ingresos)
 
 - Notificaciones WhatsApp (API de Meta o proveedor).
-- Temario por semanas e IA asistida: generar tareas, quizzes y exámenes desde el temario y calificar tareas con código anónimo, con aprobación obligatoria del docente. Diseño y entregas en la sección 13.
+- Temario por semanas e IA asistida: generar tareas, quizzes y exámenes desde el temario y calificar tareas identificadas por su portada, sin enviar datos del alumno, con aprobación obligatoria del docente. Diseño y entregas en la sección 13.
 - PWA instalable; app nativa Flutter (sección 8).
 - Integraciones: importación desde Google Classroom, Google Drive, SSO con Google Workspace for Education.
 - Migración a AWS.
@@ -464,7 +464,7 @@ Una aplicación en las tiendas. Al iniciar sesión, la app muestra la experienci
 
 ## 13. Temario e IA asistida
 
-> **Estado (2026-10-21):** **T1 (temario y semanas, sin IA) está construido** en la app `syllabus`; falta todo lo de IA (T2 a T5). Diseño con las decisiones del desarrollador incorporadas (al final de la sección). Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, usando un código anónimo. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
+> **Estado (2026-10-22):** el código anónimo se sustituyó por la **identificación por portada** (ver «Portada, identificación y calificación asistida de tareas»). **T1 (temario y semanas, sin IA) está construido** en la app `syllabus`; falta todo lo de IA (T2 a T5). Diseño con las decisiones del desarrollador incorporadas (al final de la sección). Reúne tres ideas del desarrollador: subir el temario y dividirlo por semanas; generar tareas, quizzes y exámenes con IA **a partir de ese temario**; y calificar tareas sin que el nombre del alumno viaje a la IA, identificándolo por la matrícula de la portada. La regla que ordena todo: **la IA propone, el docente decide.** Las decisiones abiertas están al final.
 
 ### Temario y semanas (no usa IA)
 
@@ -498,29 +498,54 @@ Nada generado por IA llega a un alumno sin **dos acciones del docente**: aprobar
 3. Al **aprobar**, se crea la actividad o las preguntas como **borrador** con origen `ia`, quién aprobó y cuándo (mismo espíritu que `GradeHistory`).
 4. **Publicar** sigue siendo el paso de siempre. No existe publicación automática.
 
-### Código anónimo y calificación asistida de tareas
+### Portada, identificación y calificación asistida de tareas
 
-**Para qué sirve.** (a) Que el nombre, la matrícula y el correo del alumno no viajen a la IA. (b) Que el servidor pueda **identificar solo** de quién es un documento cuando el docente sube un lote de PDFs o escaneos (tareas en papel, entregas por correo o por otro medio). Las entregas hechas desde el portal ya saben de quién son por la cuenta; ahí el código solo evita que el nombre aparezca dentro del documento.
+> **Rediseño del 2026-10-22.** Sustituye al «código anónimo fijo por alumno» decidido el 2026-10-17. La premisa nueva, que viene del uso real: **la tarea siempre lleva una portada, y la portada es un PDF con texto digital; el trabajo (texto o imágenes de hojas escritas a mano) se agrega después.** Con eso, el alumno ya no tiene que aprender ni escribir un código: la matrícula que ya pone en la portada basta.
 
-**Cómo funciona.**
+**Para qué sirve.** (a) Identificar de quién es cada documento cuando el docente sube un lote de PDFs (tareas en papel digitalizadas, entregas por correo u otro medio). (b) Que el nombre, la matrícula y el correo del alumno **no viajen a la IA**: se identifica y se quita la portada en el servidor, y lo que sale es solo el cuerpo del trabajo. Las entregas hechas desde el portal ya saben de quién son por la cuenta; ahí la portada solo se coteja y se quita.
 
-- `StudentCode`: alumno (uno por `Student`) y un `uuid` (UUID v4, no secuencial) que es la llave interna. Al alumno se le muestra una **versión corta** legible (8 caracteres sin letras ambiguas, más un dígito de control), única por organización. Ejemplo: `K7M2-QX9D`. Un UUID completo de 36 caracteres es impráctico de escribir a mano.
-- **Un código fijo por alumno (decidido):** lo aprende una vez y lo usa en todas sus tareas. Se muestra en su perfil («Mi código») y en la lista del docente, y el docente puede imprimir una **hoja de códigos del grupo** (PDF) para entregas en papel. El alumno lo escribe **en lugar de su nombre**.
-- **Costo de que sea fijo:** el proveedor de IA ve el mismo código en varias tareas del mismo alumno (un seudónimo estable, sin nombre, y sin la tabla que lo liga a la persona), y un compañero podría copiar un código. Se mitiga así: el docente puede **regenerar** el código de un alumno (si se filtra, o al cambiar de ciclo); en las entregas por el portal manda la cuenta y, si el código del documento no coincide, se marca; y en un lote, dos archivos con el mismo código en una actividad van a la cola «Sin identificar».
-- **La tabla código ↔ alumno nunca sale del servidor.** A la IA solo llega el código y el contenido.
+**Flujo de una entrega.**
 
-**Identificar un lote.** Por cada archivo se extrae el texto y se busca el código; el dígito de control atrapa errores de lectura de letra manuscrita. Una coincidencia única se asigna sola. Si no hay código, hay dos iguales, o no corresponde a nadie, el archivo va a una cola **«Sin identificar»** con vista previa para asignarlo a mano. En escaneos sin texto, leer el código con un modelo de visión cuesta algo; el docente decide si lo usa o asigna a mano.
+1. **Recepción.** Portal o lote del docente. El archivo original se guarda privado, como hoy (`private_media/`).
+2. **Separar la portada.** En un PDF, la portada son las primeras *N* páginas (*N* = 1 por omisión; el docente puede poner 0, 1 o 2 por actividad). En un Word, es lo anterior al primer salto de página; si no hay salto, no se puede separar con seguridad y el archivo va a revisión manual.
+3. **Identificar al alumno (sin OCR ni adivinar formatos).** Como ya conocemos las matrículas del grupo (`Student.student_number`, única por organización cuando existe), el servidor **busca esas matrículas exactas en el texto de la portada**, normalizado (sin espacios, guiones ni diferencias de ceros a la izquierda) y como palabra completa, para que `12345` no coincida dentro de `123456`. Una coincidencia única asigna sola. Cero o varias coincidencias, o un alumno sin matrícula, mandan el archivo a la cola **«Sin identificar»**, con la portada a la vista para asignarlo a mano. Dos archivos con la misma matrícula en una actividad van también a esa cola.
+4. **Cotejos locales (no viajan).** En el portal, la cuenta manda: si la portada dice otra matrícula, se avisa al docente. Si el nombre de la portada no se parece al de la ficha, también.
+5. **Extraer el cuerpo.** Páginas con texto: se lee el texto. Páginas que son imagen (fotos o escaneos agregados después): **OCR en el servidor** (Tesseract, idioma español), con una confianza por página. El OCR corre en nuestro servidor: ninguna imagen sale a un tercero. Si la confianza es baja o casi no sale texto (típico de letra manuscrita), el archivo se marca **«Legible a medias»**: no se manda a la IA y el docente lo califica a mano viendo el original.
+6. **Depurar el texto del cuerpo.** Antes de enviar se sustituyen por marcadores (`[NOMBRE]`, `[MATRÍCULA]`, `[CORREO]`; no se borran, para no romper las frases) el nombre y apellidos del alumno (con y sin acentos, mayúsculas y minúsculas), su matrícula y su correo, **y los nombres de los demás alumnos del grupo y del docente**, más cualquier correo, teléfono o CURP que tenga forma de tal. Se cuenta cuántas sustituciones hubo; si hubo, se le avisa al docente (suele indicar que el alumno se identificó en el cuerpo).
+7. **Solicitud a la IA.** Lleva solo: las instrucciones y los criterios de la actividad, el cuerpo depurado y un **token al azar por solicitud** (no por alumno): no se reutiliza entre tareas, así que el proveedor no puede enlazar dos tareas del mismo alumno. La respuesta debe devolver ese token; si no coincide con el enviado, se descarta (evita mezclar resultados en un lote).
+8. **Resultado.** Por criterio, la IA devuelve una calificación sugerida, **la cita textual del cuerpo que la sustenta** y un comentario. El servidor comprueba que la cita aparece literalmente en el cuerpo enviado; si no, esa sugerencia se marca «sin evidencia» y queda fuera de la confirmación en bloque. El token se liga a la entrega **solo en el servidor**.
+9. **Confirmación del docente.** En la bandeja ve el documento original completo junto a la sugerencia, la edita y la **confirma**. Solo al confirmar se crea la calificación (`GradeHistory`: «sugerida por IA, confirmada por»). El alumno no ve nada antes. La «confianza» que el modelo dice tener se descarta: lo que se muestra es la evidencia.
 
-**Calificación asistida.** Con la tarea identificada, la IA recibe las instrucciones, los criterios y el contenido, y devuelve por criterio una **calificación sugerida, la cita textual de la entrega que la sustenta y un comentario**. En la bandeja el docente ve el documento junto a la sugerencia, la edita y la **confirma**. Solo al confirmar se crea la calificación (con `GradeHistory` marcando «sugerida por IA, confirmada por»). El alumno no ve nada antes de esa confirmación. Se descarta el uso de la «confianza» que el modelo dice tener, porque no es fiable: lo que se muestra es la evidencia.
+**Confirmar en bloque (decidido el 2026-10-17).** Con muchas entregas, el botón «Confirmar las sugeridas sin cambios (N)» solo incluye entregas identificadas, con evidencia en cada criterio y sin advertencias (excluye las vacías, ilegibles, con «Legible a medias» o «Sin identificar»). Antes de aplicar muestra un resumen (cuántas, promedio, distribución) y pide confirmación; cada nota queda en `GradeHistory` como «sugerida por IA, confirmada en bloque por…» y se corrige después como cualquier otra.
 
-**Confirmar en bloque (decidido el 2026-10-17).** Con muchas entregas, confirmar una por una no es práctico, así que existe el botón «Confirmar las sugeridas sin cambios (N)», con estas reglas: solo incluye entregas identificadas, con evidencia en cada criterio y sin advertencias (excluye las vacías, ilegibles o «Sin identificar»); antes de aplicar muestra un resumen (cuántas, promedio y distribución) y pide confirmación; cada nota queda en `GradeHistory` como «sugerida por IA, confirmada en bloque por…», y se corrige después como cualquier otra. El docente puede abrir cualquier entrega antes de confirmar.
+**Datos (propuesta).**
 
-**Honestidad sobre el código:** reduce los datos personales que se envían, no los elimina. Un alumno puede escribir su nombre dentro del texto o una letra manuscrita puede identificarlo. Por eso, además, se quitan del texto antes de enviarlo el nombre, la matrícula y el correo conocidos del grupo, y siguen siendo necesarios el nivel de pago del proveedor y los textos legales de abajo.
+- Sobre `Submission` (o un modelo hermano para entregas de lote): páginas de portada, cómo se identificó (`cuenta`, `portada`, `manual`), estado de identificación (`asignada`, `sin_identificar`, `duplicada`), estado de lectura (`texto`, `ocr`, `legible_a_medias`, `sin_cuerpo`) y la confianza del OCR.
+- `AIReview` (T5c): entrega, token (único, solo servidor), estado (`en_cola`, `enviada`, `sugerida`, `confirmada`, `descartada`, `fallida`), sugerencia validada, número de sustituciones hechas y referencia a `AIRequest`. **No se guarda el texto enviado** más allá de un resumen para auditar (hash, páginas, caracteres, sustituciones), con retención corta.
+- No existe tabla «código ↔ alumno»: el token por solicitud solo vive en el servidor.
+
+**Interfaz del docente.** En la actividad, «Subir lote de PDFs» abre una tabla con un estado por archivo: *Identificado* (con el alumno), *Sin identificar* (portada a la vista y selector de alumno), *Duplicado*, *Legible a medias*, *Sin cuerpo*. Después, «Revisar con IA» (solo Plus y con el interruptor activo) y la bandeja de sugerencias.
+
+**Casos borde que hay que probar.** Matrícula con ceros a la izquierda, espacios o guiones; matrícula que es subcadena de otra; alumno que escribe la matrícula de un compañero; portada que es imagen (se lee con OCR local solo para identificar, y si falla, manual); PDF cifrado o dañado; archivo de más de 10 MB (el tope actual de las entregas; los escaneos pueden rebasarlo, hay que decidir si se sube para lotes del docente); PDF con cientos de páginas (tope de páginas); Word sin salto de página; alumno sin matrícula.
+
+**Honestidad sobre qué protege.** Reduce los datos personales que se envían, no los elimina: un alumno puede identificarse con un apodo, un dato que no está en la lista o su letra, y el OCR puede fallar al leer un nombre y dejar pasar una variante. Por eso siguen siendo necesarios el nivel de pago del proveedor, el interruptor por organización y los textos legales. Si más adelante se usa un modelo de visión para letra a mano, solo debe recibir las **páginas del cuerpo** (la portada ya se separó antes de que nada salga), y aun así queda el riesgo de un nombre escrito a mano en una hoja.
+
+**Cómo se prueba la fuga.** Prueba obligatoria con un proveedor de IA de mentira que registra todo lo que recibe: para un grupo de prueba con alumnos, portadas y cuerpos que traen nombres, matrículas y correos de varias formas, ninguna cadena conocida de ningún alumno ni del docente puede aparecer en lo recibido, y el token enviado nunca es una matrícula.
+
+**Orden de construcción (cada parte se publica sola).**
+
+| Parte | Contenido | Usa IA | Depende de |
+|---|---|---|---|
+| T5a | Lote de PDFs, separar la portada, identificar por matrícula, cola «Sin identificar» | No | Entregas (ya existen) |
+| T5b | Cuerpo: texto y OCR con confianza, «Legible a medias» | No | T5a |
+| T5c | Depurar, token por solicitud, revisión con IA, bandeja y confirmación en bloque | Sí | T5b, T2 (capa de IA y revisión legal) |
+
+T5a y T5b aportan valor aunque nunca se active la IA: asignan solas las tareas de un lote a cada alumno y dejan el texto buscable. No necesitan esperar la revisión legal. Dependencias nuevas a decidir: Tesseract (programa del sistema, hay que sumarlo al `Dockerfile`; para desarrollo en Windows puede ser opcional) y una biblioteca de rasterizado de PDF (p. ej. `pypdfium2`) para pasar las páginas a imagen; `pypdf` ya está.
 
 ### Privacidad y control
 
 - **Solo nivel de pago del proveedor.** En el nivel gratuito de Gemini, Google puede usar el contenido para mejorar sus productos; en el de pago no. Nunca se usa el gratuito con datos de alumnos.
-- **Minimizar:** no se envía nombre, matrícula, correo ni CURP. Se envía el código y el contenido.
+- **Minimizar:** no se envía nombre, matrícula, correo ni CURP, ni la portada. Se envía el cuerpo del trabajo, depurado, y un token al azar por solicitud.
 - **Aviso de privacidad y contrato** con las escuelas deben nombrar al proveedor de IA y la transferencia (se suma a la revisión legal pendiente de la sección 10).
 - **Interruptor por organización:** una escuela o un docente puede **desactivar** la IA. Sin consentimiento, no se envía nada.
 - **Registro de uso** (`AIRequest`): organización, usuario, tipo, modelo, tokens y costo. No guarda el contenido enviado más allá de lo necesario para auditar, con retención corta.
@@ -545,7 +570,7 @@ Estimaciones (supuestos, no mediciones): generar 20 preguntas cuesta del orden d
 | T2 | Capa de IA: proveedor, cuotas por plan, `AIRequest`, interruptor por organización, aviso legal | Revisión legal |
 | T3 | IA para proponer la división del temario y generar preguntas de quiz, con aprobación | T1, T2, Sprint 4 |
 | T4 | IA para tareas y exámenes con aprobación | T3; exámenes: Fase 2 |
-| T5 | Código anónimo, carga de lotes e identificación (**sirve sin IA**), y calificación asistida | T2; rúbricas mejoran el resultado (Fase 2) |
+| T5 | Lote de PDFs e identificación por la matrícula de la portada (T5a) y lectura del cuerpo con OCR (T5b), **ambas sin IA**; calificación asistida con token por solicitud (T5c) | T5c: T2; rúbricas mejoran el resultado (Fase 2) |
 
 Cada entrega se publica sola. T1 y la parte de identificación de T5 aportan valor aunque nunca se active la IA.
 
@@ -553,11 +578,20 @@ Cada entrega se publica sola. T1 y la parte de identificación de T5 aportan val
 
 **Decididas el 2026-10-17:**
 
-- Código **fijo por alumno**, en versión corta con dígito de control y un UUID como llave interna.
+- ~~Código **fijo por alumno**, en versión corta con dígito de control y un UUID como llave interna.~~ **Sustituido el 2026-10-22** por la identificación por la matrícula de la portada.
 - El alumno **no ve** el temario.
 - El temario va en **todos los planes**.
 - Se puede **confirmar en bloque** las calificaciones sugeridas, con las reglas de arriba.
 - La IA se cobra aparte: tres planes, **Gratis, Pro y Plus**, y la IA solo en Plus.
+
+**Decididas el 2026-10-22 (identificación por portada):**
+
+- La tarea trae siempre una **portada en PDF con texto digital**; el cuerpo (texto o imágenes) se agrega después. La portada se lee sin OCR.
+- Se identifica al alumno **buscando en la portada las matrículas exactas del grupo**; sin coincidencia única, cola «Sin identificar».
+- A la IA viaja un **token al azar por solicitud** (no por alumno) y el cuerpo depurado; nunca la portada ni la matrícula.
+- Portada = primera página, ajustable por actividad (0, 1 o 2 páginas).
+- Escaneos y hojas a mano: **OCR en el servidor** (sin mandar imágenes a nadie); con baja confianza, «Legible a medias» y revisión manual.
+- T5 se parte en **T5a** (lote e identificación), **T5b** (OCR) y **T5c** (IA): las dos primeras no usan IA ni esperan la revisión legal.
 
 **Abiertas:**
 
