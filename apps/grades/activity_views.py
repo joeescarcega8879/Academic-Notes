@@ -123,7 +123,9 @@ class ActivityDetailView(OrganizationMemberMixin, View):
     """El docente ve la actividad con sus alumnos; el alumno, la actividad publicada con su entrega y su nota."""
 
     def get_activity(self, request, pk):
-        activities = Activity.objects.for_organization(request.organization).select_related('course', 'criterion__period')
+        activities = Activity.objects.for_organization(request.organization).select_related(
+            'course', 'criterion__period', 'syllabus_week',
+        )
         if request.membership.is_teacher:
             return get_object_or_404(activities.filter(course__professor=request.user), pk=pk)
         return get_object_or_404(

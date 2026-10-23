@@ -1247,6 +1247,7 @@ body.tweaks-on .tweaks-panel.was-opened { display: block; }
   background: none; border: none; padding: 0;
 }
 .theme-dark .kv-row .edit-link { color: #74b6ff; }
+@media (max-width: 600px) { .kv-row .edit-link { grid-column: 2; } }  /* en celular el enlace baja bajo el valor */
 
 .toggle-row {
   display: flex; align-items: center; justify-content: space-between;

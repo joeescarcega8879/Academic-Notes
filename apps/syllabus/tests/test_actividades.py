@@ -40,6 +40,35 @@ def semana(temario, posicion):
     return temario.weeks.get(position=posicion)
 
 
+class TestSemanaEnElDetalle:
+    def test_el_docente_ve_la_semana_con_enlace_al_temario(self, professor_client, course, temario):
+        actividad = ActivityFactory(course=course, syllabus_week=semana(temario, 2))
+        html = professor_client.get(actividad.get_absolute_url()).content.decode()
+        assert 'Semana del temario' in html and 'Semana 2: Tema 2' in html
+        assert f'href="{syllabus_url(course)}?semana=2"' in html
+
+    def test_el_alumno_ve_la_semana_sin_enlace(self, student_client, course, temario, enrollment):
+        actividad = ActivityFactory(course=course, syllabus_week=semana(temario, 3))
+        html = student_client.get(actividad.get_absolute_url()).content.decode()
+        assert 'Semana 3: Tema 3' in html
+        assert syllabus_url(course) not in html
+
+    def test_sin_semana_no_aparece_la_fila(self, professor_client, activity):
+        assert 'Semana del temario' not in professor_client.get(activity.get_absolute_url()).content.decode()
+
+    def test_no_hace_consultas_de_mas_por_la_semana(self, professor_client, course, temario):
+        con = ActivityFactory(course=course, syllabus_week=semana(temario, 1))
+        sin = ActivityFactory(course=course)
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        contados = []
+        for actividad in (sin, con):
+            with CaptureQueriesContext(connection) as capturadas:
+                professor_client.get(actividad.get_absolute_url())
+            contados.append(len(capturadas))
+        assert contados[1] == contados[0]  # la semana viaja en la misma consulta
+
+
 DATOS = {'title': 'Tarea nueva', 'type': 'homework', 'max_score': '10', 'weight': '1', 'allow_late': 'on', 'late_penalty': '0'}
 
 
