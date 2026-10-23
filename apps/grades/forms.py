@@ -1,9 +1,12 @@
 from django import forms
 from apps.courses.models import Course, Enrollment, Student
 
-from .models import Grade, Activity
+from .models import Grade, Activity, Submission
 
 class GradeForm(forms.ModelForm):
+    # Calificar a quien no entregó es válido (entrega en papel, por ejemplo), pero se pide confirmar.
+    confirm_no_submission = forms.BooleanField(required=False, widget=forms.HiddenInput)
+
     class Meta:
         model = Grade
         fields = ['activity', 'student', 'score', 'feedback']
@@ -14,6 +17,7 @@ class GradeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         # Ambos son obligatorios: el formulario solo ofrece datos de los grupos del docente
         # en su organización activa (sin organización, no ofrece nada).
+        self.needs_confirmation = False
         self.user = kwargs.pop('user')
         self.organization = kwargs.pop('organization')
         super().__init__(*args, **kwargs)
@@ -56,6 +60,13 @@ class GradeForm(forms.ModelForm):
                 raise forms.ValidationError('El alumno no está inscrito en el grupo de esta evaluación.')
         if activity and score is not None and score > activity.max_score:
             raise forms.ValidationError(f'La calificación no puede superar el máximo de {activity.max_score}.')
+        if activity and student and score is not None and not cleaned.get('confirm_no_submission'):
+            sin_entrega = activity.accepts_submissions and not Submission.objects.filter(
+                activity=activity, student=student,
+            ).exists()
+            if sin_entrega and (not self.instance.pk or self.instance.score != score):
+                self.needs_confirmation = True
+                raise forms.ValidationError(f'{student} no entregó esta actividad. ¿Quieres ponerle nota de todos modos?')
         return cleaned
 
 

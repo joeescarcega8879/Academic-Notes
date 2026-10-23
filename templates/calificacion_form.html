@@ -20,7 +20,7 @@
       </div>
     {% endif %}
 
-    {% for field in form %}
+    {% for field in form.visible_fields %}
       <div class="field">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
@@ -29,8 +29,14 @@
       </div>
     {% endfor %}
 
+    {{ form.confirm_no_submission }}
+
     <div class="flex-row gap-14" style="margin-top: 18px">
-      <button type="submit" class="btn btn-primary">Guardar</button>
+      {% if form.needs_confirmation %}
+        <button type="submit" class="btn btn-primary" onclick="document.getElementById('{{ form.confirm_no_submission.id_for_label }}').value = 'on'">Guardar de todos modos</button>
+      {% else %}
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      {% endif %}
       <a class="btn btn-ghost" href="{% url 'grades:list' %}">Cancelar</a>
     </div>
   </form>
