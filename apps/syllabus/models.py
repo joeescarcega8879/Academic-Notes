@@ -85,6 +85,7 @@ class SyllabusWeek(TenantModel):
     title = models.CharField('título', max_length=200, blank=True)
     topics = models.TextField('temas', blank=True, help_text='Un tema por línea.')
     objectives = models.TextField('objetivos', blank=True)
+    assessment = models.TextField('actividades y evaluación', blank=True, help_text='Una por línea.')
     no_class = models.BooleanField('sin clase', default=False)
 
     class Meta:

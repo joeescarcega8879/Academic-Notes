@@ -30,10 +30,11 @@ class StartDateForm(forms.Form):
 class WeekForm(forms.ModelForm):
     class Meta:
         model = SyllabusWeek
-        fields = ['title', 'topics', 'objectives', 'no_class']
+        fields = ['title', 'topics', 'objectives', 'assessment', 'no_class']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Título de la semana'}),
             'topics': forms.Textarea(attrs={'class': 'input', 'rows': 5}),
             'objectives': forms.Textarea(attrs={'class': 'input', 'rows': 5}),
+            'assessment': forms.Textarea(attrs={'class': 'input', 'rows': 3}),
         }
-        labels = {'title': 'Título', 'topics': 'Temas', 'objectives': 'Objetivos'}
+        labels = {'title': 'Título', 'topics': 'Temas', 'objectives': 'Objetivos', 'assessment': 'Actividades y evaluación'}

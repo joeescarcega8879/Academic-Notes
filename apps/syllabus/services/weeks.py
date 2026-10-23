@@ -31,10 +31,12 @@ def renumber(syllabus):
 
 
 @transaction.atomic
-def add_week(syllabus, title='', topics='', objectives=''):
+def add_week(syllabus, title='', topics='', objectives='', assessment=''):
     if syllabus.weeks.count() >= MAX_WEEKS:
         raise WeekError(f'Un temario puede tener hasta {MAX_WEEKS} semanas.')
-    return syllabus.weeks.create(position=syllabus.weeks.count() + 1, title=title[:TITLE_MAX], topics=topics, objectives=objectives)
+    return syllabus.weeks.create(
+        position=syllabus.weeks.count() + 1, title=title[:TITLE_MAX], topics=topics, objectives=objectives, assessment=assessment,
+    )
 
 
 @transaction.atomic
@@ -70,15 +72,16 @@ def split_week(week):
 
 @transaction.atomic
 def merge_with_next(week):
-    """Junta una semana con la siguiente: concatena temas y objetivos y quita la siguiente."""
+    """Junta una semana con la siguiente: concatena temas, objetivos y actividades y quita la siguiente."""
     following = week.syllabus.weeks.filter(position__gt=week.position).order_by('position').first()
     if following is None:
         raise WeekError('Esta es la última semana: no hay otra con la que unirla.')
     week.topics = '\n'.join(part for part in (week.topics.strip(), following.topics.strip()) if part)
     week.objectives = '\n'.join(part for part in (week.objectives.strip(), following.objectives.strip()) if part)
+    week.assessment = '\n'.join(part for part in (week.assessment.strip(), following.assessment.strip()) if part)
     week.title = week.title or following.title
     week.no_class = week.no_class and following.no_class
-    week.save(update_fields=['topics', 'objectives', 'title', 'no_class'])
+    week.save(update_fields=['topics', 'objectives', 'assessment', 'title', 'no_class'])
     following.activities.update(syllabus_week=week)  # las actividades de la semana que desaparece pasan a la unida
     following.delete()
     renumber(week.syllabus)
@@ -123,11 +126,13 @@ LABEL = re.compile(
 )
 SESSION = re.compile(r'^\s*sesi[oó]n\s+(\d{1,2})\s*[:.\-–—]?\s*(.*)$', re.IGNORECASE)
 TABLE_HEAD = re.compile(r'^\s*sesi[oó]n\s*$', re.IGNORECASE)  # encabezado de la tabla «Sesión | Contenidos»
-# Secciones de la semana que no son temas ni objetivos: se saltan (siguen en el texto extraído).
-SKIPPED = re.compile(
-    r'^\s*(actividades(?:\s+de\s+aprendizaje)?|entregables?(?:\s*/\s*evaluaci[oó]n)?|evaluaci[oó]n|tareas?|recursos|materiales)\s*:?\s*$',
+# Actividades y evaluación de la semana, solas en su línea o con contenido («Tarea: leer el capítulo 3»).
+ASSESSMENT = re.compile(
+    r'^\s*(actividades(?:\s+de\s+aprendizaje)?|entregables?(?:\s*/\s*evaluaci[oó]n)?|evaluaci[oó]n|tareas?)\s*(?:[:.\-–—]\s*(.*))?$',
     re.IGNORECASE,
 )
+# Secciones de la semana que no son temas, objetivos ni evaluación: se saltan (siguen en el texto extraído).
+SKIPPED = re.compile(r'^\s*(recursos|materiales)\s*:?\s*$', re.IGNORECASE)
 # Secciones del documento que vienen después de la última semana: cortan la semana en curso.
 CLOSING = re.compile(
     r'^\s*(evaluaci[oó]n\s+(?:sugerida|del\s+curso)|criterios\s+de\s+evaluaci[oó]n|bibliograf[ií]a.*|referencias.*|fuentes.*|anexos?)\s*:?\s*$',
@@ -157,7 +162,10 @@ def _drop_running_headers(lines):
 
 
 def _new_block(title):
-    return {'title': title, 'pending_title': not title, 'topics': [], 'objectives': [], 'mode': 'topics', 'in_session': False, 'open': False, 'gap': False}
+    return {
+        'title': title, 'pending_title': not title, 'topics': [], 'objectives': [], 'assessment': [], 'mode': 'topics',
+        'in_session': False, 'open': False, 'gap': False,
+    }
 
 
 def _add(block, text, bulleted):
@@ -180,8 +188,8 @@ def detect_weeks(text):
 
     Es una ayuda sin IA que entiende estos formatos: ``Semana 1: Título`` y ``SEMANA 1`` con el título en la línea
     siguiente; ``Temas:`` y ``Objetivos:`` con o sin dos puntos; y sesiones («Sesión 1» + contenido), una por tema.
-    Se salta las actividades y entregables de la semana, los encabezados de página y lo que sigue a la última
-    semana (evaluación, bibliografía). Si el temario no trae encabezados «Semana N» devuelve ``[]`` y el docente
+    Guarda las actividades y entregables de la semana en ``assessment``; se salta los recursos, los encabezados de
+    página y lo que sigue a la última semana (evaluación, bibliografía). Si el temario no trae encabezados «Semana N» devuelve ``[]`` y el docente
     arma las semanas a mano. Lo anterior al primer encabezado (portada, datos del curso) se ignora.
     """
     blocks, current = [], None
@@ -203,6 +211,12 @@ def detect_weeks(text):
             continue
         if SKIPPED.match(line):
             current.update(mode='skip', in_session=False, pending_title=False)
+            continue
+        assessment = ASSESSMENT.match(line)
+        if assessment:
+            current.update(mode='assessment', in_session=False, pending_title=False, open=False)
+            if (assessment.group(2) or '').strip():
+                current['assessment'].append(assessment.group(2).strip())
             continue
         label = LABEL.match(line)
         if label:
@@ -229,7 +243,10 @@ def detect_weeks(text):
         current['pending_title'] = False
         _add(current, content, bulleted)
     return [
-        {'title': block['title'][:TITLE_MAX], 'topics': '\n'.join(block['topics']), 'objectives': '\n'.join(block['objectives'])}
+        {
+            'title': block['title'][:TITLE_MAX], 'topics': '\n'.join(block['topics']),
+            'objectives': '\n'.join(block['objectives']), 'assessment': '\n'.join(block['assessment']),
+        }
         for block in blocks[:MAX_WEEKS]
     ]
 

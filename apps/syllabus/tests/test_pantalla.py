@@ -262,6 +262,12 @@ class TestDetectar:
         assert 'Encontramos 2 semanas' in html and 'Usar estas semanas' in html
         assert temario.weeks.count() == 0
 
+    def test_la_propuesta_cuenta_las_actividades_de_cada_semana(self, professor_client, course, temario):
+        temario.text = 'SEMANA 1\nReales\nTarea: hoja de ejercicios\nQuiz 1\nSEMANA 2\nFunciones'
+        temario.save()
+        html = professor_client.get(url(course) + '?detectar=1').content.decode()
+        assert '· 2 actividades' in html and html.count('actividades</span>') == 1  # la semana 2 no tiene
+
     def test_aplicar_crea_las_semanas(self, professor_client, course, temario):
         respuesta = pedir(professor_client, course, action='apply_detected')
         assert respuesta.status_code == 302
@@ -301,12 +307,22 @@ class TestSemanas:
         assert respuesta.status_code == 302 and respuesta.url.endswith('?semana=4')
         assert con_semanas.weeks.count() == 4
 
-    def test_guardar_cambia_titulo_temas_objetivos_y_sin_clase(self, professor_client, course, con_semanas):
+    def test_guardar_cambia_titulo_temas_objetivos_actividades_y_sin_clase(self, professor_client, course, con_semanas):
         w = semana(con_semanas, 2)
-        respuesta = pedir(professor_client, course, action='save_week', week=w.pk, title='Nuevo', topics='X\nY', objectives='Obj', no_class='on')
+        respuesta = pedir(
+            professor_client, course, action='save_week', week=w.pk, title='Nuevo', topics='X\nY', objectives='Obj',
+            assessment='Tarea 1\nQuiz 1', no_class='on',
+        )
         assert respuesta.status_code == 302 and respuesta.url.endswith('?semana=2')
         w.refresh_from_db()
-        assert (w.title, w.topics, w.objectives, w.no_class) == ('Nuevo', 'X\nY', 'Obj', True)
+        assert (w.title, w.topics, w.objectives, w.assessment, w.no_class) == ('Nuevo', 'X\nY', 'Obj', 'Tarea 1\nQuiz 1', True)
+
+    def test_el_editor_muestra_las_actividades_y_evaluacion_de_la_semana(self, professor_client, course, con_semanas):
+        w = semana(con_semanas, 1)
+        w.assessment = 'Hoja de ejercicios'
+        w.save()
+        html = professor_client.get(url(course), {'semana': 1}).content.decode()
+        assert 'Actividades y evaluación' in html and 'Hoja de ejercicios' in html
 
     def test_guardar_sin_marcar_sin_clase_lo_quita(self, professor_client, course, con_semanas):
         w = semana(con_semanas, 1)

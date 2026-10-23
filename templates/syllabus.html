@@ -106,7 +106,7 @@
     <div class="card sy-detected">
       <h3 class="section-title">Encontramos {{ proposals|length }} semana{{ proposals|length|pluralize }} en el texto</h3>
       <ol class="sy-detected-list">
-        {% for item in proposals %}<li><strong>{{ item.title|default:"(sin título)" }}</strong>{% if item.topics %} <span class="text-muted">· {{ item.topics.splitlines|length }} tema{{ item.topics.splitlines|length|pluralize }}</span>{% endif %}</li>{% endfor %}
+        {% for item in proposals %}<li><strong>{{ item.title|default:"(sin título)" }}</strong>{% if item.topics %} <span class="text-muted">· {{ item.topics.splitlines|length }} tema{{ item.topics.splitlines|length|pluralize }}</span>{% endif %}{% if item.assessment %} <span class="text-muted">· {{ item.assessment.splitlines|length }} actividad{{ item.assessment.splitlines|length|pluralize:"es" }}</span>{% endif %}</li>{% endfor %}
       </ol>
       <form method="post"{% if rows %} onsubmit="return confirm('Esto reemplaza las {{ rows|length }} semanas que ya tienes y deja sin semana a las actividades que apuntaban a ellas. ¿Continuar?')"{% endif %}>
         {% csrf_token %}
@@ -200,6 +200,11 @@
                 <label for="{{ week_form.objectives.id_for_label }}">{{ week_form.objectives.label }}</label>
                 {{ week_form.objectives }}{% for error in week_form.objectives.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
               </div>
+            </div>
+            <div class="field">
+              <label for="{{ week_form.assessment.id_for_label }}">{{ week_form.assessment.label }}</label>
+              {{ week_form.assessment }}<span class="text-xs text-muted">Una por línea. Es lo que dice tu temario; las actividades reales se crean abajo.</span>
+              {% for error in week_form.assessment.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
             </div>
             <label class="sy-off-row" for="{{ week_form.no_class.id_for_label }}">
               {{ week_form.no_class }} <span>Semana sin clase</span> <span class="text-xs text-muted">(no cuenta para planear)</span>

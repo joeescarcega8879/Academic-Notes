@@ -25,7 +25,8 @@ def clone_syllabus(source, clone):
     copy.save()
     for week in origin.weeks.all():
         copy.weeks.create(
-            position=week.position, title=week.title, topics=week.topics, objectives=week.objectives, no_class=week.no_class,
+            position=week.position, title=week.title, topics=week.topics, objectives=week.objectives,
+            assessment=week.assessment, no_class=week.no_class,
         )
     if copy.status == Syllabus.Status.PENDING:
         from ..tasks import extract_syllabus_text

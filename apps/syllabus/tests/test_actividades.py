@@ -225,7 +225,7 @@ class TestDuplicarElGrupo:
         temario.text = 'Semana 1: Reales'
         temario.save()
         w = semana(temario, 2)
-        w.topics, w.objectives, w.no_class = 'A\nB', 'Obj', True
+        w.topics, w.objectives, w.assessment, w.no_class = 'A\nB', 'Obj', 'Tarea 1\nQuiz 1', True
         w.save()
         copia = clone_course(course, nuevo_ciclo)
         nuevo = copia.syllabus
@@ -233,7 +233,7 @@ class TestDuplicarElGrupo:
         assert nuevo.status == Syllabus.Status.READY
         assert [(x.position, x.title) for x in nuevo.weeks.all()] == [(1, 'Tema 1'), (2, 'Tema 2'), (3, 'Tema 3')]
         segunda = nuevo.weeks.get(position=2)
-        assert (segunda.topics, segunda.objectives, segunda.no_class) == ('A\nB', 'Obj', True)
+        assert (segunda.topics, segunda.objectives, segunda.assessment, segunda.no_class) == ('A\nB', 'Obj', 'Tarea 1\nQuiz 1', True)
         assert temario.weeks.count() == 3 and temario.start_date == datetime.date(2026, 8, 24)  # el original no cambia
 
     def test_copia_el_archivo_a_una_ruta_propia(self, course, nuevo_ciclo, django_capture_on_commit_callbacks):

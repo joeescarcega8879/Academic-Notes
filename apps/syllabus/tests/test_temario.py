@@ -229,13 +229,13 @@ class TestSemanas:
             semanas.split_week(semana)
         assert temario.weeks.count() == 1
 
-    def test_unir_junta_temas_y_objetivos_y_quita_la_siguiente(self):
+    def test_unir_junta_temas_objetivos_y_actividades_y_quita_la_siguiente(self):
         temario = temario_con(3)
         a, b = temario.weeks.get(position=1), temario.weeks.get(position=2)
-        a.topics, a.objectives, b.topics, b.objectives = 'A', 'Oa', 'B', 'Ob'
+        a.topics, a.objectives, a.assessment, b.topics, b.objectives, b.assessment = 'A', 'Oa', 'Tarea 1', 'B', 'Ob', 'Quiz 2'
         a.save(), b.save()
         unida = semanas.merge_with_next(a)
-        assert unida.topic_list == ['A', 'B'] and unida.objectives == 'Oa\nOb'
+        assert unida.topic_list == ['A', 'B'] and unida.objectives == 'Oa\nOb' and unida.assessment == 'Tarea 1\nQuiz 2'
         assert titulos(temario) == [(1, 'S1'), (2, 'S3')]
 
     def test_unir_la_ultima_semana_no_se_puede(self):
@@ -406,6 +406,27 @@ class TestDetectarFormatoReal:
             'Sesión 1: Concepto de antiderivada y constante de integración. Relación entre derivada e integral.',
             'Sesión 2: Fórmulas básicas: potencias y exponenciales. Propiedades de linealidad.',
         ]
+
+    def test_las_actividades_y_los_entregables_van_a_actividades_y_evaluacion(self, detectadas):
+        assert detectadas[0]['assessment'].splitlines() == [
+            'Hoja de ejercicios de integrales inmediatas.', 'Resolver 10 integrales por sustitución.', 'Tarea 1 y Quiz 1 en la Sesión 2.',
+        ]
+        assert detectadas[1]['assessment'] == 'Tarea 2 y Examen parcial.'
+
+    def test_una_etiqueta_con_contenido_en_la_misma_linea_tambien_cuenta(self):
+        lineas = ['SEMANA 1', 'Reales', 'Tarea: leer el capítulo 3', 'Evaluación - Quiz corto', 'Recursos', 'Libro de texto']
+        detectadas = semanas.detect_weeks('\n'.join(lineas))
+        assert detectadas[0]['assessment'].splitlines() == ['leer el capítulo 3', 'Quiz corto']
+        assert 'Libro de texto' not in str(detectadas)  # los recursos se siguen saltando
+
+    def test_una_semana_sin_actividades_queda_con_el_campo_vacio(self):
+        detectadas = semanas.detect_weeks('SEMANA 1\nReales\nSesión 1\nIntervalos.')
+        assert detectadas[0]['assessment'] == ''
+
+    def test_aplicar_guarda_las_actividades_y_evaluacion_en_cada_semana(self):
+        temario = temario_con(1)
+        semanas.replace_weeks(temario, semanas.detect_weeks(TEMARIO_PDF))
+        assert temario.weeks.get(position=2).assessment == 'Tarea 2 y Examen parcial.'
 
     def test_actividades_y_entregables_no_se_mezclan_con_los_temas(self, detectadas):
         todo = ' '.join(d['topics'] + d['objectives'] for d in detectadas)
