@@ -10,6 +10,7 @@ class GradeForm(forms.ModelForm):
     class Meta:
         model = Grade
         fields = ['activity', 'student', 'score', 'feedback']
+        labels = {'activity': 'Actividad', 'student': 'Alumno', 'score': 'Calificación', 'feedback': 'Comentario'}
         widgets = {
             'feedback': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Comentario del profesor (opcional)'}),
         }

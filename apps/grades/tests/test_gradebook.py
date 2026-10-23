@@ -363,6 +363,10 @@ class TestFormulariosClasicos:
         })
         assert response.status_code == 302
 
+    def test_el_formulario_tiene_las_etiquetas_en_espanol(self, professor_client):
+        form = professor_client.get(reverse("grades:create")).context["form"]
+        assert [f.label for f in form.visible_fields()] == ["Actividad", "Alumno", "Calificación", "Comentario"]
+
 
 # ── Historial y lo que ve el alumno ───────────────────────────────────
 
