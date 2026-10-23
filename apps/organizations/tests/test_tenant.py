@@ -19,6 +19,7 @@ from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.syllabus.models import Syllabus, SyllabusWeek
 from apps.syllabus.tests.factories import SyllabusFactory, SyllabusWeekFactory
+from apps.ai.models import AIRequest
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.managers import OrganizationQuerySet
@@ -31,7 +32,7 @@ pytestmark = pytest.mark.django_db
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
     Activity, Submission, Grade, GradeHistory, Question, Choice, QuizConfig, QuizQuestion, QuizChoice, QuizAttempt,
-    Answer, Conversation, Message, Syllabus, SyllabusWeek,
+    Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest,
 ]
 
 
@@ -226,6 +227,9 @@ def dos_organizaciones():
             activity=evaluacion, student=materia.enrollments.get().student, text="Mi entrega", submitted_at=timezone.now(),
         )
         SyllabusWeekFactory(syllabus=SyllabusFactory(course=materia), position=1)
+        AIRequest.objects.create(
+            organization=materia.organization, user=profesor, kind=AIRequest.Kind.PROBE, provider='fake', status=AIRequest.Status.OK,
+        )
         conversacion = Conversation.objects.get(course=materia, student=alumno)
         MessageFactory(conversation=conversacion, sender=alumno)
         datos.append({"profesor": profesor, "alumno": alumno, "materia": materia, "org": materia.organization})

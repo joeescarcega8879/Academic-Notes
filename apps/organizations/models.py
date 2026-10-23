@@ -23,6 +23,8 @@ class Organization(models.Model):
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.INDIVIDUAL)
     plan = models.CharField(max_length=20, choices=Plan.choices, default=Plan.FREE)
     is_active = models.BooleanField(default=True)
+    # Interruptor de la IA asistida: apagado por omisión; solo lo enciende el propietario. Sin él no se envía nada a la IA.
+    ai_enabled = models.BooleanField('IA asistida', default=False, db_default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

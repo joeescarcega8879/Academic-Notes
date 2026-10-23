@@ -18,5 +18,8 @@ openpyxl>=3.1
 pypdf>=5.0,<7
 python-docx>=1.1,<2
 
+# ── IA asistida (proveedor Gemini) ────────────────────────────────────
+google-genai>=2.0,<3
+
 # ── Reportes (boleta PDF) ─────────────────────────────────────────────
 reportlab>=4.2,<5

@@ -20,6 +20,13 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
+# Las pruebas nunca llaman a un proveedor real, sin importar lo que diga el .env del desarrollador.
+AI_PROVIDER = "fake"
+GEMINI_API_KEY = ""
+GEMINI_MODEL = ""
+GEMINI_KEY_TIER = "free"
+AI_PRICING = {}
+
 # Los archivos subidos en pruebas no deben ensuciar el `media/` del proyecto.
 MEDIA_ROOT = Path(tempfile.gettempdir()) / "gradelink-test-media"
 STORAGES = {

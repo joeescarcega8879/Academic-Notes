@@ -23,6 +23,13 @@
   <section class="card mb-12" aria-labelledby="plan-actual">
     <h3 class="section-title mb-12" id="plan-actual">Tu plan: {{ plan.name }}</h3>
     <div class="dist-bars plan-usage">
+      {% if ai_usage %}
+        <div class="dist-row">
+          <div class="lbl">Usos de IA este mes</div>
+          <div class="track"><div class="fill ok" style="width: {% if ai_usage.limit %}{% widthratio ai_usage.used ai_usage.limit 100 %}{% else %}0{% endif %}%"></div></div>
+          <div class="num">{{ ai_usage.used }}{% if ai_usage.limit is None %} · sin tope{% else %} / {{ ai_usage.limit }}{% endif %}</div>
+        </div>
+      {% endif %}
       {% for row in limit_rows %}
         <div class="dist-row">
           <div class="lbl">{{ row.label }}</div>
