@@ -43,6 +43,9 @@ def clone_course(course, academic_year, *, code=None, name=None):
     Copia los datos del grupo y, mediante ``course_cloned``, su contenido (esquema de evaluación y evaluaciones
     sin fecha, listas para volver a programarse). No copia alumnos, inscripciones ni calificaciones: los
     ``Student`` persisten en la organización y en el nuevo ciclo solo se crean inscripciones nuevas.
+
+    Si algún receptor de ``course_cloned`` devuelve un texto (por ejemplo, el banco de preguntas copiado), queda en
+    ``clone.notes`` para que la vista se lo muestre al docente.
     """
     if academic_year.organization_id != course.organization_id:
         raise ValidationError('El ciclo debe pertenecer a la misma organización que el grupo.')
@@ -62,5 +65,6 @@ def clone_course(course, academic_year, *, code=None, name=None):
         schedule=course.schedule,
         color=course.color,
     )
-    course_cloned.send(sender=Course, source=course, clone=clone)
+    responses = course_cloned.send(sender=Course, source=course, clone=clone)
+    clone.notes = [note for _, note in responses if isinstance(note, str)]
     return clone

@@ -15,8 +15,11 @@ from apps.organizations.tests.factories import MembershipFactory
 
 from apps.quizzes.models import Question
 from apps.quizzes.services import builder, question_import as qi
+from apps.courses.services.courses import clone_course
+from apps.courses.tests.factories import AcademicYearFactory
+from apps.organizations.limits import PlanLimitError
 from apps.quizzes.services.bank import (
-    UNSET, bank_courses, duplicate_question, questions_for_course, save_question, teaching_courses, visible_questions,
+    UNSET, bank_courses, copy_bank, duplicate_question, questions_for_course, save_question, teaching_courses, visible_questions,
 )
 from apps.quizzes.tests.factories import QuestionFactory, make_quiz
 
@@ -432,3 +435,70 @@ class TestConstructor:
         quiz_espanol = make_quiz(espanol, questions=0)
         respuesta = professor_client.get(reverse("quizzes:builder", args=[quiz_espanol.activity_id]))
         assert ids(respuesta, "picker") == {q["otra"].pk, q["general"].pk}
+
+
+# ── Duplicar un grupo copia su banco ──────────────────────────────────
+
+class TestDuplicarGrupoCopiaElBanco:
+    @pytest.fixture
+    def ciclo(self, org):
+        return AcademicYearFactory(organization=org, name="2027-2028")
+
+    @pytest.fixture
+    def banco_casi_lleno(self, monkeypatch):
+        """El plan Gratis permite 30 preguntas: la organización ya usa 29 (los grupos se siguen contando de verdad)."""
+        from apps.organizations import limits
+
+        real = limits._used
+        monkeypatch.setattr(limits, "_used", lambda organization, key: 29 if key == "questions" else real(organization, key))
+
+    def test_copia_las_preguntas_vigentes_con_sus_opciones_y_sin_cambiar_el_texto(self, professor, org, mates, ciclo):
+        a = QuestionFactory(author=professor, organization=org, course=mates, text="¿2+2?", topic="Suma", points=2,
+                            explanation="Se suma.", choices=[("3", False), ("4", True)])
+        v = QuestionFactory(author=professor, organization=org, course=mates, kind=Question.Kind.TRUE_FALSE, true_is_correct=False)
+        Question.objects.filter(pk=QuestionFactory(author=professor, organization=org, course=mates, text="Vieja").pk).update(is_archived=True)
+        nuevo = clone_course(mates, ciclo)
+        copias = {q.text: q for q in nuevo.bank_questions.all()}
+        assert set(copias) == {"¿2+2?", v.text}  # la archivada no viaja
+        copia = copias["¿2+2?"]
+        assert (copia.topic, copia.points, copia.explanation, copia.author_id, copia.organization_id) == ("Suma", 2, "Se suma.", professor.pk, org.pk)
+        assert [(c.text, c.is_correct) for c in copia.choices.all()] == [("3", False), ("4", True)]
+        assert [(c.text, c.is_correct) for c in copias[v.text].choices.all()] == [("Verdadero", False), ("Falso", True)]
+        assert a.course == mates and mates.bank_questions.count() == 3  # el banco original no cambia
+
+    def test_no_copia_las_generales_ni_las_de_otro_grupo(self, plan_docente, professor, org, mates, espanol, ciclo):
+        QuestionFactory(author=professor, organization=org, course=None, text="General")
+        QuestionFactory(author=professor, organization=org, course=espanol, text="De español")
+        assert clone_course(mates, ciclo).bank_questions.count() == 0
+        assert Question.objects.filter(text="General").count() == 1
+
+    def test_avisa_cuantas_copio(self, plan_docente, professor, org, mates, ciclo):
+        QuestionFactory(author=professor, organization=org, course=mates)
+        assert clone_course(mates, ciclo).notes == ["Se copió 1 pregunta del banco."]
+        QuestionFactory(author=professor, organization=org, course=mates)
+        assert clone_course(mates, ciclo, code="OTRO").notes == ["Se copiaron 2 preguntas del banco."]
+
+    def test_un_grupo_sin_banco_no_trae_avisos(self, mates, ciclo):
+        assert clone_course(mates, ciclo).notes == []
+
+    def test_si_no_caben_en_el_plan_no_copia_ninguna_pero_si_duplica_el_grupo(self, professor, org, mates, ciclo, banco_casi_lleno):
+        QuestionFactory.create_batch(2, author=professor, organization=org, course=mates)
+        nuevo = clone_course(mates, ciclo)
+        assert nuevo.pk and nuevo.bank_questions.count() == 0
+        assert nuevo.notes[0].startswith("No se copió el banco de preguntas.") and "plan" in nuevo.notes[0]
+
+    def test_copy_bank_rechaza_la_copia_completa_si_excede_el_tope(self, professor, org, mates, espanol, banco_casi_lleno):
+        QuestionFactory.create_batch(3, author=professor, organization=org, course=mates)
+        with pytest.raises(PlanLimitError):
+            copy_bank(mates, espanol)
+        assert espanol.bank_questions.count() == 0
+
+    def test_la_pantalla_de_duplicar_muestra_el_aviso(self, professor, org, mates, ciclo):
+        QuestionFactory(author=professor, organization=org, course=mates)
+        respuesta = cliente(professor, org).post(
+            reverse("course_clone", args=[mates.pk]),
+            {"academic_year": ciclo.pk, "code": "NUEVO", "name": "Matemáticas II"}, follow=True,
+        )
+        textos = [str(m) for m in respuesta.context["messages"]]
+        assert any("Se duplicó" in t for t in textos) and "Se copió 1 pregunta del banco." in textos
+        assert Course.objects.get(code="NUEVO").bank_questions.count() == 1

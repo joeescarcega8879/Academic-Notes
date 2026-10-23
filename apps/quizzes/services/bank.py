@@ -121,6 +121,27 @@ def save_question(
 
 
 @transaction.atomic
+def copy_bank(source, clone):
+    """Copia al banco de ``clone`` las preguntas vigentes del banco de ``source``, con sus opciones y sin cambiar su texto.
+
+    Las archivadas y las generales (que ya sirven en todos los grupos) no se copian. Devuelve cuántas copió. Las copias
+    cuentan contra el tope de preguntas del plan: si no caben todas, no se copia ninguna y lanza ``PlanLimitError``.
+    """
+    questions = list(source.bank_questions.filter(is_archived=False).prefetch_related('choices').order_by('id'))
+    if not questions:
+        return 0
+    limits.check_limit(clone.organization, 'questions', adding=len(questions))
+    for question in questions:
+        copy = Question.objects.create(
+            organization=question.organization, author=question.author, course=clone, kind=question.kind, text=question.text,
+            points=question.points, explanation=question.explanation, topic=question.topic,
+        )
+        for choice in question.choices.all():
+            Choice.objects.create(question=copy, text=choice.text, is_correct=choice.is_correct, position=choice.position)
+    return len(questions)
+
+
+@transaction.atomic
 def duplicate_question(question, *, by, course=UNSET):
     """Copia una pregunta (con sus opciones) a nombre de ``by``, lista para editar.
 
