@@ -13,6 +13,7 @@ from django.views.generic import CreateView, UpdateView
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.ai import ui as ai_ui
 from apps.courses.models import Course, Student
+from apps.courses.services.text import sort_enrollments
 from core.utils import parse_id
 
 from .activity_forms import ActivityForm
@@ -278,7 +279,7 @@ class GradingView(OwnActiveCourseMixin, View):
         enrollments = activity.course.enrollments.select_related('student__user')
         if only:
             enrollments = enrollments.filter(student=only)
-        for enrollment in enrollments.order_by('student__last_name', 'student__first_name'):
+        for enrollment in sort_enrollments(enrollments):
             submission = submissions.get(enrollment.student_id)
             rows.append({
                 'student': enrollment.student, 'grade': grades.get(enrollment.student_id), 'submission': submission,

@@ -257,6 +257,13 @@ class TestPantallaDeCalificacion:
         professor_client.post(self.url(borrador), {f"score_{alumno.pk}": "7"})
         assert Grade.objects.get().score == 7
 
+    def test_los_alumnos_van_en_orden_alfabetico_sin_importar_acentos(self, professor_client, course):
+        for nombre, apellido in (("Zoe", "Zapata"), ("Ana", "Álvarez"), ("Luis", "Beltrán")):
+            EnrollmentFactory(course=course, student__user=None, student__first_name=nombre, student__last_name=apellido)
+        actividad = ActivityFactory(course=course, type=Activity.Type.PARTICIPATION)
+        filas = professor_client.get(self.url(actividad)).context["rows"]
+        assert [str(f["student"]) for f in filas] == ["Ana Álvarez", "Luis Beltrán", "Zoe Zapata"]
+
     def test_ignora_alumnos_que_no_son_del_grupo(self, professor_client, grupo):
         actividad, _, _ = grupo
         ajeno = EnrollmentFactory().student
