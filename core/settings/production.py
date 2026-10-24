@@ -27,6 +27,8 @@ if SITE_URL.startswith("http://localhost"):  # noqa: F405
 # ── Endurecimiento HTTP ───────────────────────────────────────────────
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Railway/Render ponen un proxy delante: sin esto todos los límites de intentos verían la IP del proxy.
+TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=1)
 SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True

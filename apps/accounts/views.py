@@ -21,6 +21,21 @@ from .models import User
 class LoginView(View):
     template_name = 'login.html'
 
+    # Solo cuentan los intentos fallidos. Por (IP, correo) frena a quien adivina una contraseña sin dejar que
+    # un tercero bloquee a la víctima desde otra IP; por IP frena a quien prueba muchas cuentas; por correo
+    # (con tope alto) frena un ataque repartido entre muchas IP.
+    FAIL_WINDOW = 15 * 60
+    LIMITS = (('login-ip-email', 5), ('login-ip', 20), ('login-email', 30))
+    BLOCKED_MESSAGE = 'Demasiados intentos fallidos. Espera unos 15 minutos e inténtalo de nuevo.'
+
+    @staticmethod
+    def _identities(request, username):
+        ip, username = throttle.client_ip(request), username.strip().lower()
+        return {'login-ip-email': f'{ip}|{username}', 'login-ip': ip, 'login-email': username}
+
+    def _blocked(self, identities):
+        return any(throttle.exceeded(scope, identities[scope], limit=limit) for scope, limit in self.LIMITS)
+
     def get(self, request):
         if request.user.is_authenticated:
             return redirect(safe_next_url(request) or home_url_name(request.membership))
@@ -31,6 +46,12 @@ class LoginView(View):
         role = request.POST.get('role')
         next_url = safe_next_url(request)
 
+        identities = self._identities(request, request.POST.get('username', ''))
+        if self._blocked(identities):  # antes de revisar la contraseña: bloqueado es bloqueado aunque la acierte
+            return render(request, self.template_name, {
+                'form': LoginForm(), 'next': next_url, 'role': role, 'error': self.BLOCKED_MESSAGE,
+            }, status=429)
+
         if form.is_valid():
             user = form.get_user()
             memberships = active_memberships(user)
@@ -40,11 +61,14 @@ class LoginView(View):
                     'error': 'El rol seleccionado no coincide con esta cuenta.',
                 })
 
+            throttle.reset('login-ip-email', identities['login-ip-email'])
             login(request, user)
             membership = self._membership_for(memberships, role, request.session.get(SESSION_KEY))
             if membership is not None:
                 request.session[SESSION_KEY] = membership.organization_id
             return redirect(next_url or home_url_name(membership))
+        for scope, _ in self.LIMITS:
+            throttle.hit(scope, identities[scope], window=self.FAIL_WINDOW)
         return render(request, self.template_name, {'form': form, 'next': next_url, 'role': role})
 
     @staticmethod
