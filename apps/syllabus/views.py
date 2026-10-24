@@ -93,6 +93,8 @@ class SyllabusView(SyllabusAccessMixin, View):
                 split = ai_drafts.expire_if_stale(split)
         return {
             'ai': ai_ui.quiz_panel(request.organization, course, week=week), 'ai_split': split,
+            'ai_task': ai_ui.assignment_panel(request.organization, course, week_id=week.pk if week else None),
+            'ai_task_drafts': ai_drafts.open_assignment_drafts(request.user, request.organization, course),
             'ai_split_reason': ai_ui.split_reason(request.organization, syllabus),
             'ai_quiz_drafts': ai_drafts.open_quiz_drafts(request.user, request.organization, course),
         }

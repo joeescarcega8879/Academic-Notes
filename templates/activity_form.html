@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{% if object %}Editar{% else %}Nueva{% endif %} actividad · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -11,6 +12,12 @@
 
 {% block content %}
 <div class="card mw-720">
+  {% if not object and ai_task %}
+    <div class="ai-promo">
+      <span class="ai-note">{% if ai_task.reason %}<b>Redactar con IA:</b> {{ ai_task.reason }}{% else %}¿No sabes qué dejar? La IA puede proponerte tres tareas a partir de tu temario.{% endif %}</span>
+      <button type="button" class="btn btn-primary btn-sm ai-btn"{% if ai_task.reason %} disabled{% else %} data-ai-open="modal-ai-assignment"{% endif %}>Redactar con IA</button>
+    </div>
+  {% endif %}
   <form method="post" novalidate>
     {% csrf_token %}
     {% include 'partials/form_fields.html' %}
@@ -20,4 +27,6 @@
     </div>
   </form>
 </div>
+{% if not object and ai_task and not ai_task.reason %}{% include 'partials/ai_assignment_modal.html' %}{% endif %}
+<script src="{% static 'js/ia.js' %}?v=2"></script>
 {% endblock %}

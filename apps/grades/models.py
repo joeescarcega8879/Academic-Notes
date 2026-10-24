@@ -137,6 +137,8 @@ class Activity(TenantModel):
         'syllabus.SyllabusWeek', on_delete=models.SET_NULL, null=True, blank=True, related_name='activities',
         verbose_name='semana del temario',
     )
+    # La redactó la IA y el docente la aprobó (``AIDraft`` guarda quién y cuándo).
+    ai_generated = models.BooleanField('redactada con IA', default=False)
 
     class Meta:
         ordering = ['-date', 'title']

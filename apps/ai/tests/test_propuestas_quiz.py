@@ -191,7 +191,7 @@ class TestFallos:
         pedir(professor_client, course, semanas, django_capture_on_commit_callbacks, activity=quiz.activity.pk)
         draft = AIDraft.objects.get()
         assert draft.status == AIDraft.Status.FAILED and 'No se pudo completar' in draft.error
-        assert AIRequest.objects.get().status == AIRequest.Status.ERROR
+        assert AIRequest.objects.count() == 3 and set(AIRequest.objects.values_list('status', flat=True)) == {AIRequest.Status.ERROR}
         html = professor_client.get(reverse('ai:draft', args=[draft.pk])).content.decode()
         assert 'Intentar de nuevo' in html and 'no se descontó ningún uso' in html
 
@@ -500,3 +500,38 @@ class TestAcceso:
         quiz = make_quiz(course, 1, published=False)
         html = professor_client.get(reverse('quizzes:builder', args=[quiz.activity.pk])).content.decode()
         assert 'Arma primero las semanas del temario' in html
+
+
+class TestReintentos:
+    """Un fallo pasajero del proveedor (servidor saturado) se reintenta solo; el docente no se entera ni paga el intento."""
+
+    def test_un_fallo_pasajero_se_reintenta_y_sale_bien(self, professor_client, course, semanas, quiz, django_capture_on_commit_callbacks):
+        fake.PROVIDER.errors = [ProviderError('Gemini respondió 503', retryable=True), ProviderError('Gemini respondió 503', retryable=True)]
+        programar(pregunta())
+        pedir(professor_client, course, semanas, django_capture_on_commit_callbacks, activity=quiz.activity.pk)
+        assert AIDraft.objects.get().status == AIDraft.Status.READY and len(fake.PROVIDER.calls) == 3
+        assert sorted(AIRequest.objects.values_list('status', flat=True)) == ['error', 'error', 'ok']
+        from apps.ai import services
+
+        assert services.uses_this_month(course.organization) == 1  # los intentos fallidos no cuentan
+
+    def test_si_sigue_fallando_se_rinde_tras_tres_intentos(self, professor_client, course, semanas, quiz, django_capture_on_commit_callbacks):
+        fake.PROVIDER.error = ProviderError('Gemini respondió 503', retryable=True)
+        pedir(professor_client, course, semanas, django_capture_on_commit_callbacks, activity=quiz.activity.pk)
+        assert AIDraft.objects.get().status == AIDraft.Status.FAILED and len(fake.PROVIDER.calls) == 3
+
+    def test_un_fallo_que_no_es_pasajero_no_se_reintenta(self, professor_client, course, semanas, quiz, django_capture_on_commit_callbacks):
+        fake.PROVIDER.error = ProviderError('Gemini respondió 400', retryable=False)
+        pedir(professor_client, course, semanas, django_capture_on_commit_callbacks, activity=quiz.activity.pk)
+        assert AIDraft.objects.get().status == AIDraft.Status.FAILED and len(fake.PROVIDER.calls) == 1
+
+    def test_espera_entre_intentos_lo_que_dice_la_configuracion(self, plus, professor, monkeypatch):
+        esperas = []
+        monkeypatch.setattr(drafts.time, 'sleep', esperas.append)
+        monkeypatch.setattr(drafts, 'RETRY_DELAYS', (3, 8))
+        fake.PROVIDER.error = ProviderError('503', retryable=True)
+        from apps.ai import services
+
+        with pytest.raises(services.AIFailed):
+            drafts._generate(organization=plus, user=professor, kind=AIRequest.Kind.QUIZ, prompt='x', schema={})
+        assert esperas == [3, 8] and len(fake.PROVIDER.calls) == 3

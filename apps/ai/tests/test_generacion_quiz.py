@@ -124,6 +124,10 @@ class TestValidacion:
         items, descartadas = analizar([pregunta(cita='Los ribosomas nacen en el nucleolo'), pregunta(cita='')], semanas)
         assert items == [] and descartadas == 2
 
+    def test_una_cita_que_junta_varios_temas_no_vale(self, semanas):
+        items, descartadas = analizar([pregunta(cita='Ribosomas: síntesis de proteínas Mitocondria: producción de energía')], semanas)
+        assert items == [] and descartadas == 1
+
     def test_la_semana_la_decide_la_cita_no_el_modelo(self, semanas):
         items, _ = analizar([pregunta(cita='Cloroplastos y fotosíntesis', semana=1)], semanas)
         assert items[0]['week'] == 2 and items[0]['topic'] == 'Organelos'

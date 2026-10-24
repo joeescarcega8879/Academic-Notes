@@ -268,8 +268,12 @@
                 <div class="sy-chips">
                   {% for activity in selected.activities %}<a class="chip{% if activity.published %} ok{% endif %}" href="{{ activity.get_absolute_url }}">{{ activity.title }}{% if not activity.published %} (borrador){% endif %}</a>{% empty %}<span class="chip warn">Sin actividades</span>{% endfor %}
                   <a class="btn btn-ghost btn-sm" href="{% url 'grades:activity_create' course.pk %}?semana={{ week.pk }}">+ Crear actividad</a>
+                  <button type="button" class="btn btn-ghost btn-sm ai-btn"{% if ai_task.reason %} disabled title="{{ ai_task.reason }}"{% else %} data-ai-open="modal-ai-assignment"{% endif %}>Generar tarea con IA</button>
                   <button type="button" class="btn btn-ghost btn-sm ai-btn"{% if ai.reason %} disabled title="{{ ai.reason }}"{% else %} data-ai-open="modal-ai-quiz"{% endif %}>Generar quiz con IA</button>
                 </div>
+                {% for item in ai_task_drafts %}
+                  <p class="ai-note" style="margin: 4px 0 0"><a class="flash-link" href="{% url 'ai:assignment_draft' item.pk %}">{% if item.status == 'ready' %}Revisar {{ item.pending_count }} alternativa{{ item.pending_count|pluralize }} de tarea propuesta{{ item.pending_count|pluralize }} por la IA{% elif item.status == 'pending' %}Generando alternativas de tarea…{% else %}No se pudo generar una tarea: ver el motivo{% endif %}</a></p>
+                {% endfor %}
                 {% for item in ai_quiz_drafts %}
                   <p class="ai-note" style="margin: 4px 0 0"><a class="flash-link" href="{% url 'ai:draft' item.pk %}">{% if item.status == 'ready' %}Revisar {{ item.items|length }} pregunta{{ item.items|length|pluralize }} propuesta{{ item.items|length|pluralize }} por la IA{% elif item.status == 'pending' %}Generando preguntas…{% else %}No se pudo generar un quiz: ver el motivo{% endif %}</a> <span class="text-muted">· {{ item.new_activity_title|default:"quiz nuevo" }}</span></p>
                 {% endfor %}
@@ -306,5 +310,6 @@
 
 {% endif %}
 {% if syllabus is not None and ai and not ai.reason %}{% include 'partials/ai_quiz_modal.html' %}{% endif %}
+{% if syllabus is not None and ai_task and not ai_task.reason %}{% include 'partials/ai_assignment_modal.html' %}{% endif %}
 <script src="{% static 'js/ia.js' %}?v=1"></script>
 {% endblock %}

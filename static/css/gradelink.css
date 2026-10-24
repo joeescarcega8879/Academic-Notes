@@ -1654,3 +1654,20 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
 .ai-weeks-again .input { width: 72px; height: 30px; padding: 0 8px; }
 .ai-proposed li small { display: block; color: var(--text-muted); font-size: 12px; }
 @media (max-width: 760px) { .ai-grid { grid-template-columns: minmax(0, 1fr); } .ai-wait { padding: 32px 16px; } }
+
+/* ── IA asistida: alternativas de tarea ── */
+.alt-grid { display: grid; gap: 14px; }
+.ai-title { margin: 0 0 8px; font-size: 18px; }
+.ai-desc { margin: 0 0 12px; font-size: 14px; white-space: pre-line; }
+.ai-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 14px 0 6px; }
+.ai-crit { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ai-crit td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.ai-crit td:last-child { text-align: right; white-space: nowrap; font-weight: 700; }
+.ai-crit tfoot td { border-bottom: 0; background: var(--surface-2); }
+.ai-crit .c-name { font-weight: 500; }
+.ai-crit .c-desc { color: var(--text-muted); font-size: 12.5px; }
+.ai-prop.is-created { border-color: rgba(34, 168, 102, .5); }
+.edit-crit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 90px; gap: 8px; margin-bottom: 8px; }
+@media (max-width: 760px) { .edit-crit { grid-template-columns: minmax(0, 1fr); } }
+.ai-promo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: var(--brand-primary-50); }
+.ai-promo .ai-note { flex: 1; min-width: 200px; }

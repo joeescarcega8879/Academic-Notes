@@ -38,9 +38,12 @@ class FakeProvider(AIProvider):
         self.responses = []
         self.calls = []
         self.error = None
+        self.errors = []  # fallos que se lanzan uno por llamada antes de responder (para probar reintentos)
 
     def generate_json(self, *, prompt, schema, system=''):
         self.calls.append({'prompt': prompt, 'schema': schema, 'system': system})
+        if self.errors:
+            raise self.errors.pop(0)
         if self.error is not None:
             raise self.error if isinstance(self.error, ProviderError) else ProviderError(str(self.error))
         data = self.responses.pop(0) if self.responses else sample_from_schema(schema)

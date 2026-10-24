@@ -16,6 +16,7 @@
   <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
     <h2 style="margin: 0">{{ activity.title }}</h2>
     <span class="chip">{{ activity.get_type_display }}</span>
+    {% if is_teacher and activity.ai_generated %}<span class="chip info">Redactada con IA</span>{% endif %}
     {% if is_teacher %}
       {% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}
       {% if not course.is_archived %}

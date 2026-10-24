@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Alternativas de tarea · {{ course.name }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=back_url label='Volver al temario' %}
+  <h1>Alternativas de {{ params_type|lower }}</h1>
+  <span class="sub">{{ course.name }}{% if week_names %} · Semana{{ week_names|length|pluralize }} {{ week_names }}{% endif %}</span>
+  <div class="spacer"></div>
+</header>
+{% endblock %}
+
+{% block content %}
+{% if draft.status == 'pending' %}
+
+  <div class="card ai-wait" data-ai-poll="{% url 'ai:draft_status' draft.pk %}">
+    <div class="ai-spin" aria-hidden="true"></div>
+    <h3 class="section-title">Pensando tres alternativas…</h3>
+    <p class="text-sm text-muted">Semana{{ week_names|length|pluralize }} {{ week_names }}. Suele tardar unos 15 segundos. Puedes salir de esta página: la propuesta te espera en el temario.</p>
+    <a class="btn btn-ghost" href="{{ back_url }}">Volver</a>
+  </div>
+
+{% elif draft.status == 'failed' %}
+
+  <div class="card ai-wait">
+    <span class="chip warn">No se pudo generar</span>
+    <p class="text-sm" style="margin: 12px 0 4px">{{ draft.error }}</p>
+    <p class="text-xs text-muted">Si falló el servicio de IA, no se descontó ningún uso.</p>
+    <form method="post" class="action-bar" style="justify-content: center">
+      {% csrf_token %}
+      <button type="submit" name="action" value="retry" class="btn btn-primary">Intentar de nuevo</button>
+      <a class="btn btn-ghost" href="{{ back_url }}">Volver</a>
+    </form>
+  </div>
+
+{% elif draft.status == 'applied' or draft.status == 'discarded' %}
+
+  <div class="card ai-wait">
+    <span class="chip{% if draft.status == 'applied' %} ok{% endif %}">{% if draft.status == 'applied' %}Cerrada{% else %}Descartada{% endif %}</span>
+    <p class="text-sm" style="margin: 12px 0">{% if draft.status == 'applied' %}Ya creaste las tareas que querías de esta propuesta.{% else %}Descartaste estas alternativas: no se creó ninguna actividad.{% endif %}</p>
+    {% for row in rows %}{% if row.item.activity_id %}<p class="text-sm" style="margin: 4px 0"><a class="flash-link" href="{% url 'grades:activity_detail' row.item.activity_id %}">{{ row.item.title }}</a></p>{% endif %}{% endfor %}
+    <a class="btn btn-ghost" href="{{ back_url }}">Volver al temario</a>
+  </div>
+
+{% else %}
+
+  <div class="flash flash-warning mb-12">La IA puede equivocarse. Lee las instrucciones y los criterios antes de crear la tarea; después puedes seguir editándola como cualquier actividad.</div>
+  {% if draft.dropped %}<div class="flash flash-info mb-12">La IA propuso {{ draft.dropped }} alternativa{{ draft.dropped|pluralize }} más que no se muestra{{ draft.dropped|pluralize }}: venían incompletas, repetidas o no citaban tu temario.</div>{% endif %}
+
+  <form method="post" class="ai-review" data-ai-review{% if busy %} data-ai-poll="{% url 'ai:draft_status' draft.pk %}"{% endif %}>
+    {% csrf_token %}
+    {# Primer botón del formulario: el Enter de un campo no descarta ni crea nada. #}
+    <button type="submit" name="action" value="save" class="ai-hidden" tabindex="-1" aria-hidden="true"></button>
+
+    <div class="alt-grid">
+    {% for row in rows %}{% with item=row.item %}
+      {% if item.state == 'discarded' %}
+        <div class="card ai-prop is-discarded" id="p{{ row.n }}">
+          <div class="ai-prop-head"><span class="num">{{ row.n }}</span><span class="chip">Descartada</span><span class="grow"></span>
+            <button type="submit" name="action" value="restore:{{ row.i }}" class="btn btn-ghost btn-sm">Recuperar</button></div>
+          <div class="ai-prop-body"><p class="ai-q">{{ item.title }}</p></div>
+        </div>
+      {% elif item.state == 'created' %}
+        <div class="card ai-prop is-created" id="p{{ row.n }}">
+          <div class="ai-prop-head"><span class="num">{{ row.n }}</span><span class="chip ok">Creada</span><span class="grow"></span>
+            <a class="btn btn-ghost btn-sm" href="{% url 'grades:activity_detail' item.activity_id %}">Ver la tarea</a></div>
+          <div class="ai-prop-body"><p class="ai-q">{{ item.title }}</p><p class="text-sm text-muted">Se creó como borrador.</p></div>
+        </div>
+      {% elif item.state == 'regenerating' %}
+        <div class="card ai-prop" id="p{{ row.n }}">
+          <div class="ai-prop-head"><span class="num">{{ row.n }}</span><span class="chip info">Regenerando…</span></div>
+          <div class="ai-prop-body ai-regen"><div class="ai-spin small" aria-hidden="true"></div><p class="text-sm text-muted">Estamos escribiendo otra alternativa en su lugar.</p></div>
+        </div>
+      {% else %}
+        <div class="card ai-prop{% if row.editing %} is-editing{% endif %}" id="p{{ row.n }}">
+          <div class="ai-prop-head">
+            <span class="num">{{ row.n }}</span>
+            <span class="chip">{{ row.type_label }}</span>
+            <span class="chip">{{ row.week_label }}</span>
+            <span class="chip">{{ item.points }} puntos</span>
+            {% if item.edited %}<span class="chip info">Editada por ti</span>{% endif %}
+          </div>
+          {% if row.editing %}
+            <div class="ai-edit">
+              <div class="field"><label for="edit-title">Título</label><input class="input" id="edit-title" name="edit_title" value="{{ item.title }}" maxlength="255"></div>
+              <div class="field"><label for="edit-description">Descripción</label><textarea class="input" id="edit-description" name="edit_description" rows="4">{{ item.description }}</textarea></div>
+              <div class="field"><label for="edit-deliverable">Qué entregar</label><input class="input" id="edit-deliverable" name="edit_deliverable" value="{{ item.deliverable }}" maxlength="300"></div>
+              <div class="field"><label for="edit-points">Puntos de la actividad</label><input class="input" id="edit-points" name="edit_points" value="{{ item.points }}" inputmode="decimal" style="max-width: 120px"></div>
+              <div class="field"><label>Criterios de calificación</label>
+                <div data-ai-criteria>
+                  {% for criterion in item.criteria %}
+                    <div class="edit-crit"><input class="input" name="edit_criterion_name" value="{{ criterion.name }}" maxlength="100" aria-label="Nombre del criterio {{ forloop.counter }}"><input class="input" name="edit_criterion_description" value="{{ criterion.description }}" maxlength="300" aria-label="Descripción del criterio {{ forloop.counter }}"><input class="input" name="edit_criterion_points" value="{{ criterion.points }}" inputmode="decimal" aria-label="Puntos del criterio {{ forloop.counter }}"></div>
+                  {% endfor %}
+                </div>
+                <div><button type="button" class="btn btn-ghost btn-sm" data-ai-add-criterion>+ Agregar criterio</button> <span class="text-xs text-muted">Deja una fila en blanco para quitar un criterio. Los puntos de los criterios deben sumar el total.</span></div>
+              </div>
+            </div>
+            <div class="ai-prop-foot is-editing">
+              <span class="grow"></span>
+              <a class="btn btn-ghost btn-sm" href="{% url 'ai:assignment_draft' draft.pk %}#p{{ row.n }}">Cancelar</a>
+              <button type="submit" name="action" value="save_edit:{{ row.i }}" class="btn btn-primary btn-sm">Guardar cambios</button>
+            </div>
+          {% else %}
+            <div class="ai-prop-body">
+              <h3 class="ai-title">{{ item.title }}</h3>
+              <p class="ai-desc">{{ item.description }}</p>
+              <div class="ai-label">Qué entregar</div>
+              <p class="ai-desc" style="margin: 0">{{ item.deliverable }}</p>
+              <div class="ai-label">Criterios de calificación</div>
+              <table class="ai-crit"><tbody>
+                {% for criterion in item.criteria %}
+                  <tr><td><span class="c-name">{{ criterion.name }}</span>{% if criterion.description %}<div class="c-desc">{{ criterion.description }}</div>{% endif %}</td><td>{{ criterion.points }} pts</td></tr>
+                {% endfor %}
+              </tbody><tfoot><tr><td>Total</td><td>{{ item.points }} pts</td></tr></tfoot></table>
+              <div class="ai-cite" style="margin-top: 14px"><b>Cita del temario ·</b> «{{ item.citation }}»</div>
+              {% if item.note %}<p class="text-xs" style="color: var(--bad)">{{ item.note }}</p>{% endif %}
+            </div>
+            <div class="ai-prop-foot">
+              <span class="grow"></span>
+              <button type="submit" name="action" value="edit:{{ row.i }}" class="btn btn-ghost btn-sm">Editar</button>
+              <button type="submit" name="action" value="regen:{{ row.i }}" class="btn btn-ghost btn-sm" title="Escribe otra alternativa en su lugar. Cuenta como un uso de IA.">Regenerar</button>
+              <button type="submit" name="action" value="discard:{{ row.i }}" class="btn btn-ghost btn-sm sy-danger">Descartar</button>
+              <button type="submit" name="action" value="create:{{ row.i }}" class="btn btn-primary btn-sm">Crear tarea</button>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endwith %}{% endfor %}
+    </div>
+
+    <div class="ai-bar">
+      <div class="grow">Crear una tarea la deja como <b>borrador</b>: no la ven tus alumnos hasta que la publiques.</div>
+      <button type="submit" name="action" value="finish" class="btn btn-ghost" onclick="return confirm('¿Terminar? Las alternativas que no creaste se descartan.')">Terminar y descartar el resto</button>
+    </div>
+  </form>
+
+{% endif %}
+<script src="{% static 'js/ia.js' %}?v=2"></script>
+{% endblock %}

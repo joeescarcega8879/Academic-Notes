@@ -56,7 +56,9 @@ class AIDraft(TenantModel):
     ``{kind, text, choices: [{text, correct}], true_is_correct, explanation, citation, week, topic, points,
     state, edited, similar, question_id}``; ``state`` es ``pending`` (por revisar), ``approved``, ``discarded`` o
     ``regenerating``. En una división del temario cada una es una semana
-    ``{title, topics, objectives, assessment, source}`` lista para ``replace_weeks``.
+    ``{title, topics, objectives, assessment, source}`` lista para ``replace_weeks``. En tareas y proyectos cada una
+    es ``{title, description, deliverable, criteria: [{name, description, points}], points, type, citation, week,
+    state, edited, activity_id}``; ``state`` ``created`` dice que ya se creó la actividad (``activity_id``).
     """
 
     organization_source = 'course'
@@ -64,6 +66,7 @@ class AIDraft(TenantModel):
     class Kind(models.TextChoices):
         QUIZ_QUESTIONS = 'quiz_questions', 'Preguntas de quiz'
         SYLLABUS_SPLIT = 'syllabus_split', 'División del temario'
+        ASSIGNMENTS = 'assignments', 'Tareas y proyectos'
 
     class Status(models.TextChoices):
         PENDING = 'pending', 'Generando'
@@ -103,3 +106,8 @@ class AIDraft(TenantModel):
 
     def count(self, state):
         return sum(1 for item in self.items if item.get('state') == state)
+
+    @property
+    def pending_count(self):
+        """Propuestas que el docente aún no decide (para las plantillas, que no pueden llamar ``count('pending')``)."""
+        return self.count('pending')
