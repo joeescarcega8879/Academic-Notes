@@ -27,6 +27,9 @@ GEMINI_MODEL = ""
 GEMINI_KEY_TIER = "free"
 AI_PRICING = {}
 
+# El OCR depende de un programa del sistema: las pruebas lo apagan y solo lo prenden las que lo necesitan.
+OCR_ENABLED = False
+
 # Los archivos subidos en pruebas no deben ensuciar el `media/` del proyecto.
 MEDIA_ROOT = Path(tempfile.gettempdir()) / "gradelink-test-media"
 STORAGES = {

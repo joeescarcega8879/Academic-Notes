@@ -4,7 +4,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from apps.grades.models import get_submission_storage
+from apps.grades.models import Submission, get_submission_storage
 from apps.organizations.models import TenantModel
 
 
@@ -25,6 +25,7 @@ class BatchFile(TenantModel):
     organization_source = 'activity'
 
     class Status(models.TextChoices):
+        READING = 'reading', 'Leyendo'
         READY = 'ready', 'Identificado'
         UNIDENTIFIED = 'unidentified', 'Sin identificar'
         DUPLICATE = 'duplicate', 'Duplicado'
@@ -47,6 +48,11 @@ class BatchFile(TenantModel):
     # Las páginas de portada que se leyeron (las de la actividad al momento de subir) y su texto, recortado.
     cover_pages = models.PositiveSmallIntegerField(default=1)
     cover_text = models.TextField(blank=True)
+    # El trabajo (lo que sigue a la portada) y cómo se pudo leer; pasa a la ``Submission`` al guardar.
+    body_text = models.TextField(blank=True, default='', db_default='')
+    body_status = models.CharField(max_length=10, choices=Submission.ReadStatus.choices, blank=True, default='', db_default='')
+    body_note = models.CharField(max_length=200, blank=True, default='', db_default='')
+    ocr_confidence = models.FloatField(null=True, blank=True)
 
     status = models.CharField(max_length=20, choices=Status.choices)
     student = models.ForeignKey('courses.Student', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')

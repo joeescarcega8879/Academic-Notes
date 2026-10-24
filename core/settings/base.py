@@ -217,6 +217,15 @@ else:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
+# ── OCR (lote de PDFs) ────────────────────────────────────────────────
+# Tesseract corre en nuestro servidor: ninguna imagen sale a un tercero. Sin el programa instalado la app sigue
+# funcionando y solo lee el texto digital de los PDF.
+OCR_ENABLED = env.bool("OCR_ENABLED", default=True)
+OCR_TESSERACT_CMD = env("OCR_TESSERACT_CMD", default="")  # vacío: se busca en el PATH
+OCR_TESSDATA_DIR = env("OCR_TESSDATA_DIR", default="")  # vacío: la carpeta de datos por omisión de Tesseract
+OCR_LANGUAGE = env("OCR_LANGUAGE", default="spa")
+
+
 # ── Celery ────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/1")

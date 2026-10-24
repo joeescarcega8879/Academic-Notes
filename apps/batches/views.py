@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
@@ -10,7 +10,7 @@ from apps.grades.models import Activity
 from core.utils import parse_id
 
 from .models import BatchFile
-from .services import batch
+from .services import batch, ocr
 from .services.pdfs import MAX_PAGES
 
 
@@ -46,7 +46,8 @@ class BatchView(BatchMixin, View):
         counts = {status: sum(1 for f in files if f.status == status) for status in BatchFile.Status.values}
         return render(request, self.template_name, {
             'activity': activity, 'course': activity.course, 'files': files, 'students': students, 'counts': counts,
-            'ready_count': counts[BatchFile.Status.READY], 'cover_choices': Activity._meta.get_field('cover_pages').choices,
+            'ready_count': counts[BatchFile.Status.READY], 'reading_count': counts[BatchFile.Status.READING],
+            'cover_choices': Activity._meta.get_field('cover_pages').choices, 'ocr_available': ocr.available(),
             'limits': {
                 'file_mb': batch.MAX_SUBMISSION_BYTES // (1024 * 1024), 'batch_mb': batch.MAX_BATCH_BYTES // (1024 * 1024),
                 'files': batch.MAX_BATCH_FILES, 'pages': MAX_PAGES,
@@ -74,8 +75,13 @@ class BatchView(BatchMixin, View):
             Activity.objects.filter(pk=activity.pk).update(cover_pages=cover_pages)
         statuses = [f.status for f in result.created]
         ready = statuses.count(BatchFile.Status.READY)
-        if result.created:
-            total, review = len(result.created), len(result.created) - ready
+        total = len(result.created)
+        if statuses.count(BatchFile.Status.READING):  # Celery todavía los está leyendo: la página se actualiza sola
+            messages.success(
+                request, 'Se subió 1 archivo y se está leyendo.' if total == 1 else f'Se subieron {total} archivos y se están leyendo.',
+            )
+        elif total:
+            review = total - ready
             text = 'Se leyó 1 archivo' if total == 1 else f'Se leyeron {total} archivos'
             text += ': 1 identificado' if ready == 1 else f': {ready} identificados'
             if review:
@@ -84,6 +90,14 @@ class BatchView(BatchMixin, View):
         for name, reason in result.rejected:
             messages.error(request, f'{name}: {reason}')
         return self.back(activity)
+
+
+class BatchStatusView(BatchMixin, View):
+    """Para la página del lote: ¿siguen leyéndose archivos? Cuando ya no, se recarga sola."""
+
+    def get(self, request, pk):
+        activity = self.get_activity(pk)
+        return JsonResponse({'busy': BatchFile.objects.filter(activity=activity, status=BatchFile.Status.READING).exists()})
 
 
 class BatchAssignView(BatchMixin, View):

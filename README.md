@@ -163,6 +163,7 @@ Se leen de `.env` (plantilla en `.env.example`). Las principales:
 | `DJANGO_EMAIL_BACKEND`, `EMAIL_*`, `DEFAULT_FROM_EMAIL` | Correo (por defecto, a consola) |
 | `SITE_NAME`, `SITE_URL`, `SUPPORT_EMAIL` | Nombre, dirección pública (obligatoria en producción) y soporte; salen en los correos |
 | `TRUSTED_PROXY_COUNT` | Proxies de confianza delante de la app (0 en local, 1 por omisión en producción); de ahí sale la IP para los límites de intentos |
+| `OCR_ENABLED`, `OCR_TESSERACT_CMD`, `OCR_TESSDATA_DIR`, `OCR_LANGUAGE` | OCR con Tesseract para los PDF escaneados del lote (opcional; sin él se lee solo el texto digital) |
 | `SENTRY_DSN` | Errores en producción (opcional) |
 
 ---

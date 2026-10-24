@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Lote de PDFs · {{ activity.title }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -22,6 +23,8 @@
   <p class="text-sm text-muted" style="margin-top: 0">
     Para tareas en papel digitalizadas o recibidas por otro medio. Leemos la portada de cada PDF, buscamos la matrícula
     de un alumno del grupo y la dejamos lista para guardarla como su entrega. <strong>Nada se guarda hasta que lo confirmes.</strong>
+    {% if ocr_available %}Los escaneos se leen con OCR en este servidor: ninguna imagen sale a un tercero.
+    {% else %}Este servidor no tiene OCR: una portada escaneada se asigna a mano.{% endif %}
   </p>
   <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
@@ -40,14 +43,15 @@
     </div>
     <p class="text-xs text-muted" style="margin-bottom: 0">
       Hasta {{ limits.files }} PDFs y {{ limits.batch_mb }} MB por subida; cada uno de máximo {{ limits.file_mb }} MB y {{ limits.pages }} páginas.
-      La portada debe tener texto (no una foto) con la matrícula del alumno. Las entregas de un lote no llevan penalización por tardía.
+      La portada debe traer la matrícula del alumno{% if not ocr_available %} como texto, no como foto{% endif %}. Las entregas de un lote no llevan penalización por tardía.
     </p>
   </form>
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap"{% if reading_count %} data-batch-poll="{% url 'batches:status' activity.pk %}"{% endif %}>
   <div class="table-head">
     <h3>Archivos del lote</h3>
+    {% if counts.reading %}<span class="chip">{{ counts.reading }} leyendo</span>{% endif %}
     {% if counts.ready %}<span class="chip ok">{{ counts.ready }} identificados</span>{% endif %}
     {% if counts.unidentified %}<span class="chip warn">{{ counts.unidentified }} sin identificar</span>{% endif %}
     {% if counts.duplicate %}<span class="chip warn">{{ counts.duplicate }} duplicados</span>{% endif %}
@@ -67,6 +71,19 @@
               <div class="text-xs text-muted">{{ f.pages }} {% if f.pages == 1 %}página{% else %}páginas{% endif %} · {{ f.size|filesizeformat }}
                 · <a href="{% url 'batches:file' f.pk %}">Descargar</a></div>
             {% endif %}
+            {% if f.body_status %}
+              <div class="batch-body text-xs">
+                <span class="chip {% if f.body_status == 'partial' %}warn{% else %}ok{% endif %}">{{ f.get_body_status_display }}</span>
+                {% if f.ocr_confidence is not None %}<span class="text-muted batch-conf">{{ f.ocr_confidence|floatformat:0 }} % de confianza</span>{% endif %}
+                {% if f.body_note %}<div class="text-muted batch-problem">{{ f.body_note }}</div>{% endif %}
+              </div>
+              {% if f.body_text %}
+                <details class="batch-cover">
+                  <summary class="text-xs">Ver el texto leído</summary>
+                  <pre>{{ f.body_text|truncatechars:3000 }}</pre>
+                </details>
+              {% endif %}
+            {% endif %}
             {% if f.cover_text %}
               <details class="batch-cover">
                 <summary class="text-xs">Ver la portada</summary>
@@ -82,13 +99,14 @@
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td data-label="Estado">
-            <span class="chip {% if f.status == 'ready' %}ok{% elif f.status == 'unreadable' %}bad{% else %}warn{% endif %}">{{ f.get_status_display }}</span>
+            <span class="chip {% if f.status == 'ready' %}ok{% elif f.status == 'unreadable' %}bad{% elif f.status != 'reading' %}warn{% endif %}">{{ f.get_status_display }}{% if f.status == 'reading' %}…{% endif %}</span>
+            {% if f.status == 'reading' %}<div class="text-xs text-muted batch-problem">Se está leyendo el contenido; los escaneos tardan más.</div>{% endif %}
             {% if f.status == 'ready' and f.replace %}<div class="text-xs text-muted">Reemplazará su entrega</div>{% endif %}
             {% if f.problem %}<div class="text-xs text-muted batch-problem">{{ f.problem }}</div>{% endif %}
           </td>
           <td data-label="Acciones">
             <div class="batch-actions">
-              {% if f.status != 'unreadable' %}
+              {% if f.status != 'unreadable' and f.status != 'reading' %}
                 <form method="post" action="{% url 'batches:assign' f.pk %}" class="batch-assign">
                   {% csrf_token %}
                   <select class="select" name="student" aria-label="Alumno para {{ f.original_name }}" required>
@@ -120,4 +138,5 @@
     </tbody>
   </table>
 </div>
+<script src="{% static 'js/batch.js' %}?v=1"></script>
 {% endblock %}
