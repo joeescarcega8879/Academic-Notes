@@ -1671,3 +1671,32 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
 @media (max-width: 760px) { .edit-crit { grid-template-columns: minmax(0, 1fr); } }
 .ai-promo { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: var(--brand-primary-50); }
 .ai-promo .ai-note { flex: 1; min-width: 200px; }
+
+/* ── Lote de PDFs ── */
+.batch-form { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.batch-form .field { margin: 0; }
+.batch-tbl td { vertical-align: top; }
+.batch-name { overflow-wrap: anywhere; }
+.batch-problem { max-width: 260px; margin-top: 4px; }
+.batch-cover { margin-top: 6px; }
+.batch-cover summary { cursor: pointer; color: var(--brand-primary); }
+.batch-cover pre { margin: 6px 0 0; padding: 10px 12px; max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+.batch-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.batch-assign { display: flex; gap: 6px; align-items: center; }
+.batch-assign .select { min-width: 170px; max-width: 220px; height: 30px; padding-block: 0; font-size: 13px; }
+.chip.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+@media (max-width: 760px) {
+  .batch-form { grid-template-columns: minmax(0, 1fr); }
+  .batch-assign { flex-wrap: wrap; width: 100%; }
+  .batch-assign .select { flex: 1; max-width: none; }
+  /* Cada archivo pasa de fila a tarjeta: así los estados y las acciones no quedan fuera de la pantalla. */
+  .batch-tbl, .batch-tbl tbody, .batch-tbl tr, .batch-tbl td { display: block; width: 100%; }
+  .batch-tbl thead { display: none; }
+  .batch-tbl tr { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .batch-tbl tr:last-child { border-bottom: 0; }
+  .batch-tbl td { padding: 6px 0; border: 0; }
+  .batch-tbl td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .batch-tbl td[data-label="Archivo"]::before { display: none; }
+  .batch-problem { max-width: none; }
+  .batch-actions { align-items: stretch; }
+}
