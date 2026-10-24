@@ -60,6 +60,8 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
+      - name: Instalar Tesseract (OCR del lote de PDFs)
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-spa
       - run: pip install -r requirements/local.txt
       - name: ¿Faltan migraciones por generar?
         run: python manage.py makemigrations --check --dry-run

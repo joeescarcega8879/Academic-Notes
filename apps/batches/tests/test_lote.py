@@ -10,7 +10,9 @@ from django.utils import timezone
 
 from apps.batches.models import BatchFile
 from apps.batches.services import batch
-from apps.batches.tests.factories import blank_pdf, cover_upload, encrypted_pdf, make_pdf, upload
+from apps.batches.tests.factories import (
+    blank_pdf, cover_upload, encrypted_pdf, inscribir, make_pdf, pdf_de, subir, upload,
+)
 from apps.courses.services.courses import archive_course
 from apps.courses.tests.factories import EnrollmentFactory
 from apps.grades.models import Activity, Grade, Submission
@@ -20,40 +22,6 @@ from apps.grades.tests.factories import ActivityFactory
 pytestmark = pytest.mark.django_db
 
 Status = BatchFile.Status
-
-
-@pytest.fixture
-def tarea(course):
-    """Una tarea cuya fecha límite ya pasó: lo que entra por el lote no debe salir como tardía."""
-    return ActivityFactory(
-        course=course, type=Activity.Type.HOMEWORK, due_at=timezone.now() - datetime.timedelta(days=3), allow_late=True,
-        late_penalty=20,
-    )
-
-
-def inscribir(course, numero, nombre='Ana', apellido='Pérez'):
-    return EnrollmentFactory(
-        course=course, student__user=None, student__first_name=nombre, student__last_name=apellido,
-        student__student_number=numero,
-    ).student
-
-
-@pytest.fixture
-def ana(course):
-    return inscribir(course, '20240001', 'Ana', 'Pérez')
-
-
-@pytest.fixture
-def beto(course):
-    return inscribir(course, '20240002', 'Beto', 'Gómez')
-
-
-def subir(tarea, *archivos, cover_pages=1, user=None):
-    return batch.upload(tarea, list(archivos), cover_pages=cover_pages, user=user)
-
-
-def pdf_de(numero, apellido='Pérez', nombre='archivo.pdf'):
-    return cover_upload(nombre, f'Nombre: Ana {apellido}', f'Matrícula: {numero}', 'Grupo 3B')
 
 
 # ── Subir e identificar ───────────────────────────────────────────────

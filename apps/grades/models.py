@@ -322,6 +322,17 @@ class Submission(TenantModel):
     submitted_at = models.DateTimeField()
     is_late = models.BooleanField(default=False)
 
+    class ReadStatus(models.TextChoices):
+        TEXT = 'text', 'Texto digital'
+        OCR = 'ocr', 'Leído con OCR'
+        PARTIAL = 'partial', 'Legible a medias'
+        EMPTY = 'empty', 'Sin cuerpo'
+
+    # Lo que se leyó del PDF de un lote (el texto del trabajo, sin la portada). Vacío en las entregas del portal.
+    body_text = models.TextField('texto del trabajo', blank=True, default='', db_default='')
+    read_status = models.CharField('lectura', max_length=10, choices=ReadStatus.choices, blank=True, default='', db_default='')
+    ocr_confidence = models.FloatField('confianza del OCR', null=True, blank=True)
+
     class Meta:
         unique_together = ('activity', 'student')
         ordering = ['-submitted_at']

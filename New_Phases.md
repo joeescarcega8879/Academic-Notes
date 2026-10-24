@@ -536,11 +536,13 @@ Nada generado por IA llega a un alumno sin **dos acciones del docente**: aprobar
 
 | Parte | Contenido | Usa IA | Depende de |
 |---|---|---|---|
-| T5a | Lote de PDFs, separar la portada, identificar por matrícula, cola «Sin identificar» | No | Entregas (ya existen) |
-| T5b | Cuerpo: texto y OCR con confianza, «Legible a medias» | No | T5a |
+| T5a | Lote de PDFs, separar la portada, identificar por matrícula, cola «Sin identificar» (**hecho 2026-10-24**) | No | Entregas (ya existen) |
+| T5b | Cuerpo: texto y OCR con confianza, «Legible a medias» (**hecho 2026-10-24**) | No | T5a |
 | T5c | Depurar, token por solicitud, revisión con IA, bandeja y confirmación en bloque | Sí | T5b, T2 (capa de IA y revisión legal) |
 
-T5a y T5b aportan valor aunque nunca se active la IA: asignan solas las tareas de un lote a cada alumno y dejan el texto buscable. No necesitan esperar la revisión legal. Dependencias nuevas a decidir: Tesseract (programa del sistema, hay que sumarlo al `Dockerfile`; para desarrollo en Windows puede ser opcional) y una biblioteca de rasterizado de PDF (p. ej. `pypdfium2`) para pasar las páginas a imagen; `pypdf` ya está.
+T5a y T5b aportan valor aunque nunca se active la IA: asignan solas las tareas de un lote a cada alumno y dejan el texto buscable. No necesitan esperar la revisión legal.
+
+**Cómo quedó T5b.** Tesseract (idioma español) corre en nuestro servidor y se llama directo con `subprocess` (`apps/batches/services/ocr.py`); `pypdfium2` pasa cada página a imagen. El OCR es opcional: sin el programa (`OCR_ENABLED`, `OCR_TESSERACT_CMD`, `OCR_TESSDATA_DIR`, `OCR_LANGUAGE`) la app lee solo el texto digital y la portada escaneada se asigna a mano; el `Dockerfile` y el CI lo instalan. Cada archivo sube en estado «Leyendo» y una tarea de Celery (`read_batch_file`) lee la portada escaneada (para identificar) y el cuerpo, página por página: texto digital si lo hay y OCR si la página es imagen (menos de 40 letras). Estado del cuerpo: *Texto digital*, *Leído con OCR* (con la confianza media por palabras), *Legible a medias* (menos de 80 letras en total o confianza media bajo 60 %, típico de letra a mano) o *Sin cuerpo* (el PDF solo trae la portada). Al guardar el lote, el texto y su estado pasan a `Submission` (`body_text`, `read_status`, `ocr_confidence`) para que T5c los use; la portada nunca entra al cuerpo. Mientras un archivo se lee solo se puede descartar, y la lista se recarga sola al terminar. Sin broker de Celery la lectura se hace en la misma petición.
 
 ### Privacidad y control
 
