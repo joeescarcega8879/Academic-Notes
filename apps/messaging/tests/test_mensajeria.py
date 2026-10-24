@@ -1,153 +1,136 @@
-from django.test import RequestFactory, TestCase
-from django.contrib.auth.models import AnonymousUser
+"""Acceso, envío y no leídos de la mensajería, vistos desde el navegador."""
 
-from apps.accounts.models import User, StudentProfile, ProfessorProfile
+import re
+
+import pytest
+from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
+from django.urls import reverse
+
+from apps.accounts.tests.factories import ProfessorFactory, StudentFactory
+from apps.courses.tests.factories import CourseFactory, EnrollmentFactory
 from apps.messaging.context_processors import unread_messages
 from apps.messaging.models import Conversation, Message
-from apps.courses.models import Course, Enrollment
-from apps.courses.services.students import student_for_user
+from apps.messaging.tests.factories import MessageFactory
+
+pytestmark = pytest.mark.django_db
+
+LISTA = '/mensajes/'
+
+
+def detalle(conversacion):
+    return f'/mensajes/{conversacion.pk}/'
 
 
 def conv_items(html):
-    """Devuelve el HTML de cada .conv-item renderizado."""
-    import re
+    """El HTML de cada ``.conv-item`` renderizado."""
     return re.findall(r'<a class="conv-item.*?</a>', html, re.S)
 
 
-class MessagingAccessTests(TestCase):
+# Las fixtures `professor` y `student` de conftest se sobrescriben aquí para tener nombres conocidos.
+@pytest.fixture
+def professor():
+    return ProfessorFactory(first_name='Ana', last_name='Perez')
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.prof = User.objects.create_user(
-            username='prof1', email='prof1@test.local', password='Pass123!',
-            role='professor', first_name='Ana', last_name='Perez',
-        )
-        ProfessorProfile.objects.create(user=cls.prof, department='Matematicas')
 
-        cls.other_prof = User.objects.create_user(
-            username='prof2', email='prof2@test.local', password='Pass123!',
-            role='professor', first_name='Bruno', last_name='Diaz',
-        )
-        ProfessorProfile.objects.create(user=cls.other_prof, department='Fisica')
+@pytest.fixture
+def student():
+    return StudentFactory(first_name='Sofia', last_name='Lopez')
 
-        cls.student = User.objects.create_user(
-            username='alum1', email='alum1@test.local', password='Pass123!',
-            role='student', first_name='Sofia', last_name='Lopez',
-        )
-        StudentProfile.objects.create(user=cls.student, program='ISC', semester=5)
 
-        cls.other_student = User.objects.create_user(
-            username='alum2', email='alum2@test.local', password='Pass123!',
-            role='student', first_name='Diego', last_name='Ruiz',
-        )
-        StudentProfile.objects.create(user=cls.other_student, program='ISC', semester=3)
+@pytest.fixture
+def conversacion(enrollment):
+    """Al inscribir al alumno una señal crea la conversación con el docente."""
+    return Conversation.objects.get(student=enrollment.student.user, course=enrollment.course)
 
-        cls.course = Course.objects.create(name='Calculo', code='CAL1', professor=cls.prof)
-        cls.course2 = Course.objects.create(name='Fisica', code='FIS1', professor=cls.other_prof)
 
-        cls.enrollment = Enrollment.objects.create(
-            student=student_for_user(cls.student, cls.course.organization), course=cls.course,
-        )
-        cls.other_enrollment = Enrollment.objects.create(
-            student=student_for_user(cls.other_student, cls.course2.organization), course=cls.course2,
-        )
+@pytest.fixture
+def conversacion_ajena():
+    """La de otro alumno con otro docente, a la que ni ``student`` ni ``professor`` pertenecen."""
+    inscripcion = EnrollmentFactory(course=CourseFactory())
+    return Conversation.objects.get(student=inscripcion.student.user, course=inscripcion.course)
 
-    def conv(self):
-        return Conversation.objects.get(student=self.student, course=self.course)
 
-    # --- signal ---
+class TestSenal:
+    def test_crea_la_conversacion_al_inscribir(self, enrollment, student, course):
+        assert Conversation.objects.filter(course=course, student=student).count() == 1
 
-    def test_signal_crea_conversacion_al_inscribir(self):
-        self.assertEqual(Conversation.objects.count(), 2)
-        self.assertTrue(Conversation.objects.filter(course=self.course, student=self.student).exists())
+    def test_cada_inscripcion_tiene_su_conversacion(self, enrollment, conversacion_ajena):
+        assert Conversation.objects.count() == 2
 
-    # --- acceso ---
 
-    def test_profesor_lista_200(self):
-        self.client.force_login(self.prof)
-        r = self.client.get('/mensajes/')
-        self.assertEqual(r.status_code, 200)
-        self.assertTemplateUsed(r, 'mensajes.html')
+class TestAcceso:
+    def test_el_profesor_ve_la_lista(self, professor_client, enrollment):
+        response = professor_client.get(LISTA)
+        assert response.status_code == 200
+        assert 'mensajes.html' in [t.name for t in response.templates]
 
-    def test_alumno_lista_200(self):
-        self.client.force_login(self.student)
-        self.assertEqual(self.client.get('/mensajes/').status_code, 200)
+    def test_el_alumno_ve_la_lista(self, student_client, enrollment):
+        assert student_client.get(LISTA).status_code == 200
 
-    def test_anonimo_redirige_a_login(self):
-        r = self.client.get('/mensajes/')
-        self.assertEqual(r.status_code, 302)
-        self.assertIn('/login/', r['Location'])
+    def test_el_anonimo_va_al_login(self, client):
+        response = client.get(LISTA)
+        assert response.status_code == 302
+        assert '/login/' in response['Location']
 
-    def test_detalle_participante_200(self):
-        self.client.force_login(self.student)
-        self.assertEqual(self.client.get('/mensajes/%s/' % self.conv().pk).status_code, 200)
+    def test_un_participante_ve_el_detalle(self, student_client, conversacion):
+        assert student_client.get(detalle(conversacion)).status_code == 200
 
-    def test_detalle_ajeno_404(self):
-        self.client.force_login(self.student)
-        ajeno = Conversation.objects.get(student=self.other_student, course=self.course2)
-        self.assertEqual(self.client.get('/mensajes/%s/' % ajeno.pk).status_code, 404)
+    def test_el_detalle_ajeno_da_404(self, student_client, enrollment, conversacion_ajena):
+        assert student_client.get(detalle(conversacion_ajena)).status_code == 404
 
-    # --- envio ---
 
-    def test_post_crea_mensaje(self):
-        self.client.force_login(self.student)
-        conv = self.conv()
-        r = self.client.post('/mensajes/%s/enviar/' % conv.pk, {'body': 'Hola profe'})
-        self.assertEqual(r.status_code, 302)
-        self.assertEqual(Message.objects.filter(conversation=conv).count(), 1)
-        self.assertEqual(Message.objects.get(conversation=conv).sender, self.student)
+class TestEnvio:
+    def test_el_post_crea_el_mensaje(self, student_client, student, conversacion):
+        response = student_client.post(f'{detalle(conversacion)}enviar/', {'body': 'Hola profe'})
+        assert response.status_code == 302
+        mensaje = Message.objects.get(conversation=conversacion)
+        assert mensaje.sender == student
 
-    def test_post_con_body_vacio_no_crea(self):
-        self.client.force_login(self.student)
-        conv = self.conv()
-        self.client.post('/mensajes/%s/enviar/' % conv.pk, {'body': '   '})
-        self.assertEqual(Message.objects.filter(conversation=conv).count(), 0)
+    def test_un_cuerpo_vacio_no_crea_nada(self, student_client, conversacion):
+        student_client.post(f'{detalle(conversacion)}enviar/', {'body': '   '})
+        assert not Message.objects.filter(conversation=conversacion).exists()
 
-    # --- no leidos ---
 
-    def test_unread_count_llega_al_contexto(self):
-        Message.objects.create(conversation=self.conv(), sender=self.prof, body='Hola')
-        self.client.force_login(self.student)
-        r = self.client.get('/mensajes/')
-        self.assertIn('unread_count', r.context)
-        self.assertEqual(r.context['unread_count'], 1)
+class TestNoLeidos:
+    def test_el_contador_llega_al_contexto(self, student_client, conversacion, professor):
+        MessageFactory(conversation=conversacion, sender=professor)
+        response = student_client.get(LISTA)
+        assert 'unread_count' in response.context
+        assert response.context['unread_count'] == 1
 
-    def test_badge_se_renderiza_en_el_sidebar(self):
-        Message.objects.create(conversation=self.conv(), sender=self.prof, body='Hola')
-        self.client.force_login(self.student)
-        self.assertContains(self.client.get('/mensajes/'), 'nav-badge')
+    def test_la_insignia_se_dibuja_en_el_menu(self, student_client, conversacion, professor):
+        MessageFactory(conversation=conversacion, sender=professor)
+        assert 'nav-badge' in student_client.get(LISTA).content.decode()
 
-    def test_abrir_conversacion_marca_como_leido(self):
-        Message.objects.create(conversation=self.conv(), sender=self.prof, body='Hola')
-        self.client.force_login(self.student)
-        self.client.get('/mensajes/%s/' % self.conv().pk)
-        self.assertEqual(Message.objects.filter(read_at__isnull=True).count(), 0)
+    def test_abrir_la_conversacion_marca_como_leido(self, student_client, conversacion, professor):
+        MessageFactory(conversation=conversacion, sender=professor)
+        student_client.get(detalle(conversacion))
+        assert not Message.objects.filter(read_at__isnull=True).exists()
 
-    def test_anonimo_no_cuenta_no_leidos(self):
+    def test_el_anonimo_no_cuenta_no_leidos(self):
         request = RequestFactory().get('/login/')
         request.user = AnonymousUser()
-        self.assertEqual(unread_messages(request), {'unread_count': 0})
+        assert unread_messages(request) == {'unread_count': 0}
 
-    # --- contraparte (bug: counterpart(user) no se puede llamar sin argumentos en template) ---
 
-    def test_alumno_ve_al_profesor_en_la_lista(self):
-        self.client.force_login(self.student)
-        items = conv_items(self.client.get('/mensajes/').content.decode())
-        self.assertTrue(items, 'no se renderizo ningun .conv-item')
-        self.assertIn('Ana Perez', items[0])
-        self.assertNotIn('alum1@test.local', items[0])
-        self.assertIn('>AP<', items[0])
+class TestContraparte:
+    """Antes ``counterpart(user)`` no se podía llamar sin argumentos desde la plantilla."""
 
-    def test_profesor_ve_al_alumno_en_la_lista(self):
-        self.client.force_login(self.prof)
-        items = conv_items(self.client.get('/mensajes/').content.decode())
-        self.assertTrue(items, 'no se renderizo ningun .conv-item')
-        self.assertIn('Sofia Lopez', items[0])
-        self.assertIn('>SL<', items[0])
+    def test_el_alumno_ve_al_profesor_en_la_lista(self, student_client, student, conversacion):
+        items = conv_items(student_client.get(LISTA).content.decode())
+        assert items, 'no se renderizó ningún .conv-item'
+        assert 'Ana Perez' in items[0]
+        assert student.email not in items[0]
+        assert '>AP<' in items[0]
 
-    # --- sidebar ---
+    def test_el_profesor_ve_al_alumno_en_la_lista(self, professor_client, conversacion):
+        items = conv_items(professor_client.get(LISTA).content.decode())
+        assert items, 'no se renderizó ningún .conv-item'
+        assert 'Sofia Lopez' in items[0]
+        assert '>SL<' in items[0]
 
-    def test_sidebar_marca_mensajes_en_el_detalle(self):
-        self.client.force_login(self.student)
-        r = self.client.get('/mensajes/%s/' % self.conv().pk)
-        self.assertContains(r, 'is-active')
+
+class TestMenu:
+    def test_marca_mensajes_como_activo_en_el_detalle(self, student_client, conversacion):
+        assert 'is-active' in student_client.get(detalle(conversacion)).content.decode()
