@@ -3,10 +3,16 @@
 
 {% block topbar %}
 <header class="topbar">
-  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
-  <h1>Calificar</h1>
+  {% if only_submission %}
+    {% url 'grades:submission_detail' only_submission.pk as submission_url %}
+    {% include 'partials/back.html' with url=submission_url label='Volver a la entrega' %}
+  {% else %}
+    {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
+  {% endif %}
+  <h1>{% if only %}Calificar a {{ only }}{% else %}Calificar{% endif %}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
+  {% if only %}<a class="btn btn-ghost" href="{% url 'grades:activity_grading' activity.pk %}">Calificar a todo el grupo</a>{% endif %}
 </header>
 {% endblock %}
 
@@ -15,9 +21,9 @@
   {% csrf_token %}
   <div class="table-wrap mb-12">
     <div class="table-head">
-      <h3>Calificaciones sobre {{ activity.max_score|floatformat:"-2" }}</h3>
+      <h3>{% if only %}Calificación{% else %}Calificaciones{% endif %} sobre {{ activity.max_score|floatformat:"-2" }}</h3>
       <div class="spacer"></div>
-      <span class="text-sm text-muted">Las filas sin nota no se modifican.{% if activity.accepts_submissions %} Si le pones nota a quien <strong>no entregó</strong> (fila resaltada), te pediremos confirmar al guardar.{% endif %}</span>
+      <span class="text-sm text-muted">{% if not only %}Las filas sin nota no se modifican.{% endif %}{% if activity.accepts_submissions and not only %} Si le pones nota a quien <strong>no entregó</strong> (fila resaltada), te pediremos confirmar al guardar.{% endif %}</span>
     </div>
     <table class="tbl">
       <thead>
@@ -66,8 +72,8 @@
     </table>
   </div>
   <div class="flex-row gap-14">
-    <button type="submit" class="btn btn-primary">Guardar calificaciones</button>
-    <a class="btn btn-ghost" href="{{ activity.get_absolute_url }}">Cancelar</a>
+    <button type="submit" class="btn btn-primary">{% if only %}Guardar calificación{% else %}Guardar calificaciones{% endif %}</button>
+    <a class="btn btn-ghost" href="{% if only_submission %}{% url 'grades:submission_detail' only_submission.pk %}{% else %}{{ activity.get_absolute_url }}{% endif %}">Cancelar</a>
   </div>
 </form>
 <script>

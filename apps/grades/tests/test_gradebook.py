@@ -257,6 +257,13 @@ class TestPantallaDeCalificacion:
         professor_client.post(self.url(borrador), {f"score_{alumno.pk}": "7"})
         assert Grade.objects.get().score == 7
 
+    def test_los_alumnos_van_en_orden_alfabetico_sin_importar_acentos(self, professor_client, course):
+        for nombre, apellido in (("Zoe", "Zapata"), ("Ana", "Álvarez"), ("Luis", "Beltrán")):
+            EnrollmentFactory(course=course, student__user=None, student__first_name=nombre, student__last_name=apellido)
+        actividad = ActivityFactory(course=course, type=Activity.Type.PARTICIPATION)
+        filas = professor_client.get(self.url(actividad)).context["rows"]
+        assert [str(f["student"]) for f in filas] == ["Ana Álvarez", "Luis Beltrán", "Zoe Zapata"]
+
     def test_ignora_alumnos_que_no_son_del_grupo(self, professor_client, grupo):
         actividad, _, _ = grupo
         ajeno = EnrollmentFactory().student
@@ -280,6 +287,71 @@ class TestPantallaDeCalificacion:
 
     def test_anonimo_va_al_login(self, client, grupo):
         assert client.get(self.url(grupo[0])).url.startswith("/login/")
+
+
+class TestCalificarUnSoloAlumno:
+    """Desde la entrega de un alumno se califica solo a ese alumno; calificar a todos es otro botón."""
+
+    @pytest.fixture
+    def grupo(self, course, enrollment, tarea):
+        otro = EnrollmentFactory(course=course).student
+        entrega = submit(tarea, enrollment.student, text="mi tarea", now=AHORA)
+        return tarea, enrollment.student, otro, entrega
+
+    def url(self, actividad, alumno=None):
+        base = reverse("grades:activity_grading", args=[actividad.pk])
+        return base if alumno is None else f"{base}?alumno={alumno.pk}"
+
+    def test_trae_solo_a_ese_alumno(self, professor_client, grupo):
+        tarea, uno, _, _ = grupo
+        response = professor_client.get(self.url(tarea, uno))
+        assert [f["student"] for f in response.context["rows"]] == [uno]
+        assert f"Calificar a {uno}" in response.content.decode()
+
+    def test_sin_el_parametro_trae_a_todos(self, professor_client, grupo):
+        tarea, uno, otro, _ = grupo
+        response = professor_client.get(self.url(tarea))
+        assert {f["student"] for f in response.context["rows"]} == {uno, otro}
+        assert response.context["only"] is None
+
+    def test_guardar_solo_toca_a_ese_alumno(self, professor_client, grupo):
+        tarea, uno, otro, _ = grupo
+        response = professor_client.post(
+            self.url(tarea, uno), {f"score_{uno.pk}": "9", f"score_{otro.pk}": "5"}, follow=True,
+        )
+        assert Grade.objects.get().student == uno and Grade.objects.get().raw_score == 9
+        assert response.redirect_chain[-1][0] == tarea.get_absolute_url()
+        assert any(str(uno) in str(m) for m in response.context["messages"])
+
+    def test_si_la_nota_es_invalida_no_se_guarda_y_sigue_en_modo_individual(self, professor_client, grupo):
+        tarea, uno, _, _ = grupo
+        response = professor_client.post(self.url(tarea, uno), {f"score_{uno.pk}": "99"})
+        assert response.status_code == 200 and not Grade.objects.exists()
+        assert [f["student"] for f in response.context["rows"]] == [uno]
+
+    def test_la_flecha_y_el_boton_llevan_a_la_entrega_y_al_grupo_completo(self, professor_client, grupo):
+        tarea, uno, _, entrega = grupo
+        html = professor_client.get(self.url(tarea, uno)).content.decode()
+        assert reverse("grades:submission_detail", args=[entrega.pk]) in html
+        assert f'href="{self.url(tarea)}">Calificar a todo el grupo' in html
+
+    @pytest.mark.parametrize("valor", ["abc", "²", "0", "9" * 40])
+    def test_un_alumno_invalido_da_404(self, professor_client, grupo, valor):
+        tarea, _, _, _ = grupo
+        assert professor_client.get(f"{self.url(tarea)}?alumno={valor}").status_code == 404
+
+    def test_un_alumno_de_otro_grupo_da_404(self, professor_client, grupo):
+        tarea, _, _, _ = grupo
+        ajeno = EnrollmentFactory().student
+        assert professor_client.get(self.url(tarea, ajeno)).status_code == 404
+        assert professor_client.post(self.url(tarea, ajeno), {f"score_{ajeno.pk}": "10"}).status_code == 404
+        assert not Grade.objects.exists()
+
+    def test_la_entrega_ofrece_los_dos_botones(self, professor_client, grupo):
+        tarea, uno, _, entrega = grupo
+        html = professor_client.get(reverse("grades:submission_detail", args=[entrega.pk])).content.decode()
+        assert f'href="{self.url(tarea, uno)}"' in html
+        assert f'href="{self.url(tarea)}">Calificar a todos' in html
 
 
 # ── Formularios clásicos de calificación ──────────────────────────────
