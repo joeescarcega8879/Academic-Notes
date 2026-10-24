@@ -12,7 +12,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.core.exceptions import ValidationError
 from django.db.models import F
 
-from apps.courses.services.text import normalize_text
+from apps.courses.services.text import normalize_text, student_sort_key
 
 from ..models import Activity, Grade
 from .gradebook import grade_activity, late_penalty_for, remove_grade
@@ -154,8 +154,7 @@ def enrolled_students(course):
     El orden de la base de datos no lo garantiza (SQLite pone la «Á» después de la «Z»).
     """
     return sorted(
-        (enrollment.student for enrollment in course.enrollments.select_related('student__user')),
-        key=lambda s: (normalize_text(s.last_name), normalize_text(s.first_name), s.pk),
+        (enrollment.student for enrollment in course.enrollments.select_related('student__user')), key=student_sort_key,
     )
 
 

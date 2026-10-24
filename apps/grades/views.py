@@ -1,4 +1,6 @@
 import csv
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -10,6 +12,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.courses.models import Course
+from apps.courses.services.text import normalize_text, student_sort_key
 from core.utils import csv_safe, parse_id
 
 from .models import Grade
@@ -131,9 +134,13 @@ class GradeExportView(OrganizationMemberMixin, View):
         if not form.is_valid():
             problems = '; '.join(f'{name}: {" ".join(errors)}' for name, errors in form.errors.items())
             return HttpResponseBadRequest(f'Filtros no válidos ({problems}). Fechas con el formato AAAA-MM-DD.')
-        grades = apply_filters(
-            visible_grades(request), form.cleaned_data, teacher=not request.membership.is_student,
-        ).order_by('activity__course__name', 'student__last_name', 'activity__date')
+        # Por grupo, alumno y fecha; en Python porque la base no ordena bien los acentos (ver ``student_sort_key``).
+        grades = sorted(
+            apply_filters(visible_grades(request), form.cleaned_data, teacher=not request.membership.is_student),
+            key=lambda g: (
+                normalize_text(g.activity.course.name), student_sort_key(g.student), g.activity.date or date.min, g.pk,
+            ),
+        )
 
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = (

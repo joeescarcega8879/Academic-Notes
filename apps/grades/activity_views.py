@@ -13,6 +13,7 @@ from django.views.generic import CreateView, UpdateView
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.ai import ui as ai_ui
 from apps.courses.models import Course, Student
+from apps.courses.services.text import sort_enrollments
 from core.utils import parse_id
 
 from .activity_forms import ActivityForm
@@ -155,7 +156,7 @@ class ActivityDetailView(OrganizationMemberMixin, View):
         if request.membership.is_teacher:
             grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
             submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
-            enrollments = list(activity.course.enrollments.select_related('student__user'))
+            enrollments = sort_enrollments(activity.course.enrollments.select_related('student__user'))
             for enrollment in enrollments:
                 enrollment.grade = grades.get(enrollment.student_id)
                 enrollment.submission = submissions.get(enrollment.student_id)
