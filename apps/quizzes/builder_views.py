@@ -9,6 +9,7 @@ from django.utils.functional import cached_property
 from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
+from apps.ai import drafts as ai_drafts, ui as ai_ui
 from apps.grades.models import Activity
 from apps.organizations import limits
 from core.utils import parse_id
@@ -65,6 +66,7 @@ class BuilderView(OwnQuizMixin, View):
         if data.get('kind'):
             picker = picker.filter(kind=data['kind'])
         page = Paginator(picker, PICKER_PAGE_SIZE).get_page(request.GET.get('bp'))
+        can_edit = not (archived_course or quiz.is_locked)
         query = request.GET.copy()
         query.pop('bp', None)
 
@@ -79,6 +81,8 @@ class BuilderView(OwnQuizMixin, View):
             'picker': page, 'picker_querystring': query.urlencode(),
             'picker_filters': {'q': data.get('q', ''), 'topic': data.get('topic', ''), 'kind': data.get('kind', '')},
             'kinds': Question.Kind.choices,
+            'ai': ai_ui.quiz_panel(request.organization, self.activity.course, activity=self.activity) if can_edit else None,
+            'ai_drafts': ai_drafts.open_quiz_drafts(request.user, request.organization, self.activity.course, self.activity) if can_edit else [],
         })
 
     def post(self, request, pk):

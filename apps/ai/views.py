@@ -1,0 +1,187 @@
+"""Pantallas de la IA asistida: pedir preguntas de quiz y revisar las propuestas. Solo para el docente que las pidió."""
+
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views import View
+
+from apps.accounts.mixins import TeacherRequiredMixin
+from apps.courses.models import Course
+from apps.grades.models import Activity
+from apps.organizations import limits
+from apps.quizzes.models import QuizConfig
+from apps.quizzes.services import builder
+from apps.syllabus.models import Syllabus
+from core.utils import parse_id
+
+from . import drafts, quiz_generation as quiz_gen, services, split_generation as split_gen
+from .models import AIDraft
+
+REVIEW_ACTIONS = {'save', 'discard', 'restore', 'edit', 'save_edit', 'regen', 'discard_all', 'apply'}
+
+
+def _course(request, pk):
+    return get_object_or_404(
+        Course.objects.for_organization(request.organization).filter(professor=request.user, status=Course.Status.ACTIVE), pk=pk,
+    )
+
+
+def _flash_errors(request, error):
+    if isinstance(error, limits.PlanLimitError):
+        limits.flash_limit_error(request, error)
+    else:
+        messages.error(request, ' '.join(error.messages))
+
+
+class QuizGenerateView(TeacherRequiredMixin, View):
+    """Recibe el panel «Generar preguntas con IA» y deja la propuesta en marcha."""
+
+    def post(self, request, pk):
+        course = _course(request, pk)
+        activity = None
+        activity_id = parse_id(request.POST.get('activity', ''))
+        if activity_id is not None:
+            activity = get_object_or_404(
+                Activity.objects.for_organization(request.organization).filter(course=course, type=Activity.Type.QUIZ), pk=activity_id,
+            )
+        back = reverse('quizzes:builder', args=[activity.pk]) if activity else reverse('syllabus:index', args=[course.pk])
+        try:
+            if activity is not None:
+                builder.ensure_editable(QuizConfig.objects.get_or_create(activity=activity)[0])
+            params = quiz_gen.clean_params(request.POST, course)
+            draft = drafts.request_quiz(
+                user=request.user, organization=request.organization, course=course, params=params, activity=activity,
+                title=request.POST.get('title', ''),
+            )
+        except ValidationError as error:
+            _flash_errors(request, error)
+            return redirect(back)
+        return redirect('ai:draft', pk=draft.pk)
+
+
+class SplitGenerateView(TeacherRequiredMixin, View):
+    """«Proponer semanas con IA»: deja la propuesta en marcha y vuelve al temario a esperarla."""
+
+    def post(self, request, pk):
+        course = _course(request, pk)
+        syllabus = get_object_or_404(Syllabus, course=course)
+        try:
+            params = split_gen.clean_params(request.POST, syllabus)
+            draft = drafts.request_split(user=request.user, organization=request.organization, course=course, params=params)
+        except ValidationError as error:
+            _flash_errors(request, error)
+            return redirect('syllabus:index', pk=course.pk)
+        return redirect(f'{reverse("syllabus:index", args=[course.pk])}?ia={draft.pk}')
+
+
+class DraftMixin(TeacherRequiredMixin):
+    kind = AIDraft.Kind.QUIZ_QUESTIONS
+
+    def get_draft(self, pk):
+        return get_object_or_404(
+            drafts.queryset_for(self.request.user, self.request.organization).select_related('course', 'activity'),
+            pk=pk, **({'kind': self.kind} if self.kind else {}),
+        )
+
+
+class DraftStatusView(DraftMixin, View):
+    """Lo consulta la página mientras espera: cuándo recargar. Sirve para cualquier tipo de propuesta."""
+
+    kind = None
+
+    def get(self, request, pk):
+        draft = drafts.expire_if_stale(self.get_draft(pk))
+        busy = draft.status == AIDraft.Status.PENDING or any(item.get('state') == drafts.REGENERATING for item in draft.items)
+        return JsonResponse({'busy': busy})
+
+
+class DraftView(DraftMixin, View):
+    template_name = 'ai_draft.html'
+
+    def get(self, request, pk):
+        draft = drafts.expire_if_stale(self.get_draft(pk))
+        return self.render_page(request, draft)
+
+    @staticmethod
+    def back_url(draft):
+        if draft.activity_id:
+            return reverse('quizzes:builder', args=[draft.activity_id])
+        return reverse('syllabus:index', args=[draft.course_id])
+
+    def render_page(self, request, draft):
+        editing = parse_id(request.GET.get('editar', '')) if draft.status == AIDraft.Status.READY else None
+        weeks = {week.position: week for week in quiz_gen.course_weeks(draft.course)}
+        rows = []
+        for index, item in enumerate(draft.items):
+            week = weeks.get(item['week'])
+            rows.append({
+                'i': index, 'n': index + 1, 'item': item, 'editing': editing == index and item['state'] != drafts.REGENERATING,
+                'letters': [(chr(65 + position), choice) for position, choice in enumerate(item['choices'])],
+                'week_label': f'Semana {item["week"]}' + (f' · {week.title}' if week and week.title else ''),
+            })
+        approved = draft.count(drafts.APPROVED)
+        busy = draft.status == AIDraft.Status.PENDING or any(row['item']['state'] == drafts.REGENERATING for row in rows)
+        quiz_count = None
+        if draft.activity_id and draft.status == AIDraft.Status.READY:
+            quiz_count = builder.totals(QuizConfig.objects.get_or_create(activity=draft.activity)[0])[0]
+        context = {
+            'draft': draft, 'course': draft.course, 'rows': rows, 'approved': approved, 'busy': busy, 'quiz_count': quiz_count,
+            'discarded': draft.count(drafts.DISCARDED), 'total': len(rows), 'back_url': self.back_url(draft),
+            'week_names': ', '.join(
+                str(week.position) for week in weeks.values() if week.pk in draft.params.get('week_ids', [])
+            ),
+            'usage': services.usage_summary(request.organization),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk):
+        draft = self.get_draft(pk)
+        action, _, argument = request.POST.get('action', '').partition(':')
+        index = parse_id(argument) if argument else None
+        here = reverse('ai:draft', args=[draft.pk])
+        if action == 'retry':
+            try:
+                drafts.retry(draft)
+            except ValidationError as error:
+                _flash_errors(request, error)
+            return redirect(here)
+        if action not in REVIEW_ACTIONS:
+            messages.error(request, 'Acción desconocida.')
+            return redirect(here)
+        target = here
+        try:
+            with drafts.locked(draft.pk) as current:
+                if current.status != AIDraft.Status.READY:
+                    raise ValidationError('Esta propuesta ya no se puede modificar.')
+                drafts.save_review_state(current, request.POST)
+                if action == 'discard':
+                    drafts.set_state(current, index, drafts.DISCARDED)
+                elif action == 'restore':
+                    drafts.set_state(current, index, drafts.PENDING)
+                elif action == 'edit':
+                    drafts.item_at(current, index)
+                    target = f'{here}?editar={index}#p{index + 1}'
+                elif action == 'save_edit':
+                    target = f'{here}?editar={index}#p{index + 1}'
+                    drafts.edit_item(current, index, request.POST)
+                    target = f'{here}#p{index + 1}'
+                    messages.success(request, 'Se guardaron tus cambios. Revisa que la respuesta marcada sea la correcta.')
+                current.save()
+            if action == 'regen':
+                drafts.request_regeneration(draft, index, request.user)
+            elif action == 'discard_all':
+                with drafts.locked(draft.pk) as current:
+                    drafts.discard_all(current)
+                messages.success(request, 'Se descartaron todas las propuestas. No se agregó nada al quiz.')
+                return redirect(self.back_url(draft))
+            elif action == 'apply':
+                activity = drafts.apply_quiz(draft.pk, request.user)
+                draft.refresh_from_db()
+                count = draft.count(drafts.APPROVED)
+                messages.success(request, f'Se agregaron {count} pregunta{"s" if count != 1 else ""} al banco y al quiz. Revisa el quiz antes de publicarlo.')
+                return redirect('quizzes:builder', pk=activity.pk)
+        except ValidationError as error:
+            _flash_errors(request, error)
+        return redirect(target)

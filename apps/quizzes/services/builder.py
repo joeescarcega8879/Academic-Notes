@@ -29,7 +29,7 @@ def _copy_question(quiz, question, position, *, points=None):
     copy = QuizQuestion.objects.create(
         quiz=quiz, source=question if hasattr(question, 'author') else getattr(question, 'source', None),
         kind=question.kind, text=question.text, points=question.points if points is None else points,
-        explanation=question.explanation, position=position,
+        explanation=question.explanation, position=position, ai_generated=question.ai_generated,
     )
     for index, choice in enumerate(question.choices.all()):
         QuizChoice.objects.create(question=copy, text=choice.text, is_correct=choice.is_correct, position=index)

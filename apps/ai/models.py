@@ -47,3 +47,59 @@ class AIRequest(TenantModel):
 
     def __str__(self):
         return f'{self.get_kind_display()} · {self.get_status_display()} · {self.created_at:%Y-%m-%d %H:%M}'
+
+
+class AIDraft(TenantModel):
+    """Lo que la IA propone y el docente todavía no aprueba: no es una pregunta ni una semana hasta que lo apruebe.
+
+    ``items`` guarda las propuestas ya validadas. En un quiz cada una es
+    ``{kind, text, choices: [{text, correct}], true_is_correct, explanation, citation, week, topic, points,
+    state, edited, similar, question_id}``; ``state`` es ``pending`` (por revisar), ``approved``, ``discarded`` o
+    ``regenerating``. En una división del temario cada una es una semana
+    ``{title, topics, objectives, assessment, source}`` lista para ``replace_weeks``.
+    """
+
+    organization_source = 'course'
+
+    class Kind(models.TextChoices):
+        QUIZ_QUESTIONS = 'quiz_questions', 'Preguntas de quiz'
+        SYLLABUS_SPLIT = 'syllabus_split', 'División del temario'
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Generando'
+        READY = 'ready', 'Por revisar'
+        FAILED = 'failed', 'No se pudo generar'
+        APPLIED = 'applied', 'Aplicada'
+        DISCARDED = 'discarded', 'Descartada'
+
+    course = models.ForeignKey('courses.Course', on_delete=models.CASCADE, related_name='ai_drafts')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    kind = models.CharField('tipo', max_length=20, choices=Kind.choices)
+    status = models.CharField('estado', max_length=10, choices=Status.choices, default=Status.PENDING)
+    # Quiz al que van las preguntas. Sin él (se pidió desde una semana) se crea un quiz en borrador al aprobar.
+    activity = models.ForeignKey('grades.Activity', null=True, blank=True, on_delete=models.SET_NULL, related_name='ai_drafts')
+    new_activity_title = models.CharField(max_length=255, blank=True)
+    params = models.JSONField('lo que se pidió', default=dict)
+    items = models.JSONField('propuestas', default=list)
+    error = models.CharField('motivo del fallo', max_length=300, blank=True)  # ya listo para mostrarse al docente
+    dropped = models.PositiveSmallIntegerField('propuestas descartadas por inválidas', default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    applied_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        verbose_name = 'propuesta de IA'
+        verbose_name_plural = 'propuestas de IA'
+
+    def __str__(self):
+        return f'{self.get_kind_display()} · {self.get_status_display()} · {self.created_at:%Y-%m-%d %H:%M}'
+
+    @property
+    def is_open(self):
+        """Todavía hay algo que hacer con ella: esperar, reintentar o revisar."""
+        return self.status in (self.Status.PENDING, self.Status.READY, self.Status.FAILED)
+
+    def count(self, state):
+        return sum(1 for item in self.items if item.get('state') == state)

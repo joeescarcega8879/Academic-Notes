@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Temario · {{ course.name }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -59,6 +60,12 @@
     <span class="grow"></span>
     {% if syllabus.file %}<a class="btn btn-ghost btn-sm" href="{% url 'syllabus:file' course.pk %}">Descargar original</a>{% endif %}
     {% if syllabus.text %}<a class="btn btn-ghost btn-sm" href="?detectar=1" title="Busca «Semana 1», «Semana 2»… en el texto y propone la división">Detectar semanas</a>{% endif %}
+    {% if syllabus.text %}
+      <form method="post" action="{% url 'ai:split_generate' course.pk %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm ai-btn"{% if ai_split_reason %} disabled title="{{ ai_split_reason }}"{% else %} title="La IA lee el texto y propone cómo repartirlo en semanas. Tú decides si la usas."{% endif %}>Proponer semanas con IA</button>
+      </form>
+    {% endif %}
     <form method="post" class="inline-form" onsubmit="return confirm('¿Eliminar el temario? Se borran el archivo, el texto y las {{ rows|length }} semanas. Tus actividades no se borran: solo se quedan sin semana.')">
       {% csrf_token %}
       <input type="hidden" name="action" value="delete_syllabus">
@@ -116,6 +123,52 @@
           <a class="btn btn-ghost" href="{% url 'syllabus:index' course.pk %}">No, gracias</a>
         </div>
       </form>
+    </div>
+  {% endif %}
+
+  {% if ai_split %}
+    <div class="card ai-proposed"{% if ai_split.status == 'pending' %} data-ai-poll="{% url 'ai:draft_status' ai_split.pk %}"{% endif %}>
+      {% if ai_split.status == 'pending' %}
+        <div class="ai-wait" style="margin: 0; padding: 24px 0">
+          <div class="ai-spin" aria-hidden="true"></div>
+          <h3 class="section-title">Pensando cómo dividir tu temario…</h3>
+          <p class="text-sm text-muted" style="margin: 0">Suele tardar unos 15 segundos. Esta página se actualiza sola.</p>
+        </div>
+      {% elif ai_split.status == 'failed' %}
+        <div class="ai-proposed-head"><h3 class="section-title">No se pudo proponer las semanas</h3><span class="chip warn">Sin cambios</span></div>
+        <p class="text-sm">{{ ai_split.error }}</p>
+        <form method="post" class="action-bar">
+          {% csrf_token %}
+          <input type="hidden" name="draft" value="{{ ai_split.pk }}">
+          <button type="submit" name="action" value="ai_split_retry" class="btn btn-primary">Intentar de nuevo</button>
+          <button type="submit" name="action" value="ai_split_discard" class="btn btn-ghost">Cerrar</button>
+        </form>
+      {% else %}
+        <div class="ai-proposed-head"><h3 class="section-title">La IA propone {{ ai_split.items|length }} semana{{ ai_split.items|length|pluralize }}</h3><span class="chip info">Propuesta de IA</span></div>
+        <p class="text-sm text-muted" style="margin: 0 0 12px">Revísalas: puede juntar o partir temas distinto a como los tienes. Después podrás editar cada semana.</p>
+        <form method="post" action="{% url 'ai:split_generate' course.pk %}" class="ai-weeks-again">
+          {% csrf_token %}
+          <label for="ai-weeks-n">Tu curso dura</label>
+          <input class="input" id="ai-weeks-n" name="weeks" inputmode="numeric" value="{{ ai_split.params.weeks|default_if_none:'' }}" placeholder="—">
+          <span>semanas</span>
+          <button type="submit" class="btn btn-ghost btn-sm">Volver a proponer</button>
+          <span class="text-muted">(usa 1 uso de IA)</span>
+        </form>
+        <ol class="sy-detected-list">
+          {% for week in ai_split.items %}
+            <li><strong>{{ week.title|default:"(sin título)" }}</strong>{% if week.topics %} <span class="text-muted">· {{ week.topics.splitlines|length }} tema{{ week.topics.splitlines|length|pluralize }}</span>{% endif %}{% if week.assessment %} <span class="text-muted">· {{ week.assessment.splitlines|length }} actividad{{ week.assessment.splitlines|length|pluralize:"es" }}</span>{% endif %}{% if week.source %}<small>Del texto: «{{ week.source }}…»</small>{% endif %}</li>
+          {% endfor %}
+        </ol>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="draft" value="{{ ai_split.pk }}">
+          <div class="action-bar">
+            <button type="submit" name="action" value="ai_split_apply" class="btn btn-primary"{% if rows %} onclick="return confirm('Esto reemplaza las {{ rows|length }} semanas que ya tienes y deja sin semana a las actividades que apuntaban a ellas. ¿Continuar?')"{% endif %}>Usar estas semanas</button>
+            <button type="submit" name="action" value="ai_split_discard" class="btn btn-ghost">No, gracias</button>
+          </div>
+        </form>
+        {% if rows %}<p class="text-xs text-muted" style="margin: 10px 0 0">Si ya tienes semanas, «Usar estas semanas» las reemplaza y deja sin semana a las actividades que apuntaban a ellas (se te avisa antes).</p>{% endif %}
+      {% endif %}
     </div>
   {% endif %}
 
@@ -215,7 +268,11 @@
                 <div class="sy-chips">
                   {% for activity in selected.activities %}<a class="chip{% if activity.published %} ok{% endif %}" href="{{ activity.get_absolute_url }}">{{ activity.title }}{% if not activity.published %} (borrador){% endif %}</a>{% empty %}<span class="chip warn">Sin actividades</span>{% endfor %}
                   <a class="btn btn-ghost btn-sm" href="{% url 'grades:activity_create' course.pk %}?semana={{ week.pk }}">+ Crear actividad</a>
+                  <button type="button" class="btn btn-ghost btn-sm ai-btn"{% if ai.reason %} disabled title="{{ ai.reason }}"{% else %} data-ai-open="modal-ai-quiz"{% endif %}>Generar quiz con IA</button>
                 </div>
+                {% for item in ai_quiz_drafts %}
+                  <p class="ai-note" style="margin: 4px 0 0"><a class="flash-link" href="{% url 'ai:draft' item.pk %}">{% if item.status == 'ready' %}Revisar {{ item.items|length }} pregunta{{ item.items|length|pluralize }} propuesta{{ item.items|length|pluralize }} por la IA{% elif item.status == 'pending' %}Generando preguntas…{% else %}No se pudo generar un quiz: ver el motivo{% endif %}</a> <span class="text-muted">· {{ item.new_activity_title|default:"quiz nuevo" }}</span></p>
+                {% endfor %}
               </div>
             {% endif %}
             <div class="sy-foot">
@@ -248,4 +305,6 @@
   </div>
 
 {% endif %}
+{% if syllabus is not None and ai and not ai.reason %}{% include 'partials/ai_quiz_modal.html' %}{% endif %}
+<script src="{% static 'js/ia.js' %}?v=1"></script>
 {% endblock %}

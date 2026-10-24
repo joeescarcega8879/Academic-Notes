@@ -1,6 +1,7 @@
 """Pantalla del temario de un grupo: subir o pegar el texto y editar las semanas. Solo para el docente del grupo."""
 
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,6 +11,8 @@ from django.utils.formats import date_format
 from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
+from apps.ai import drafts as ai_drafts, ui as ai_ui
+from apps.ai.models import AIDraft
 from apps.courses.models import Course
 from core.utils import parse_id
 
@@ -63,7 +66,11 @@ class SyllabusView(SyllabusAccessMixin, View):
             proposals = week_ops.detect_weeks(syllabus.text)
             if not proposals:
                 messages.info(request, 'No encontramos encabezados como «Semana 1», «Semana 2»… en el texto. Arma las semanas a mano o ajusta el texto.')
+        ai_context = {}
+        if syllabus is not None:
+            ai_context = self.ai_context(request, course, syllabus, selected['week'] if selected else None)
         context = {
+            **ai_context,
             'course': course, 'syllabus': syllabus, 'rows': rows, 'selected': selected, 'current': current,
             'week_form': bound.get('week_form') or (WeekForm(instance=week) if week is not None else None),
             'upload_form': bound.get('upload_form') or UploadForm(), 'paste_form': bound.get('paste_form') or PasteForm(),
@@ -72,6 +79,23 @@ class SyllabusView(SyllabusAccessMixin, View):
             'week_limit': week_ops.MAX_WEEKS,
         }
         return render(request, self.template_name, context)
+
+    def ai_context(self, request, course, syllabus, week):
+        """Lo que la pantalla necesita para ofrecer la IA: el panel de quiz, la división propuesta y las propuestas sin resolver."""
+        split = None
+        wanted = parse_id(request.GET.get('ia', ''))
+        if wanted is not None:
+            split = ai_drafts.queryset_for(request.user, request.organization).filter(
+                course=course, kind=AIDraft.Kind.SYLLABUS_SPLIT, pk=wanted,
+                status__in=(AIDraft.Status.PENDING, AIDraft.Status.READY, AIDraft.Status.FAILED),
+            ).first()
+            if split is not None:
+                split = ai_drafts.expire_if_stale(split)
+        return {
+            'ai': ai_ui.quiz_panel(request.organization, course, week=week), 'ai_split': split,
+            'ai_split_reason': ai_ui.split_reason(request.organization, syllabus),
+            'ai_quiz_drafts': ai_drafts.open_quiz_drafts(request.user, request.organization, course),
+        }
 
     @staticmethod
     def week_from_query(request, syllabus, current):
@@ -151,6 +175,40 @@ class SyllabusView(SyllabusAccessMixin, View):
         week_ops.replace_weeks(syllabus, proposals)
         messages.success(request, f'Se crearon {len(proposals)} semanas a partir del texto.')
         return self.back(course, syllabus.weeks.first())
+
+    def do_ai_split_apply(self, request, course, syllabus):
+        draft = get_object_or_404(
+            ai_drafts.queryset_for(request.user, request.organization), pk=parse_id(request.POST.get('draft', '')) or 0,
+            course=course, kind=AIDraft.Kind.SYLLABUS_SPLIT,
+        )
+        try:
+            count = ai_drafts.apply_split(draft.pk, request.user)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return self.back(course)
+        messages.success(request, f'Se crearon {count} semanas con la propuesta de la IA. Revísalas y ajústalas cuando quieras.')
+        return self.back(course, syllabus.weeks.first())
+
+    def do_ai_split_discard(self, request, course, syllabus):
+        draft = get_object_or_404(
+            ai_drafts.queryset_for(request.user, request.organization), pk=parse_id(request.POST.get('draft', '')) or 0,
+            course=course, kind=AIDraft.Kind.SYLLABUS_SPLIT,
+        )
+        if draft.is_open:
+            ai_drafts.discard_all(draft)
+        return self.back(course)
+
+    def do_ai_split_retry(self, request, course, syllabus):
+        draft = get_object_or_404(
+            ai_drafts.queryset_for(request.user, request.organization), pk=parse_id(request.POST.get('draft', '')) or 0,
+            course=course, kind=AIDraft.Kind.SYLLABUS_SPLIT,
+        )
+        try:
+            ai_drafts.retry(draft)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return self.back(course)
+        return redirect(f'{reverse("syllabus:index", args=[course.pk])}?ia={draft.pk}')
 
     # ── Acciones sobre una semana ─────────────────────────────────────
 

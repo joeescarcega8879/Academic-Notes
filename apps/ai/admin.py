@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AIRequest
+from .models import AIDraft, AIRequest
 
 
 @admin.register(AIRequest)
@@ -11,6 +11,22 @@ class AIRequestAdmin(admin.ModelAdmin):
     list_filter = ('status', 'kind', 'provider', 'contains_student_data', 'organization')
     date_hierarchy = 'created_at'
     readonly_fields = [f.name for f in AIRequest._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AIDraft)
+class AIDraftAdmin(admin.ModelAdmin):
+    """Propuestas de la IA: de solo lectura. Lo que el docente aprueba vive en el banco y en sus quizzes, no aquí."""
+
+    list_display = ('created_at', 'organization', 'course', 'kind', 'status', 'requested_by', 'applied_at')
+    list_filter = ('kind', 'status', 'organization')
+    date_hierarchy = 'created_at'
+    readonly_fields = [f.name for f in AIDraft._meta.fields]
 
     def has_add_permission(self, request):
         return False
