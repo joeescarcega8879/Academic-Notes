@@ -78,7 +78,11 @@ def _enqueue(task_name, *args):
 
 @contextmanager
 def locked(draft_id):
-    """La propuesta bloqueada para cambiarla: la tarea de Celery y el docente no se pisan."""
+    """La propuesta bloqueada para cambiarla: la tarea de Celery y el docente no se pisan.
+
+    Con ``select_related`` hay que bloquear solo la propia fila (``of=('self',)``): PostgreSQL rechaza ``FOR UPDATE``
+    sobre el lado opcional de un ``JOIN`` (``activity`` puede ser nulo) y SQLite, que usan las pruebas locales, no avisa.
+    """
     with transaction.atomic():
         yield AIDraft.objects.select_for_update().get(pk=draft_id)
 
@@ -385,7 +389,7 @@ def apply_quiz(draft_id, user):
 
     Todo o nada: si no caben en el banco del plan o el quiz ya tiene intentos, no se guarda nada. Devuelve la actividad.
     """
-    draft = AIDraft.objects.select_for_update().select_related('course', 'activity').get(pk=draft_id)
+    draft = AIDraft.objects.select_for_update(of=('self',)).select_related('course', 'activity').get(pk=draft_id)
     _require_reviewable(draft)
     approved = [item for item in draft.items if item['state'] == APPROVED]
     if not approved:
@@ -452,7 +456,7 @@ def _weeks_of_or_empty(draft):
 @transaction.atomic
 def apply_split(draft_id, user):
     """Reemplaza las semanas del temario por las propuestas. Las actividades que apuntaban a una semana quedan sin semana."""
-    draft = AIDraft.objects.select_for_update().select_related('course').get(pk=draft_id)
+    draft = AIDraft.objects.select_for_update(of=('self',)).select_related('course').get(pk=draft_id)
     _require_reviewable(draft)
     draft.course.ensure_editable()
     syllabus = Syllabus.objects.filter(course=draft.course).first()
