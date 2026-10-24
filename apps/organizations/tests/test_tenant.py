@@ -20,6 +20,7 @@ from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.syllabus.models import Syllabus, SyllabusWeek
 from apps.syllabus.tests.factories import SyllabusFactory, SyllabusWeekFactory
 from apps.ai.models import AIDraft, AIRequest
+from apps.batches.models import BatchFile
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.managers import OrganizationQuerySet
@@ -32,7 +33,7 @@ pytestmark = pytest.mark.django_db
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
     Activity, Submission, Grade, GradeHistory, Question, Choice, QuizConfig, QuizQuestion, QuizChoice, QuizAttempt,
-    Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest, AIDraft,
+    Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest, AIDraft, BatchFile,
 ]
 
 
@@ -231,6 +232,9 @@ def dos_organizaciones():
             organization=materia.organization, user=profesor, kind=AIRequest.Kind.PROBE, provider='fake', status=AIRequest.Status.OK,
         )
         AIDraft.objects.create(course=materia, requested_by=profesor, kind=AIDraft.Kind.SYLLABUS_SPLIT)
+        BatchFile.objects.create(
+            activity=evaluacion, original_name="lote.pdf", status=BatchFile.Status.UNIDENTIFIED, uploaded_by=profesor,
+        )
         conversacion = Conversation.objects.get(course=materia, student=alumno)
         MessageFactory(conversation=conversacion, sender=alumno)
         datos.append({"profesor": profesor, "alumno": alumno, "materia": materia, "org": materia.organization})

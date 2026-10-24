@@ -59,6 +59,7 @@ LOCAL_APPS = [
     "apps.courses",
     "apps.grades",
     "apps.syllabus",
+    "apps.batches",
     "apps.quizzes",
     "apps.ai",
     "apps.reports",

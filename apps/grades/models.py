@@ -139,6 +139,10 @@ class Activity(TenantModel):
     )
     # La redactó la IA y el docente la aprobó (``AIDraft`` guarda quién y cuándo).
     ai_generated = models.BooleanField('redactada con IA', default=False)
+    # Cuántas de las primeras páginas de un PDF son la portada (donde viene la matrícula). Lo usa el lote de PDFs.
+    cover_pages = models.PositiveSmallIntegerField(
+        'páginas de portada', choices=[(0, 'Sin portada'), (1, '1 página'), (2, '2 páginas')], default=1, db_default=1,
+    )
 
     class Meta:
         ordering = ['-date', 'title']
