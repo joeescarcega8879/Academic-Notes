@@ -5,6 +5,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from django.utils import timezone
 
+from apps.courses.services.text import sort_enrollments
 from apps.grades.models import Grade
 from apps.grades.services.gradebook import grade_activity, remove_grade
 
@@ -161,9 +162,7 @@ def question_stats(quiz):
 
 def student_rows(quiz):
     """Una fila por alumno inscrito: sus intentos, mejor y último resultado, y su calificación en la libreta."""
-    enrollments = list(
-        quiz.activity.course.enrollments.select_related('student__user').order_by('student__last_name', 'student__first_name'),
-    )
+    enrollments = sort_enrollments(quiz.activity.course.enrollments.select_related('student__user'))
     attempts_by_student = {}
     for attempt in quiz.attempts.select_related('student').order_by('number'):
         attempts_by_student.setdefault(attempt.student_id, []).append(attempt)

@@ -156,7 +156,7 @@ class ActivityDetailView(OrganizationMemberMixin, View):
         if request.membership.is_teacher:
             grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
             submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
-            enrollments = list(activity.course.enrollments.select_related('student__user'))
+            enrollments = sort_enrollments(activity.course.enrollments.select_related('student__user'))
             for enrollment in enrollments:
                 enrollment.grade = grades.get(enrollment.student_id)
                 enrollment.submission = submissions.get(enrollment.student_id)

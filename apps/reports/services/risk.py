@@ -17,6 +17,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 
+from apps.courses.services.text import student_sort_key
 from apps.grades.models import Activity, Grade, Submission
 from apps.grades.services.grading import _dec, course_result, snapshot
 from apps.grades.services.gradesheet import enrolled_students, fmt
@@ -86,7 +87,7 @@ def assess_course(course, *, now=None):
             student=student, level=level, final=result.final, final_text=fmt(result.final, decimals, trim=False),
             missing=missing, reasons=reasons,
         ))
-    assessments.sort(key=lambda r: (LEVEL_ORDER[r.level], r.final if r.final is not None else 99, r.student.last_name))
+    assessments.sort(key=lambda r: (LEVEL_ORDER[r.level], r.final if r.final is not None else 99, student_sort_key(r.student)))
     return assessments
 
 
