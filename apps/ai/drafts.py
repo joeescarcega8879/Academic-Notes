@@ -428,7 +428,7 @@ def apply_quiz(draft_id, user):
 @transaction.atomic
 def create_assignment(draft_id, index, user):
     """Crea la actividad (borrador, hecha con IA) de la alternativa ``index``. Las demás siguen disponibles."""
-    draft = AIDraft.objects.select_for_update().select_related('course').get(pk=draft_id)
+    draft = AIDraft.objects.select_for_update(of=('self',)).select_related('course').get(pk=draft_id)
     _require_reviewable(draft)
     item = item_at(draft, index)
     if item['state'] != PENDING:
