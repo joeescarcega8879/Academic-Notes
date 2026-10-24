@@ -252,7 +252,8 @@ class GradingView(OwnActiveCourseMixin, View):
     """Calificar a todo el grupo en una sola tabla: nota y comentario por alumno.
 
     Sirve para tareas (con su entrega a la vista) y para la calificación rápida de participación. Una fila
-    sin nota no se toca; si alguna fila es inválida no se guarda ninguna.
+    sin nota no se toca; si alguna fila es inválida no se guarda ninguna. Con `?alumno=<id>` la tabla trae
+    solo a ese alumno (así se llega desde su entrega); sin el parámetro, a todo el grupo.
     """
 
     template_name = 'grading.html'
@@ -260,13 +261,24 @@ class GradingView(OwnActiveCourseMixin, View):
     def get_activity(self, pk):
         return get_object_or_404(self.activities(), pk=pk)
 
-    def rows(self, activity):
+    def only_student(self, activity):
+        """El alumno pedido en `?alumno=` (debe estar en el grupo), o None para calificar a todos."""
+        raw = self.request.GET.get('alumno')
+        if raw is None:
+            return None
+        student_id = parse_id(raw)
+        if student_id is None:
+            raise Http404
+        return get_object_or_404(activity.course.enrollments.select_related('student__user'), student_id=student_id).student
+
+    def rows(self, activity, only=None):
         grades = {g.student_id: g for g in Grade.objects.filter(activity=activity)}
         submissions = {s.student_id: s for s in Submission.objects.filter(activity=activity)}
         rows = []
-        for enrollment in activity.course.enrollments.select_related('student__user').order_by(
-            'student__last_name', 'student__first_name',
-        ):
+        enrollments = activity.course.enrollments.select_related('student__user')
+        if only:
+            enrollments = enrollments.filter(student=only)
+        for enrollment in enrollments.order_by('student__last_name', 'student__first_name'):
             submission = submissions.get(enrollment.student_id)
             rows.append({
                 'student': enrollment.student, 'grade': grades.get(enrollment.student_id), 'submission': submission,
@@ -274,13 +286,21 @@ class GradingView(OwnActiveCourseMixin, View):
             })
         return rows
 
+    def page(self, request, activity, rows, only):
+        return render(request, self.template_name, {
+            'activity': activity, 'course': activity.course, 'rows': rows, 'only': only,
+            'only_submission': rows[0]['submission'] if only and rows else None,
+        })
+
     def get(self, request, pk):
         activity = self.get_activity(pk)
-        return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': self.rows(activity)})
+        only = self.only_student(activity)
+        return self.page(request, activity, self.rows(activity, only), only)
 
     def post(self, request, pk):
         activity = self.get_activity(pk)
-        rows, entries, errors = self.rows(activity), [], {}
+        only = self.only_student(activity)
+        rows, entries, errors = self.rows(activity, only), [], {}
 
         for row in rows:
             sid = row['student'].pk
@@ -301,7 +321,7 @@ class GradingView(OwnActiveCourseMixin, View):
             for row in rows:
                 row['error'] = errors.get(row['student'].pk)
             messages.error(request, 'Corrige las filas marcadas: no se guardó nada.')
-            return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': rows})
+            return self.page(request, activity, rows, only)
 
         try:
             with transaction.atomic():
@@ -312,9 +332,13 @@ class GradingView(OwnActiveCourseMixin, View):
                     )
         except ValidationError as error:
             messages.error(request, ' '.join(error.messages))
-            return render(request, self.template_name, {'activity': activity, 'course': activity.course, 'rows': rows})
+            return self.page(request, activity, rows, only)
 
-        messages.success(request, f'Se guardaron {len(entries)} calificaciones.' if entries else 'No había notas que guardar.')
+        if only:
+            message = f'Se guardó la calificación de {only}.' if entries else 'No había nota que guardar.'
+        else:
+            message = f'Se guardaron {len(entries)} calificaciones.' if entries else 'No había notas que guardar.'
+        messages.success(request, message)
         return redirect(activity)
 
 

@@ -7,7 +7,10 @@
   <h1>Entrega de {{ submission.student }}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
-  {% if not course.is_archived %}<a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}">Calificar</a>{% endif %}
+  {% if not course.is_archived %}
+    <a class="btn btn-ghost" href="{% url 'grades:activity_grading' activity.pk %}">Calificar a todos</a>
+    <a class="btn btn-primary" href="{% url 'grades:activity_grading' activity.pk %}?alumno={{ submission.student_id }}">Calificar a {{ submission.student.first_name }}</a>
+  {% endif %}
 </header>
 {% endblock %}
 
