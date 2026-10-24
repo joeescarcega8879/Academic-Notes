@@ -11,6 +11,7 @@ from django.views import View
 from django.views.generic import CreateView, UpdateView
 
 from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
+from apps.ai import ui as ai_ui
 from apps.courses.models import Course, Student
 from core.utils import parse_id
 
@@ -70,7 +71,9 @@ class ActivityCreateView(OwnActiveCourseMixin, CreateView):
         return initial
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(course=self.course, **kwargs)
+        week_id = parse_id(self.request.GET.get('semana', ''))
+        panel = ai_ui.assignment_panel(self.request.organization, self.course, week_id=week_id, origin='form')
+        return super().get_context_data(course=self.course, ai_task=panel, **kwargs)
 
     def form_valid(self, form):
         response = super().form_valid(form)

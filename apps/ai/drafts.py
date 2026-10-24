@@ -6,6 +6,7 @@ docente lo aprueba y pulsa el botón; publicar el quiz sigue siendo un paso apar
 
 import datetime
 import logging
+import time
 from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
 
@@ -20,6 +21,7 @@ from apps.quizzes.services.bank import questions_for_course, save_question, vali
 from apps.syllabus.models import Syllabus
 from apps.syllabus.services import weeks as week_ops
 
+from . import assignment_generation as task_gen
 from . import quiz_generation as quiz_gen
 from . import services, split_generation as split_gen
 from .models import AIDraft, AIRequest
@@ -28,7 +30,22 @@ logger = logging.getLogger(__name__)
 
 STALE_AFTER = datetime.timedelta(minutes=10)
 BANK_SAMPLE = 500  # preguntas del banco contra las que se compara para avisar de parecidas
-PENDING, APPROVED, DISCARDED, REGENERATING = 'pending', 'approved', 'discarded', 'regenerating'
+RETRY_DELAYS = (3, 8)  # segundos de espera antes de cada reintento cuando el proveedor falla por algo pasajero
+PENDING, APPROVED, DISCARDED, REGENERATING, CREATED = 'pending', 'approved', 'discarded', 'regenerating', 'created'
+
+
+def _generate(**kwargs):
+    """``services.generate_json`` que reintenta si el proveedor falla por algo pasajero (servidor saturado, límite de uso).
+
+    Cada intento fallido queda en ``AIRequest`` como error y no cuenta contra la cuota.
+    """
+    for delay in (*RETRY_DELAYS, None):
+        try:
+            return services.generate_json(**kwargs)
+        except services.AIFailed as error:
+            if delay is None or not error.retryable:
+                raise
+            time.sleep(delay)
 
 
 def queryset_for(user, organization):
@@ -40,6 +57,14 @@ def open_quiz_drafts(user, organization, course, activity=None):
     """Propuestas de preguntas sin resolver de un quiz (o, sin ``activity``, las pedidas desde una semana)."""
     return queryset_for(user, organization).filter(
         course=course, kind=AIDraft.Kind.QUIZ_QUESTIONS, activity=activity,
+        status__in=(AIDraft.Status.PENDING, AIDraft.Status.READY, AIDraft.Status.FAILED),
+    )
+
+
+def open_assignment_drafts(user, organization, course):
+    """Propuestas de tareas sin resolver de un grupo."""
+    return queryset_for(user, organization).filter(
+        course=course, kind=AIDraft.Kind.ASSIGNMENTS,
         status__in=(AIDraft.Status.PENDING, AIDraft.Status.READY, AIDraft.Status.FAILED),
     )
 
@@ -71,6 +96,13 @@ def request_quiz(*, user, organization, course, params, activity=None, title='')
         course=course, requested_by=user, kind=AIDraft.Kind.QUIZ_QUESTIONS, activity=activity,
         new_activity_title=title.strip()[:255], params=params,
     )
+    _enqueue('run_draft', draft.pk)
+    return draft
+
+
+def request_assignments(*, user, organization, course, params):
+    services.check_available(organization)
+    draft = AIDraft.objects.create(course=course, requested_by=user, kind=AIDraft.Kind.ASSIGNMENTS, params=params)
     _enqueue('run_draft', draft.pk)
     return draft
 
@@ -117,10 +149,10 @@ def run(draft_id):
     if draft is None:
         return None
     try:
-        if draft.kind == AIDraft.Kind.QUIZ_QUESTIONS:
-            _generate_quiz(draft)
-        else:
-            _generate_split(draft)
+        {
+            AIDraft.Kind.QUIZ_QUESTIONS: _generate_quiz, AIDraft.Kind.ASSIGNMENTS: _generate_assignments,
+            AIDraft.Kind.SYLLABUS_SPLIT: _generate_split,
+        }[draft.kind](draft)
         draft.status = AIDraft.Status.READY
     except (services.AIUnavailable, services.AIFailed, quiz_gen.RequestError, split_gen.RequestError) as error:
         draft.status, draft.error = AIDraft.Status.FAILED, ' '.join(error.messages)[:300]
@@ -146,7 +178,7 @@ def _bank_sample(draft):
 
 def _generate_quiz(draft):
     weeks = _weeks_of(draft)
-    data = services.generate_json(
+    data = _generate(
         organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.QUIZ,
         prompt=quiz_gen.build_prompt(draft.params, weeks), schema=quiz_gen.SCHEMA, system=quiz_gen.SYSTEM,
     )
@@ -158,12 +190,26 @@ def _generate_quiz(draft):
         )
 
 
+def _generate_assignments(draft):
+    weeks = _weeks_of(draft)
+    data = _generate(
+        organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.ASSIGNMENT,
+        prompt=task_gen.build_prompt(draft.params, weeks), schema=task_gen.SCHEMA, system=task_gen.SYSTEM,
+    )
+    draft.items, draft.dropped = task_gen.parse_items(data, weeks, draft.params)
+    if not draft.items:
+        raise quiz_gen.RequestError(
+            'La IA no devolvió alternativas que se puedan usar (venían incompletas o no citaban el temario). '
+            'Intenta de nuevo o elige otras semanas.'
+        )
+
+
 def _generate_split(draft):
     syllabus = Syllabus.objects.filter(course=draft.course).first()
     if syllabus is None:
         raise split_gen.RequestError('El grupo ya no tiene temario.')
     split_gen.clean_params({}, syllabus)  # el texto pudo cambiar desde que se pidió
-    data = services.generate_json(
+    data = _generate(
         organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.SYLLABUS_SPLIT,
         prompt=split_gen.build_prompt(draft.params, syllabus.text), schema=split_gen.SCHEMA, system=split_gen.SYSTEM,
     )
@@ -189,33 +235,48 @@ def request_regeneration(draft, index, user):
     return current
 
 
+def _label(item):
+    return item.get('text') or item.get('title', '')
+
+
+def _replacement(draft, old):
+    """Otra propuesta en lugar de ``old``: ``(propuesta, aviso)``. Sin propuesta válida, ``(None, aviso)``."""
+    weeks = _weeks_of(draft)
+    avoid = [_label(item) for item in draft.items]  # también la que se cambia: se quiere otra distinta
+    if draft.kind == AIDraft.Kind.ASSIGNMENTS:
+        data = _generate(
+            organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.ASSIGNMENT,
+            prompt=task_gen.build_prompt(draft.params, weeks, count=1, avoid=avoid), schema=task_gen.SCHEMA, system=task_gen.SYSTEM,
+        )
+        found, _ = task_gen.parse_items(data, weeks, draft.params, limit=1)
+        return (found[0] if found else None), 'La IA no devolvió una alternativa válida. Intenta de nuevo.'
+    data = _generate(
+        organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.QUIZ,
+        prompt=quiz_gen.build_prompt(draft.params, weeks, count=1, mix=old['kind'], avoid=avoid),
+        schema=quiz_gen.SCHEMA, system=quiz_gen.SYSTEM,
+    )
+    found, _ = quiz_gen.parse_items(data, weeks, draft.params, mix=old['kind'], limit=1, existing=_bank_sample(draft))
+    return ({**found[0], 'points': old['points']} if found else None), 'La IA no devolvió una pregunta válida. Intenta de nuevo.'
+
+
 def regenerate(draft_id, index):
-    """Cambia la pregunta ``index`` por otra nueva (corre en Celery)."""
+    """Cambia la propuesta ``index`` por otra nueva (corre en Celery)."""
     draft = AIDraft.objects.select_related('course').filter(pk=draft_id, status=AIDraft.Status.READY).first()
     if draft is None or not 0 <= index < len(draft.items) or draft.items[index].get('state') != REGENERATING:
         return
     old = draft.items[index]
     replacement, note = None, ''
     try:
-        weeks = _weeks_of(draft)
-        avoid = [item['text'] for item in draft.items]  # también la que se cambia: se quiere otra distinta
-        data = services.generate_json(
-            organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.QUIZ,
-            prompt=quiz_gen.build_prompt(draft.params, weeks, count=1, mix=old['kind'], avoid=avoid),
-            schema=quiz_gen.SCHEMA, system=quiz_gen.SYSTEM,
-        )
-        found, _ = quiz_gen.parse_items(data, weeks, draft.params, mix=old['kind'], limit=1, existing=_bank_sample(draft))
-        if found:
-            replacement = {**found[0], 'points': old['points']}
-        else:
-            note = 'La IA no devolvió una pregunta válida. Intenta de nuevo.'
+        replacement, failure = _replacement(draft, old)
+        if replacement is None:
+            note = failure
     except (services.AIUnavailable, services.AIFailed, quiz_gen.RequestError) as error:
         note = ' '.join(error.messages)
     except Exception:  # noqa: BLE001
-        logger.exception('Falló al regenerar una pregunta de la propuesta %s', draft_id)
+        logger.exception('Falló al regenerar una propuesta de %s', draft_id)
         note = 'Algo salió mal al regenerar. Intenta de nuevo.'
     with locked(draft_id) as current:
-        if 0 <= index < len(current.items) and current.items[index].get('state') == REGENERATING and current.items[index]['text'] == old['text']:
+        if 0 <= index < len(current.items) and current.items[index].get('state') == REGENERATING and _label(current.items[index]) == _label(old):
             current.items[index] = replacement or {**old, 'state': PENDING, 'note': note}
             current.save()
 
@@ -241,7 +302,7 @@ def _points(raw, default):
         return default
     if not points.is_finite() or not Decimal('0.01') <= points <= 100:
         return default
-    return format(points.quantize(Decimal('0.01')), 'f').rstrip('0').rstrip('.')
+    return quiz_gen.format_points(points)
 
 
 def save_review_state(draft, post):
@@ -258,7 +319,9 @@ def save_review_state(draft, post):
 def set_state(draft, index, state):
     item = item_at(draft, index)
     if item['state'] == REGENERATING:
-        raise ValidationError('Esa pregunta se está regenerando. Espera un momento.')
+        raise ValidationError('Esa propuesta se está regenerando. Espera un momento.')
+    if item['state'] == CREATED:
+        raise ValidationError('Esa alternativa ya se creó como actividad.')
     item['state'] = state
 
 
@@ -288,6 +351,29 @@ def edit_item(draft, index, post):
 def discard_all(draft):
     draft.status = AIDraft.Status.DISCARDED
     draft.save()
+
+
+def edit_assignment(draft, index, post):
+    """Aplica lo que el docente corrigió en una alternativa de tarea (los criterios deben sumar los puntos)."""
+    item = item_at(draft, index)
+    if item['state'] != PENDING:
+        raise ValidationError('Esa alternativa ya no se puede editar.')
+    draft.items[index] = task_gen.edited_item(item, post)
+
+
+def settle_assignments(draft):
+    """Cierra la propuesta cuando ya no queda ninguna alternativa por decidir."""
+    if any(item['state'] in (PENDING, REGENERATING) for item in draft.items):
+        return
+    draft.status = AIDraft.Status.APPLIED if draft.count(CREATED) else AIDraft.Status.DISCARDED
+
+
+def close_assignments(draft):
+    """«Terminar»: descarta las alternativas que quedan y cierra la propuesta."""
+    for item in draft.items:
+        if item['state'] in (PENDING, REGENERATING):
+            item['state'] = DISCARDED
+    settle_assignments(draft)
 
 
 # ── Aprobar y aplicar ─────────────────────────────────────────────────
@@ -335,6 +421,29 @@ def apply_quiz(draft_id, user):
     if created:
         builder.sync_activity_points(quiz)
     draft.status, draft.applied_by, draft.applied_at, draft.activity = AIDraft.Status.APPLIED, user, timezone.now(), activity
+    draft.save()
+    return activity
+
+
+@transaction.atomic
+def create_assignment(draft_id, index, user):
+    """Crea la actividad (borrador, hecha con IA) de la alternativa ``index``. Las demás siguen disponibles."""
+    draft = AIDraft.objects.select_for_update(of=('self',)).select_related('course').get(pk=draft_id)
+    _require_reviewable(draft)
+    item = item_at(draft, index)
+    if item['state'] != PENDING:
+        raise ValidationError('Esta alternativa ya no se puede crear.')
+    course = draft.course
+    course.ensure_editable()
+    week = next((week for week in _weeks_of_or_empty(draft) if week.pk == item.get('week_id')), None)
+    activity = Activity(
+        course=course, title=item['title'], instructions=task_gen.render_instructions(item), type=item['type'],
+        max_score=float(item['points']), syllabus_week=week, published=False, ai_generated=True,
+    )
+    activity.save()
+    item['state'], item['activity_id'] = CREATED, activity.pk
+    draft.applied_by, draft.applied_at = user, timezone.now()
+    settle_assignments(draft)
     draft.save()
     return activity
 

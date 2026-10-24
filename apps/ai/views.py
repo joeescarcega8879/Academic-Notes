@@ -16,6 +16,7 @@ from apps.quizzes.services import builder
 from apps.syllabus.models import Syllabus
 from core.utils import parse_id
 
+from . import assignment_generation as task_gen
 from . import drafts, quiz_generation as quiz_gen, services, split_generation as split_gen
 from .models import AIDraft
 
@@ -59,6 +60,21 @@ class QuizGenerateView(TeacherRequiredMixin, View):
             _flash_errors(request, error)
             return redirect(back)
         return redirect('ai:draft', pk=draft.pk)
+
+
+class AssignmentGenerateView(TeacherRequiredMixin, View):
+    """Recibe el panel «Redactar una tarea con IA» y deja la propuesta en marcha."""
+
+    def post(self, request, pk):
+        course = _course(request, pk)
+        try:
+            params = task_gen.clean_params(request.POST, course)
+            draft = drafts.request_assignments(user=request.user, organization=request.organization, course=course, params=params)
+        except ValidationError as error:
+            _flash_errors(request, error)
+            back = reverse('grades:activity_create', args=[course.pk]) if request.POST.get('origin') == 'form' else reverse('syllabus:index', args=[course.pk])
+            return redirect(back)
+        return redirect('ai:assignment_draft', pk=draft.pk)
 
 
 class SplitGenerateView(TeacherRequiredMixin, View):
@@ -185,3 +201,82 @@ class DraftView(DraftMixin, View):
         except ValidationError as error:
             _flash_errors(request, error)
         return redirect(target)
+
+
+class AssignmentDraftView(DraftMixin, View):
+    """Las alternativas de tarea: revisarlas, editarlas, regenerarlas y crear la que sirva."""
+
+    template_name = 'ai_assignment_draft.html'
+    kind = AIDraft.Kind.ASSIGNMENTS
+    actions = {'save', 'discard', 'restore', 'edit', 'save_edit', 'regen', 'create', 'finish'}
+
+    def get(self, request, pk):
+        draft = drafts.expire_if_stale(self.get_draft(pk))
+        editing = parse_id(request.GET.get('editar', '')) if draft.status == AIDraft.Status.READY else None
+        weeks = {week.position: week for week in quiz_gen.course_weeks(draft.course)}
+        rows = []
+        for index, item in enumerate(draft.items):
+            week = weeks.get(item['week'])
+            rows.append({
+                'i': index, 'n': index + 1, 'item': item, 'editing': editing == index and item['state'] == drafts.PENDING,
+                'week_label': f'Semana {item["week"]}' + (f' · {week.title}' if week and week.title else ''),
+                'type_label': dict(task_gen.TYPES).get(item['type'], 'Tarea'),
+            })
+        busy = draft.status == AIDraft.Status.PENDING or any(row['item']['state'] == drafts.REGENERATING for row in rows)
+        week_names = ', '.join(str(week.position) for week in weeks.values() if week.pk in draft.params.get('week_ids', []))
+        return render(request, self.template_name, {
+            'draft': draft, 'course': draft.course, 'rows': rows, 'busy': busy, 'week_names': week_names,
+            'back_url': reverse('syllabus:index', args=[draft.course_id]), 'usage': services.usage_summary(request.organization),
+            'params_type': dict(task_gen.TYPES).get(draft.params.get('type'), 'Tarea'),
+            'open_count': draft.count(drafts.PENDING),
+        })
+
+    def post(self, request, pk):
+        draft = self.get_draft(pk)
+        action, _, argument = request.POST.get('action', '').partition(':')
+        index = parse_id(argument) if argument else None
+        here = reverse('ai:assignment_draft', args=[draft.pk])
+        if action == 'retry':
+            try:
+                drafts.retry(draft)
+            except ValidationError as error:
+                _flash_errors(request, error)
+            return redirect(here)
+        if action not in self.actions:
+            messages.error(request, 'Acción desconocida.')
+            return redirect(here)
+        target = here
+        try:
+            if action == 'create':
+                activity = drafts.create_assignment(draft.pk, index, request.user)
+                messages.success(request, f'Se creó «{activity.title}» como borrador. Revísala y publícala cuando esté lista.')
+                return redirect(activity.get_absolute_url())
+            with drafts.locked(draft.pk) as current:
+                if current.status != AIDraft.Status.READY:
+                    raise ValidationError('Esta propuesta ya no se puede modificar.')
+                if action in ('discard', 'restore'):
+                    drafts.set_state(current, index, drafts.DISCARDED if action == 'discard' else drafts.PENDING)
+                    drafts.settle_assignments(current)
+                elif action == 'edit':
+                    drafts.item_at(current, index)
+                    target = f'{here}?editar={index}#p{index + 1}'
+                elif action == 'save_edit':
+                    target = f'{here}?editar={index}#p{index + 1}'
+                    drafts.edit_assignment(current, index, request.POST)
+                    target = f'{here}#p{index + 1}'
+                    messages.success(request, 'Se guardaron tus cambios.')
+                elif action == 'finish':
+                    drafts.close_assignments(current)
+                current.save()
+            if action == 'regen':
+                drafts.request_regeneration(draft, index, request.user)
+            elif action == 'finish':
+                messages.success(request, 'Listo. Las alternativas que no creaste se descartaron.')
+                return redirect(self.back_url(draft))
+        except ValidationError as error:
+            _flash_errors(request, error)
+        return redirect(target)
+
+    @staticmethod
+    def back_url(draft):
+        return reverse('syllabus:index', args=[draft.course_id])

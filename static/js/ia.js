@@ -33,6 +33,18 @@
     refresh();
   }
 
+  // Edición de una tarea: «+ Agregar criterio» copia la última fila en blanco.
+  var addCriterion = document.querySelector('[data-ai-add-criterion]');
+  if (addCriterion) {
+    addCriterion.addEventListener('click', function () {
+      var box = document.querySelector('[data-ai-criteria]');
+      var row = box.lastElementChild.cloneNode(true);
+      row.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+      box.appendChild(row);
+      row.querySelector('input').focus();
+    });
+  }
+
   // Mientras algo se genera en segundo plano, preguntar si ya terminó y recargar.
   var waiting = document.querySelector('[data-ai-poll]');
   if (waiting && window.fetch) {

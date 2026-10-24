@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from apps.syllabus.models import Syllabus
 
+from . import assignment_generation as task_gen
 from . import quiz_generation as quiz_gen
 from . import services, split_generation as split_gen
 
@@ -19,12 +20,8 @@ def unavailable_reason(organization):
     return ''
 
 
-def quiz_panel(organization, course, *, activity=None, week=None):
-    """Contexto del panel «Generar preguntas con IA» (``partials/ai_quiz_modal.html``) como ``ai``.
-
-    ``activity``: el quiz al que van las preguntas. ``week``: la semana que viene marcada (desde el editor de una semana).
-    """
-    preselected = week.pk if week is not None else (activity.syllabus_week_id if activity is not None else None)
+def _week_rows(course, preselected):
+    """Las semanas del temario para elegir en un panel; ``preselected`` es la que viene marcada."""
     rows = []
     for item in quiz_gen.course_weeks(course):
         selectable = not item.no_class and quiz_gen.week_has_content(item)
@@ -33,9 +30,24 @@ def quiz_panel(organization, course, *, activity=None, week=None):
             'topics': len(item.topic_list), 'selected': selectable and item.pk == preselected,
             'note': 'semana sin clase' if item.no_class else ('sin temas ni objetivos' if not selectable else ''),
         })
+    return rows
+
+
+def _panel_reason(organization, rows):
     reason = unavailable_reason(organization)
     if not reason and not any(row['selectable'] for row in rows):
         reason = NO_WEEKS
+    return reason
+
+
+def quiz_panel(organization, course, *, activity=None, week=None):
+    """Contexto del panel «Generar preguntas con IA» (``partials/ai_quiz_modal.html``) como ``ai``.
+
+    ``activity``: el quiz al que van las preguntas. ``week``: la semana que viene marcada (desde el editor de una semana).
+    """
+    preselected = week.pk if week is not None else (activity.syllabus_week_id if activity is not None else None)
+    rows = _week_rows(course, preselected)
+    reason = _panel_reason(organization, rows)
     base_title = ''
     if week is not None:
         base_title = f'Quiz · {week.title.strip() or f"Semana {week.position}"}'
@@ -43,6 +55,19 @@ def quiz_panel(organization, course, *, activity=None, week=None):
         'reason': reason, 'weeks': rows, 'usage': services.usage_summary(organization),
         'action_url': reverse('ai:quiz_generate', args=[course.pk]), 'activity': activity, 'default_title': base_title,
         'counts': quiz_gen.COUNT_CHOICES, 'mixes': quiz_gen.MIX_CHOICES, 'difficulties': quiz_gen.DIFFICULTY_CHOICES,
+    }
+
+
+def assignment_panel(organization, course, *, week_id=None, origin='syllabus'):
+    """Contexto del panel «Redactar una tarea con IA» (``partials/ai_assignment_modal.html``) como ``ai_task``.
+
+    ``week_id``: la semana que viene marcada. ``origin``: de dónde se abrió (``syllabus`` o ``form``), para volver ahí si algo falla.
+    """
+    rows = _week_rows(course, week_id)
+    return {
+        'reason': _panel_reason(organization, rows), 'weeks': rows, 'usage': services.usage_summary(organization),
+        'action_url': reverse('ai:assignment_generate', args=[course.pk]), 'origin': origin,
+        'types': task_gen.TYPES, 'difficulties': task_gen.DIFFICULTY_CHOICES,
     }
 
 

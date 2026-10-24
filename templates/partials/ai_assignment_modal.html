@@ -1,0 +1,55 @@
+{# Panel «Redactar una tarea con IA». Recibe `ai_task` (apps/ai/ui.py::assignment_panel). Se abre con `data-ai-open="modal-ai-assignment"`. #}
+<div class="modal-backdrop" id="modal-ai-assignment">
+  <div class="modal ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-task-title">
+    <form method="post" action="{{ ai_task.action_url }}">
+      {% csrf_token %}
+      <input type="hidden" name="origin" value="{{ ai_task.origin }}">
+      <header class="modal-head">
+        <h3 id="ai-task-title">Redactar una tarea con IA</h3>
+        <button type="button" data-close="modal-ai-assignment" aria-label="Cerrar"><i data-icon="x"></i></button>
+      </header>
+      <div class="modal-body">
+        <p class="helper">La IA solo usa el texto de las semanas que elijas y te propone tres alternativas. Tú eliges, editas y creas la que te sirva.</p>
+        <div class="field">
+          <label>Semanas del temario</label>
+          <div class="ai-weeks">
+            {% for row in ai_task.weeks %}
+              <label class="{% if not row.selectable %}is-off{% endif %}">
+                <input type="checkbox" name="weeks" value="{{ row.pk }}"{% if row.selected %} checked{% endif %}{% if not row.selectable %} disabled{% endif %}>
+                <span class="n">{{ row.position }}</span>
+                <span><span class="t">{{ row.title }}</span><span class="d">{% if row.note %}{{ row.note }}{% else %}{{ row.topics }} tema{{ row.topics|pluralize }}{% if row.selected %} · la que elegiste{% endif %}{% endif %}</span></span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="field">
+          <label>Tipo de actividad</label>
+          <div class="ai-seg">{% for value, label in ai_task.types %}<label><input type="radio" name="type" value="{{ value }}"{% if forloop.first %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+        </div>
+        <div class="ai-grid">
+          <div class="field">
+            <label for="ai-task-points">Puntos de la actividad</label>
+            <input class="input" id="ai-task-points" name="points" value="10" inputmode="decimal">
+          </div>
+          <div class="field">
+            <label>Dificultad</label>
+            <div class="ai-seg">{% for value, label in ai_task.difficulties %}<label><input type="radio" name="difficulty" value="{{ value }}"{% if value == 'medium' %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ai-task-instructions">Instrucciones extra <span class="text-muted" style="font-weight: 400">(opcional)</span></label>
+          <textarea class="input" id="ai-task-instructions" name="instructions" rows="2" maxlength="500" placeholder="Ej.: que sea individual, que se entregue en PDF y que no requiera material especial."></textarea>
+        </div>
+        <div class="ai-privacy">
+          <i data-icon="lock"></i>
+          <span>Se envía solo el texto de las semanas elegidas y tus instrucciones: nunca nombres ni datos de alumnos.
+            {% if ai_task.usage %}Usará <b>1 de tus {{ ai_task.usage.limit }} usos</b> del mes (te quedan {{ ai_task.usage.remaining }}).{% endif %}</span>
+        </div>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close="modal-ai-assignment">Cancelar</button>
+        <button type="submit" class="btn btn-primary ai-btn">Proponer tres tareas</button>
+      </footer>
+    </form>
+  </div>
+</div>
