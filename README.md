@@ -162,6 +162,7 @@ Se leen de `.env` (plantilla en `.env.example`). Las principales:
 | `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `CELERY_TASK_ALWAYS_EAGER` | Caché y Celery |
 | `DJANGO_EMAIL_BACKEND`, `EMAIL_*`, `DEFAULT_FROM_EMAIL` | Correo (por defecto, a consola) |
 | `SITE_NAME`, `SITE_URL`, `SUPPORT_EMAIL` | Nombre, dirección pública (obligatoria en producción) y soporte; salen en los correos |
+| `TRUSTED_PROXY_COUNT` | Proxies de confianza delante de la app (0 en local, 1 por omisión en producción); de ahí sale la IP para los límites de intentos |
 | `SENTRY_DSN` | Errores en producción (opcional) |
 
 ---

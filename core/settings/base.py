@@ -197,6 +197,10 @@ SITE_NAME = env("SITE_NAME", default="Academic Notes")
 SITE_URL = env("SITE_URL", default="http://localhost:8000").rstrip("/")
 SUPPORT_EMAIL = env("SUPPORT_EMAIL", default="soporte@academicnotes.app")
 
+# Cuántos proxies de confianza hay delante de la app (0 = ninguno). Define de dónde sale la IP del cliente
+# para los límites de intentos (core/throttle.py); si es mayor que los reales, la IP se puede falsear.
+TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
+
 
 # ── Caché ─────────────────────────────────────────────────────────────
 REDIS_URL = env("REDIS_URL", default="")
