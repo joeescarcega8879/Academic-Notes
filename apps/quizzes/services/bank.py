@@ -76,7 +76,7 @@ def can_edit_question(user, membership, question):
 @transaction.atomic
 def save_question(
     *, organization, author, kind, text, points, explanation='', topic='',
-    choices=None, true_is_correct=None, question=None, course=UNSET,
+    choices=None, true_is_correct=None, question=None, course=UNSET, ai_generated=False,
 ):
     """Crea o actualiza una pregunta con sus opciones.
 
@@ -84,7 +84,7 @@ def save_question(
     la respuesta correcta es "Verdadero". El tipo de una pregunta existente no cambia.
 
     ``course`` es el grupo del banco (``None``: pregunta general). Sin indicarlo, una pregunta nueva es general y
-    una existente conserva su grupo.
+    una existente conserva su grupo. ``ai_generated`` marca la pregunta como propuesta por la IA y aprobada por el docente.
     """
     if question is not None and question.kind != kind:
         raise ValidationError('El tipo de una pregunta no se puede cambiar.')
@@ -104,7 +104,7 @@ def save_question(
 
     if question is None:
         limits.check_limit(organization, 'questions')  # crear una pregunta cuenta contra el banco del plan
-        question = Question(organization=organization, author=author, kind=kind)
+        question = Question(organization=organization, author=author, kind=kind, ai_generated=ai_generated)
     if course is not UNSET:
         question.course = course
     question.text = text.strip()
@@ -134,7 +134,7 @@ def copy_bank(source, clone):
     for question in questions:
         copy = Question.objects.create(
             organization=question.organization, author=question.author, course=clone, kind=question.kind, text=question.text,
-            points=question.points, explanation=question.explanation, topic=question.topic,
+            points=question.points, explanation=question.explanation, topic=question.topic, ai_generated=question.ai_generated,
         )
         for choice in question.choices.all():
             Choice.objects.create(question=copy, text=choice.text, is_correct=choice.is_correct, position=choice.position)

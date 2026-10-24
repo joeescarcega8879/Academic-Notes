@@ -1,0 +1,68 @@
+{# Panel «Generar preguntas con IA». Recibe `ai` (apps/ai/ui.py::quiz_panel). Se abre con un botón `data-ai-open="modal-ai-quiz"`. #}
+<div class="modal-backdrop" id="modal-ai-quiz">
+  <div class="modal ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-quiz-title">
+    <form method="post" action="{{ ai.action_url }}">
+      {% csrf_token %}
+      {% if ai.activity %}<input type="hidden" name="activity" value="{{ ai.activity.pk }}">{% endif %}
+      <header class="modal-head">
+        <h3 id="ai-quiz-title">Generar preguntas con IA</h3>
+        <button type="button" data-close="modal-ai-quiz" aria-label="Cerrar"><i data-icon="x"></i></button>
+      </header>
+      <div class="modal-body">
+        <p class="helper">La IA solo usa el texto de las semanas que elijas. Tú revisas cada pregunta antes de que llegue al quiz.</p>
+        {% if not ai.activity %}
+          <div class="field">
+            <label for="ai-title">Nombre del quiz</label>
+            <input class="input" id="ai-title" name="title" maxlength="255" value="{{ ai.default_title }}" placeholder="Ej. Quiz · La célula">
+            <span class="text-xs text-muted">Se crea como borrador, enlazado a la primera semana que elijas.</span>
+          </div>
+        {% endif %}
+        <div class="field">
+          <label>Semanas del temario</label>
+          <div class="ai-weeks">
+            {% for row in ai.weeks %}
+              <label class="{% if not row.selectable %}is-off{% endif %}">
+                <input type="checkbox" name="weeks" value="{{ row.pk }}"{% if row.selected %} checked{% endif %}{% if not row.selectable %} disabled{% endif %}>
+                <span class="n">{{ row.position }}</span>
+                <span><span class="t">{{ row.title }}</span><span class="d">{% if row.note %}{{ row.note }}{% else %}{{ row.topics }} tema{{ row.topics|pluralize }}{% if row.selected %} · {% if ai.activity %}enlazada a esta actividad{% else %}la que elegiste{% endif %}{% endif %}{% endif %}</span></span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="ai-grid">
+          <div class="field">
+            <label for="ai-count">Cuántas preguntas</label>
+            <select class="select" id="ai-count" name="count">{% for n in ai.counts %}<option value="{{ n }}"{% if n == 10 %} selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+          </div>
+          <div class="field">
+            <label for="ai-points">Puntos por pregunta</label>
+            <input class="input" id="ai-points" name="points" value="1" inputmode="decimal">
+          </div>
+        </div>
+        <div class="ai-grid is-stacked">
+          <div class="field">
+            <label>Tipo</label>
+            <div class="ai-seg">{% for value, label in ai.mixes %}<label><input type="radio" name="mix" value="{{ value }}"{% if forloop.first %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+          </div>
+          <div class="field">
+            <label>Dificultad</label>
+            <div class="ai-seg">{% for value, label in ai.difficulties %}<label><input type="radio" name="difficulty" value="{{ value }}"{% if value == 'medium' %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ai-instructions">Instrucciones extra <span class="text-muted" style="font-weight: 400">(opcional)</span></label>
+          <textarea class="input" id="ai-instructions" name="instructions" rows="2" maxlength="500" placeholder="Ej.: enfócate en comparar célula animal y vegetal; evita preguntas de fechas."></textarea>
+        </div>
+        <div class="ai-privacy">
+          <i data-icon="lock"></i>
+          <span>Se envía solo el texto de las semanas elegidas y tus instrucciones: nunca nombres ni datos de alumnos.
+            {% if ai.usage %}Usará <b>1 de tus {{ ai.usage.limit }} usos</b> del mes (te quedan {{ ai.usage.remaining }}).{% endif %}</span>
+        </div>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost" data-close="modal-ai-quiz">Cancelar</button>
+        <button type="submit" class="btn btn-primary ai-btn">Generar preguntas</button>
+      </footer>
+    </form>
+  </div>
+</div>

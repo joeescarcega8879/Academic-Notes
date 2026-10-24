@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Armar quiz · {{ activity.title }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -49,11 +50,25 @@
   </form>
 </div>
 
+{% if ai.reason %}<p class="ai-note mb-12"><b>Generar con IA:</b> {{ ai.reason }}</p>{% endif %}
+{% if ai_drafts %}
+  <div class="card mb-12 ai-pending">
+    <h3 class="section-title">Propuestas de IA</h3>
+    {% for item in ai_drafts %}
+      <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap; padding: 4px 0">
+        <a class="flash-link" href="{% url 'ai:draft' item.pk %}">{% if item.status == 'ready' %}Revisar {{ item.items|length }} pregunta{{ item.items|length|pluralize }} propuesta{{ item.items|length|pluralize }}{% elif item.status == 'pending' %}Generando {{ item.params.count }} preguntas…{% else %}No se pudo generar: ver el motivo{% endif %}</a>
+        <span class="text-xs text-muted">{{ item.created_at|date:"j M, H:i" }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
 <div class="table-wrap mb-12">
   <div class="table-head">
     <h3>Preguntas del quiz</h3>
     <div class="spacer"></div>
     {% if not locked and not read_only %}
+      <button type="button" class="btn btn-primary ai-btn"{% if ai.reason %} disabled title="{{ ai.reason }}"{% else %} data-ai-open="modal-ai-quiz"{% endif %}>Generar con IA</button>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'multiple_choice' %}?add_to={{ activity.pk }}">Nueva opción múltiple</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}?add_to={{ activity.pk }}">Nueva verdadero/falso</a>
     {% endif %}
@@ -64,7 +79,7 @@
       {% for question in questions %}
         <tr>
           <td>{{ forloop.counter }}</td>
-          <td>{{ question.text|truncatechars:100 }}<div class="text-xs text-muted">{{ question.get_kind_display }}</div></td>
+          <td>{{ question.text|truncatechars:100 }}{% if question.ai_generated %} <span class="chip info">Hecha con IA</span>{% endif %}<div class="text-xs text-muted">{{ question.get_kind_display }}</div></td>
           <td>{% for choice in question.choices.all %}{% if choice.is_correct %}{{ choice.text|truncatechars:40 }}{% endif %}{% endfor %}</td>
           <td style="white-space: nowrap">
             {% if locked or read_only %}{{ question.points|floatformat:"-2" }}{% else %}
@@ -140,4 +155,6 @@
   </form>
 </div>
 {% endif %}
+{% if ai and not ai.reason %}{% include 'partials/ai_quiz_modal.html' %}{% endif %}
+<script src="{% static 'js/ia.js' %}?v=1"></script>
 {% endblock %}

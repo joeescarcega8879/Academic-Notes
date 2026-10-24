@@ -33,6 +33,8 @@ class Question(TenantModel):
     explanation = models.TextField('explicación', blank=True, help_text='Se muestra al alumno junto a la respuesta correcta.')
     topic = models.CharField('tema', max_length=80, blank=True)
     is_archived = models.BooleanField('archivada', default=False)
+    # La propuso la IA y el docente la aprobó (``AIDraft`` guarda quién y cuándo).
+    ai_generated = models.BooleanField('hecha con IA', default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -115,6 +117,7 @@ class QuizQuestion(TenantModel):
     points = models.DecimalField(max_digits=6, decimal_places=2, default=1, validators=[MinValueValidator(0.01)])
     explanation = models.TextField(blank=True)
     position = models.PositiveSmallIntegerField(default=0)
+    ai_generated = models.BooleanField('hecha con IA', default=False)
 
     class Meta:
         ordering = ['position', 'id']
