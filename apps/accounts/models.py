@@ -41,6 +41,9 @@ class User(AbstractUser):
         PROFESSOR = 'professor', 'Profesor'
 
     email = models.EmailField(unique=True)
+    # Tipo de cuenta: lo que la persona eligió al registrarse. NO da permisos (esos salen de ``Membership.role``
+    # en cada organización); sirve donde aún no hay membresía (un alumno que no se ha unido a un grupo): su
+    # formulario de perfil, el correo de bienvenida y la validación del rol elegido al iniciar sesión.
     role = models.CharField(max_length=10, choices=Role.choices)
     phone = models.CharField(max_length=15, blank=True)
     birth_date = models.DateField(null=True, blank=True)

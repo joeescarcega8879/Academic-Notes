@@ -7,7 +7,6 @@ from .services import ensure_individual_organization
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_individual_organization(sender, instance, created, **kwargs):
-    """Todo profesor nuevo nace con su organización individual."""
-    # Transitorio: cuando Membership reemplace a User.role, esto pasa al alta de docentes.
+    """Todo profesor nuevo nace con su organización individual (también el creado desde el admin o la consola)."""
     if created and instance.role == 'professor':
         ensure_individual_organization(instance)
