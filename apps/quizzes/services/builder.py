@@ -33,7 +33,9 @@ def _copy_question(quiz, question, position, *, points=None):
         explanation=question.explanation, position=position, ai_generated=question.ai_generated,
     )
     for index, choice in enumerate(question.choices.all()):
-        QuizChoice.objects.create(question=copy, text=choice.text, is_correct=choice.is_correct, position=index)
+        QuizChoice.objects.create(
+            question=copy, text=choice.text, is_correct=choice.is_correct, position=index, match_text=choice.match_text,
+        )
     return copy
 
 

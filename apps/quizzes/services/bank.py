@@ -106,6 +106,32 @@ def validate_items(items):
     return [(text, False) for text in cleaned]
 
 
+def validate_pairs(pairs):
+    """Parejas de una pregunta de relacionar: ``[(izquierda, derecha), ...]`` -> ``[(izquierda, False, derecha), ...]``.
+
+    Se ignoran las filas en blanco; cada pareja necesita sus dos lados, de 2 a 8 parejas, sin repetir ningún lado.
+    """
+    cleaned = []
+    for left, right in pairs:
+        left, right = (left or '').strip(), (right or '').strip()
+        if not left and not right:
+            continue
+        if not left or not right:
+            raise ValidationError('Completa los dos lados de cada pareja.')
+        cleaned.append((left, right))
+    if len(cleaned) < MIN_CHOICES:
+        raise ValidationError(f'Escribe al menos {MIN_CHOICES} parejas.')
+    if len(cleaned) > MAX_CHOICES:
+        raise ValidationError(f'Máximo {MAX_CHOICES} parejas.')
+    if any(len(side) > MAX_CHOICE_LENGTH for pair in cleaned for side in pair):
+        raise ValidationError(f'Un elemento no puede pasar de {MAX_CHOICE_LENGTH} caracteres.')
+    for column, name in ((0, 'de la izquierda'), (1, 'de la derecha')):
+        sides = [normalize(pair[column]) or pair[column].casefold() for pair in cleaned]
+        if len(set(sides)) != len(sides):
+            raise ValidationError(f'Hay elementos repetidos en la columna {name}.')
+    return [(left, False, right) for left, right in cleaned]
+
+
 def can_edit_question(user, membership, question):
     """Edita la autora o el autor, o quien es propietario de la organización."""
     if question.author_id == user.pk:
@@ -146,6 +172,8 @@ def save_question(
         rows = []  # no tiene respuestas que comparar: la califica el docente
     elif kind == Question.Kind.ORDERING:
         rows = validate_items(choices or [])  # en el orden correcto; el alumno los verá revueltos
+    elif kind == Question.Kind.MATCHING:
+        rows = validate_pairs(choices or [])  # (izquierda, derecha): el alumno ve la derecha revuelta
     else:
         raise ValidationError('Tipo de pregunta desconocido.')
 
@@ -162,8 +190,8 @@ def save_question(
     question.save()
 
     question.choices.all().delete()
-    for position, (choice_text, correct) in enumerate(rows):
-        Choice.objects.create(question=question, text=choice_text, is_correct=correct, position=position)
+    for position, (choice_text, correct, match) in enumerate((tuple(row) + ('',))[:3] for row in rows):
+        Choice.objects.create(question=question, text=choice_text, is_correct=correct, position=position, match_text=match)
     return question
 
 
@@ -184,8 +212,19 @@ def copy_bank(source, clone):
             points=question.points, explanation=question.explanation, topic=question.topic, ai_generated=question.ai_generated,
         )
         for choice in question.choices.all():
-            Choice.objects.create(question=copy, text=choice.text, is_correct=choice.is_correct, position=choice.position)
+            Choice.objects.create(
+                question=copy, text=choice.text, is_correct=choice.is_correct, position=choice.position, match_text=choice.match_text,
+            )
     return len(questions)
+
+
+def _choices_for_copy(question):
+    """Lo que ``save_question`` necesita para volver a crear las opciones de ``question`` (``None`` si no lleva)."""
+    if question.kind == Question.Kind.MATCHING:
+        return [(c.text, c.match_text) for c in question.choices.all()]
+    if question.kind in (Question.Kind.MULTIPLE_CHOICE, Question.Kind.SHORT_ANSWER, Question.Kind.ORDERING):
+        return [(c.text, c.is_correct) for c in question.choices.all()]
+    return None
 
 
 @transaction.atomic
@@ -199,9 +238,7 @@ def duplicate_question(question, *, by, course=UNSET):
         organization=question.organization, author=by, kind=question.kind, text=f'{question.text} (copia)',
         points=question.points, explanation=question.explanation, topic=question.topic,
         course=question.course if course is UNSET else course,
-        choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind in (
-            Question.Kind.MULTIPLE_CHOICE, Question.Kind.SHORT_ANSWER, Question.Kind.ORDERING,
-        ) else None,
+        choices=_choices_for_copy(question),
         true_is_correct=(
             next(c.is_correct for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
             if question.kind == Question.Kind.TRUE_FALSE else None

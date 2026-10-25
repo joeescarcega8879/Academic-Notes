@@ -134,6 +134,22 @@ def _order_items(question, answer):
     ]
 
 
+def _match_items(question, answer):
+    """Para la revisión de una pregunta de relacionar: cada elemento con la pareja que eligió el alumno y la correcta."""
+    by_id = {c.pk: c for c in question.choices.all()}
+    given = (answer.response or {}) if answer else {}
+    items = []
+    for choice_id in answer_service.correct_order(question):
+        chosen = by_id.get(given.get(str(choice_id)))
+        items.append({
+            'left': by_id[choice_id].text,
+            'correct': by_id[choice_id].match_text,
+            'given': chosen.match_text if chosen else None,
+            'ok': chosen is not None and chosen.pk == choice_id,
+        })
+    return items
+
+
 def review_rows(attempt):
     """Por pregunta, en el orden en que la vio el alumno: opciones marcadas y puntos. Para el alumno y el docente."""
     quiz = attempt.quiz
@@ -150,12 +166,16 @@ def review_rows(attempt):
         ids = [c for c in attempt.layout.get('choices', {}).get(str(question_id), []) if c in by_id]
         ids += [c for c in by_id if c not in ids]
         is_short = question.kind == Question.Kind.SHORT_ANSWER
-        items = _order_items(question, answer) if question.kind == Question.Kind.ORDERING else []
+        items = []
+        if question.kind == Question.Kind.ORDERING:
+            items = _order_items(question, answer)
+        elif question.kind == Question.Kind.MATCHING:
+            items = _match_items(question, answer)
         rows.append({
             'question': question,
             'kind': question.kind,
             # En una respuesta corta lo que se muestra es el texto del alumno y las respuestas aceptadas, no una lista de opciones.
-            'choices': [] if is_short or question.kind == Question.Kind.ORDERING else [
+            'choices': [] if is_short or question.kind in answer_service.RESPONSE_KINDS else [
                 {'choice': by_id[c], 'chosen': c == chosen, 'correct': by_id[c].is_correct} for c in ids
             ],
             'text': answer.text if answer and (is_short or question.kind == Question.Kind.OPEN) else '',
@@ -167,6 +187,7 @@ def review_rows(attempt):
             'points': answer.points_awarded if answer and answer.points_awarded is not None else Decimal(0),
             # Abierta con texto: el docente puede calificarla; sin calificar todavía, el alumno la ve «por calificar».
             'items': items,
+            'by_parts': question.kind in answer_service.RESPONSE_KINDS,
             'placed': sum(1 for item in items if item['ok']),
             'gradable': question.kind == Question.Kind.OPEN and answer_service.has_answer(question, answer),
             'pending': bool(answer and question.kind == Question.Kind.OPEN and answer.points_awarded is None),

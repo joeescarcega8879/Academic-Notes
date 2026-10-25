@@ -18,7 +18,7 @@ from ..models import Question
 CHOICE_KINDS = (Question.Kind.MULTIPLE_CHOICE, Question.Kind.TRUE_FALSE)
 TEXT_KINDS = (Question.Kind.SHORT_ANSWER, Question.Kind.OPEN)
 # Preguntas cuya respuesta se guarda como datos (``Answer.response``) y no como opción o texto.
-RESPONSE_KINDS = (Question.Kind.ORDERING,)
+RESPONSE_KINDS = (Question.Kind.ORDERING, Question.Kind.MATCHING)
 # Las que muestran su lista de «opciones» al alumno (revueltas en el orden del intento).
 LISTED_KINDS = CHOICE_KINDS + RESPONSE_KINDS
 TWO_PLACES = Decimal('0.01')
@@ -71,7 +71,27 @@ def coerce(question, value, choice_ids):
         return {'text': text}
     if question.kind == Question.Kind.ORDERING:
         return _coerce_order(value, choice_ids)
+    if question.kind == Question.Kind.MATCHING:
+        return _coerce_matching(value, choice_ids)
     raise ValidationError('Tipo de pregunta desconocido.')
+
+
+def _coerce_matching(value, choice_ids):
+    """Las parejas que eligió el alumno: ``{id del elemento: id del elemento cuya pareja eligió}``. Vacío borra la respuesta."""
+    if value is None or value == '' or value == {}:
+        return {'response': None}
+    if not isinstance(value, dict):
+        raise ValidationError('Relaciona cada elemento con una opción.')
+    mapping = {}
+    for left, right in value.items():
+        left_id = left if isinstance(left, int) else parse_id(str(left))
+        right_id = right if isinstance(right, int) else parse_id(str(right))
+        if left_id not in choice_ids or right_id not in choice_ids:
+            raise ValidationError('Hay una opción que no es de esa pregunta.')
+        mapping[str(left_id)] = right_id
+    if len(set(mapping.values())) != len(mapping):
+        raise ValidationError('Cada opción se puede usar una sola vez.')
+    return {'response': mapping}
 
 
 def _coerce_order(value, choice_ids):
@@ -105,6 +125,8 @@ def grade(question, answer):
         return (None, None) if answer.text.strip() else (False, Decimal(0))
     if question.kind == Question.Kind.ORDERING:
         return _grade_order(question, answer)
+    if question.kind == Question.Kind.MATCHING:
+        return _grade_matching(question, answer)
     if question.kind in CHOICE_KINDS:
         correct = bool(answer.choice_id and answer.choice.is_correct)
     elif question.kind == Question.Kind.SHORT_ANSWER:
@@ -131,4 +153,12 @@ def _grade_order(question, answer):
     expected = correct_order(question)
     given = answer.response or []
     placed = sum(1 for want, got in zip(expected, given) if want == got)
+    return bool(expected) and placed == len(expected), partial_points(question, placed, len(expected))
+
+
+def _grade_matching(question, answer):
+    """Cada pareja correcta vale lo mismo; solo se marca correcta si acertó todas."""
+    expected = correct_order(question)
+    given = answer.response or {}
+    placed = sum(1 for choice_id in expected if given.get(str(choice_id)) == choice_id)
     return bool(expected) and placed == len(expected), partial_points(question, placed, len(expected))

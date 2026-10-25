@@ -5,6 +5,7 @@ from apps.courses.models import Course
 from .models import Question, QuizConfig
 from .services.bank import (
     MAX_ACCEPTED_LENGTH, MAX_CHOICE_LENGTH, MAX_CHOICES, teaching_courses, validate_accepted, validate_choices, validate_items,
+    validate_pairs,
 )
 
 
@@ -109,8 +110,36 @@ class BaseItemFormSet(forms.BaseFormSet):
 ItemFormSet = forms.formset_factory(OrderItemForm, formset=BaseItemFormSet, extra=0, max_num=MAX_CHOICES, validate_max=True)
 
 
+class PairForm(forms.Form):
+    text = forms.CharField(label='Elemento', required=False, max_length=MAX_CHOICE_LENGTH)
+    match_text = forms.CharField(label='Le corresponde', required=False, max_length=MAX_CHOICE_LENGTH)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['text'].widget.attrs.update({'class': 'input', 'placeholder': 'Elemento', 'aria-label': 'Elemento'})
+        self.fields['match_text'].widget.attrs.update({'class': 'input', 'placeholder': 'Le corresponde', 'aria-label': 'Le corresponde'})
+
+
+class BasePairFormSet(forms.BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        validated = validate_pairs([(f.cleaned_data.get('text', ''), f.cleaned_data.get('match_text', '')) for f in self.forms])
+        # Se entregan como parejas simples: ``save_question`` las valida otra vez y debe dar lo mismo.
+        self.cleaned_choices = [(left, right) for left, _, right in validated]
+
+
+PairFormSet = forms.formset_factory(PairForm, formset=BasePairFormSet, extra=0, max_num=MAX_CHOICES, validate_max=True)
+
+
 def choice_formset(data=None, *, question=None, kind=Question.Kind.MULTIPLE_CHOICE):
     """Formset de opciones (o de respuestas aceptadas, o de elementos a ordenar): con las de ``question`` al editar, o filas vacías."""
+    if kind == Question.Kind.MATCHING:
+        if data is not None:
+            return PairFormSet(data, prefix='choices')
+        initial = [{'text': c.text, 'match_text': c.match_text} for c in question.choices.all()] if question is not None else []
+        return PairFormSet(initial=initial + [{}] * max(0, 3 - len(initial)), prefix='choices')
     if kind == Question.Kind.ORDERING:
         if data is not None:
             return ItemFormSet(data, prefix='choices')

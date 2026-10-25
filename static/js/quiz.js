@@ -31,6 +31,10 @@
     form.querySelectorAll("input[type=radio]:checked").forEach(function (input) {
       data.append(input.name, input.value);
     });
+    // Las parejas elegidas en las preguntas de relacionar (también las vacías: así se puede quitar una elección).
+    form.querySelectorAll("select[name^=m_]").forEach(function (select) {
+      data.append(select.name, select.value);
+    });
     // El orden de las preguntas de ordenar (vacío hasta que el alumno mueve algo).
     form.querySelectorAll("input[type=hidden][name^=o_]").forEach(function (input) {
       data.append(input.name, input.value);
@@ -161,6 +165,27 @@
     refresh();
   }
   form.querySelectorAll("[data-orden]").forEach(setupOrdering);
+
+  // Preguntas de relacionar: cada opción se usa una sola vez, así que en los demás menús se deshabilita la ya elegida.
+  function setupMatching(box) {
+    var selects = box.querySelectorAll("select");
+    function refresh() {
+      var used = {};
+      selects.forEach(function (select) {
+        if (select.value) {
+          used[select.value] = select;
+        }
+      });
+      selects.forEach(function (select) {
+        Array.prototype.forEach.call(select.options, function (option) {
+          option.disabled = Boolean(option.value) && used[option.value] !== undefined && used[option.value] !== select;
+        });
+      });
+    }
+    box.addEventListener("change", refresh);
+    refresh();
+  }
+  form.querySelectorAll("[data-pareo]").forEach(setupMatching);
 
   form.addEventListener("change", schedule);
   form.addEventListener("submit", function (event) {

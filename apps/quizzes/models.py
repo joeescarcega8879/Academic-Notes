@@ -21,6 +21,7 @@ class Question(TenantModel):
         SHORT_ANSWER = 'short_answer', 'Respuesta corta'
         OPEN = 'open', 'Respuesta abierta'
         ORDERING = 'ordering', 'Ordenar'
+        MATCHING = 'matching', 'Relacionar columnas'
 
     # Como el grupo, la pregunta pertenece a la organización y la elige quien la crea.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
@@ -60,6 +61,8 @@ class Choice(TenantModel):
     text = models.CharField('opción', max_length=500)
     is_correct = models.BooleanField('correcta', default=False)
     position = models.PositiveSmallIntegerField(default=0)
+    # En una pregunta de relacionar columnas: lo que le corresponde a ``text`` (el par de la columna derecha).
+    match_text = models.CharField('le corresponde', max_length=500, blank=True, default='', db_default='')
 
     class Meta:
         ordering = ['position', 'id']
@@ -141,6 +144,7 @@ class QuizChoice(TenantModel):
     text = models.CharField(max_length=500)
     is_correct = models.BooleanField(default=False)
     position = models.PositiveSmallIntegerField(default=0)
+    match_text = models.CharField(max_length=500, blank=True, default='', db_default='')
 
     class Meta:
         ordering = ['position', 'id']
@@ -199,7 +203,8 @@ class Answer(TenantModel):
     text = models.TextField(blank=True, default='', db_default='')
     # Comentario del docente en una respuesta abierta; el alumno lo lee con su revisión.
     feedback = models.TextField(blank=True, default='', db_default='')
-    # Lo que contestó el alumno en las preguntas de ordenar: los ids de los elementos en el orden que les dio.
+    # Lo que contestó el alumno en las preguntas de ordenar (los ids de los elementos en el orden que les dio) y de
+    # relacionar columnas ({id del elemento de la izquierda: id del elemento cuya pareja eligió}).
     response = models.JSONField(null=True, blank=True)
     is_correct = models.BooleanField(null=True)
     points_awarded = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)

@@ -87,8 +87,8 @@ def build_layout(quiz, rng=None):
         if question.kind not in answer_service.LISTED_KINDS:
             continue  # lo que hay en sus «opciones» (las respuestas aceptadas, por ejemplo) no se le muestra al alumno
         ids = [c.pk for c in question.choices.all()]
-        if question.kind == Question.Kind.ORDERING:
-            ids = _shuffled_differently(ids, rng)
+        if question.kind in (Question.Kind.ORDERING, Question.Kind.MATCHING):
+            ids = _shuffled_differently(ids, rng)  # se muestran revueltos (la columna de la derecha, en las de relacionar)
             choices[str(question.pk)] = ids
             continue
         # Verdadero/Falso conserva su orden natural: barajarlo solo confunde.

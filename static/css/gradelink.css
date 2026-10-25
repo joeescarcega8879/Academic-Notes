@@ -1765,3 +1765,10 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
 #choices .orden-num { counter-increment: elemento; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2);
   display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
 #choices .orden-num::before { content: counter(elemento); }
+
+/* ── preguntas de relacionar columnas ── */
+.pareja-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 8px; }
+.pareja-izq { padding: 10px 12px; background: var(--surface-2); border-radius: 10px; overflow-wrap: anywhere; }
+.pareja-fila .select { width: 100%; min-height: 44px; }
+.pareja-flecha { flex: none; color: var(--text-muted); }
+@media (max-width: 520px) { .pareja-fila { grid-template-columns: 1fr; gap: 6px; margin-bottom: 14px; } }
