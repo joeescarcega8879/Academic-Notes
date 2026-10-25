@@ -15,8 +15,12 @@
   {% if attempt.status == 'expired' %}
     <div class="flash mb-12">Se acabó el tiempo: se calificó lo que alcanzaste a responder.</div>
   {% endif %}
-  <p style="font-size: 2em; margin: 0">{{ attempt.score|floatformat:"-2" }} <span class="text-muted" style="font-size: 0.5em">de {{ attempt.max_points|floatformat:"-2" }} puntos</span></p>
-  <p class="text-muted">{{ percent }} % de aciertos</p>
+  {% if pending %}
+    <div class="flash mb-12">Tu docente todavía califica {{ pending }} respuesta{{ pending|pluralize }} abierta{{ pending|pluralize }}. Tu calificación llegará a la libreta cuando termine.</div>
+  {% else %}
+    <p style="font-size: 2em; margin: 0">{{ attempt.score|floatformat:"-2" }} <span class="text-muted" style="font-size: 0.5em">de {{ attempt.max_points|floatformat:"-2" }} puntos</span></p>
+    <p class="text-muted">{{ percent }} % de aciertos</p>
+  {% endif %}
   {% if grade %}
     <p style="margin-bottom: 4px">Tu calificación en la libreta: <strong>{{ grade.score|floatformat:"-2" }} / {{ activity.max_score|floatformat:"-2" }}</strong>
       {% if quiz.attempts_allowed > 1 and grade.source == 'quiz' %}<span class="text-sm text-muted">(cuenta {{ quiz.get_attempt_policy_display|lower }})</span>{% endif %}</p>

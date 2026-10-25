@@ -15,6 +15,7 @@
   <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
     <span class="grade style-pill ok">{{ attempt.score|floatformat:"-2" }} / {{ attempt.max_points|floatformat:"-2" }} puntos</span>
     <span class="chip">{{ attempt.get_status_display }}</span>
+    {% if pending %}<span class="chip info">{{ pending }} por calificar</span>{% endif %}
     <span class="text-sm text-muted">Empezó el {{ attempt.started_at|date:"d/m/Y H:i" }} · terminó el {{ attempt.submitted_at|date:"d/m/Y H:i" }}</span>
     <div class="spacer"></div>
     {% if not course.is_archived %}
@@ -29,5 +30,16 @@
       ({{ grade.get_source_display|lower }}).</p>
   {% endif %}
 </div>
-{% include 'partials/attempt_rows.html' %}
+{% if has_open and not course.is_archived %}
+  <form method="post" action="{% url 'quizzes:attempt_grade' attempt.pk %}">
+    {% csrf_token %}
+    {% include 'partials/attempt_rows.html' with grading=True %}
+    <div class="flex-row gap-14 mw-760" style="align-items: center; margin-bottom: 24px">
+      <button type="submit" class="btn btn-primary">Guardar calificación</button>
+      <span class="text-sm text-muted">Un campo de puntos vacío se queda como estaba. Cuando no quede nada por calificar, la nota llega a la libreta.</span>
+    </div>
+  </form>
+{% else %}
+  {% include 'partials/attempt_rows.html' %}
+{% endif %}
 {% endblock %}

@@ -15,7 +15,7 @@
 <div class="stat-grid mb-12">
   <div class="stat"><div class="stat-label">Alumnos que lo hicieron</div><div class="stat-value">{{ summary.students }} / {{ summary.enrolled }}</div></div>
   <div class="stat"><div class="stat-label">Intentos terminados</div><div class="stat-value">{{ summary.attempts }}</div>
-    <div class="stat-trend">{{ summary.expired }} cerrados por tiempo</div></div>
+    <div class="stat-trend">{{ summary.expired }} cerrados por tiempo{% if summary.pending %} · <strong>{{ summary.pending }} por calificar</strong>{% endif %}</div></div>
   <div class="stat"><div class="stat-label">Promedio de aciertos</div><div class="stat-value">{% if summary.average is not None %}{{ summary.average }} %{% else %}—{% endif %}</div></div>
   <div class="stat"><div class="stat-label">Más alto / más bajo</div><div class="stat-value">{% if summary.highest is not None %}{{ summary.highest }} / {{ summary.lowest }} %{% else %}—{% endif %}</div></div>
 </div>
@@ -30,7 +30,7 @@
     <tbody>
       {% for row in students %}
         <tr>
-          <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<span>{{ row.student }}{% if row.in_progress %} <span class="chip brand">En curso</span>{% endif %}</span></div></td>
+          <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<span>{{ row.student }}{% if row.in_progress %} <span class="chip brand">En curso</span>{% endif %}{% if row.waiting %} <span class="chip info">Por calificar</span>{% endif %}</span></div></td>
           <td>{{ row.done|length }} / {{ quiz.attempts_allowed }}</td>
           <td>{% if row.best is not None %}{{ row.best }} %{% else %}—{% endif %}</td>
           <td>{% if row.last is not None %}{{ row.last }} %{% else %}—{% endif %}</td>
@@ -72,6 +72,10 @@
             {% for c in item.choices %}
               <div{% if c.choice.is_correct %} style="color: var(--ok); font-weight: 600"{% endif %}>{{ c.choice.text|truncatechars:40 }}: {{ c.count }} ({{ c.percent }} %)</div>
             {% endfor %}
+            {% if item.kind == 'short_answer' %}
+              {% for text, count in item.common_wrong %}<div>«{{ text|truncatechars:40 }}»: {{ count }}</div>{% empty %}<span class="text-muted">Sin respuestas incorrectas.</span>{% endfor %}
+              {% if item.common_wrong %}<div class="text-muted">Respuestas incorrectas más comunes; si alguna es válida, añádela a las aceptadas.</div>{% endif %}
+            {% endif %}
           </td>
         </tr>
       {% empty %}

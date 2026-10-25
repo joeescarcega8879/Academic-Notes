@@ -43,10 +43,12 @@
 
   <p style="white-space: pre-line; font-size: 1.05em">{{ question.text }}</p>
 
+  {% if question.kind == 'short_answer' %}<p class="text-sm text-muted" style="margin-bottom: 6px">Respuestas aceptadas (sin distinguir mayúsculas, acentos ni signos):</p>{% endif %}
+  {% if question.kind == 'open' %}<p class="text-sm text-muted">El alumno escribe su respuesta y tú la calificas con puntos de 0 a {{ question.points|floatformat:"-2" }}. La explicación sirve de guía para calificar y el alumno la ve al revisar.</p>{% endif %}
   <ul style="list-style: none; padding: 0">
     {% for choice in question.choices.all %}
       <li style="padding: 6px 10px; margin-bottom: 4px; border-radius: 6px; {% if choice.is_correct %}background: var(--ok-bg); color: var(--ok){% else %}background: var(--surface-2){% endif %}">
-        {{ choice.text }}{% if choice.is_correct %} <strong>✓ correcta</strong>{% endif %}
+        {{ choice.text }}{% if choice.is_correct and question.kind != 'short_answer' %} <strong>✓ correcta</strong>{% endif %}
       </li>
     {% endfor %}
   </ul>

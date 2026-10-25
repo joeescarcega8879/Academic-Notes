@@ -18,19 +18,17 @@ from .services import exams, results
 
 
 def parse_selections(post):
-    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción. Lo que no viene, no se toca.
+    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción o texto escrito. Lo que no viene, no se toca.
 
-    Un valor vacío borra la respuesta; un valor que no es un id válido se ignora (no borra nada).
+    Un valor vacío borra la respuesta. Qué hacer con el valor (un id de opción, un texto) depende del tipo de
+    pregunta y lo decide el servicio; aquí solo se separan las respuestas por pregunta.
     """
     selections = {}
     for name, value in post.items():
         question_id = parse_id(name[2:]) if name.startswith('q_') else None
         if question_id is None:
             continue
-        if value == '':
-            selections[question_id] = None
-        elif parse_id(value) is not None:
-            selections[question_id] = parse_id(value)
+        selections[question_id] = None if value == '' else value
     return selections
 
 
@@ -118,17 +116,19 @@ class QuizTakeView(StudentQuizMixin, View):
         quiz = attempt.quiz
         questions = {q.pk: q for q in quiz.questions.prefetch_related('choices')}
         choices = attempt.layout.get('choices', {})
-        saved = dict(attempt.answers.values_list('question_id', 'choice_id'))
+        saved = {question_id: (choice_id, text) for question_id, choice_id, text in attempt.answers.values_list('question_id', 'choice_id', 'text')}
         rows = []
         for question_id in attempt.layout.get('questions', []):
             question = questions.get(question_id)
             if question is None:
                 continue
             by_id = {c.pk: c for c in question.choices.all()}
+            choice_id, text = saved.get(question_id, (None, ''))
             rows.append({
                 'question': question,
                 'choices': [by_id[c] for c in choices.get(str(question_id), []) if c in by_id],
-                'selected': saved.get(question_id),
+                'selected': choice_id,
+                'text': text,
             })
         return render(request, self.template_name, {
             'attempt': attempt, 'activity': quiz.activity, 'course': quiz.activity.course, 'rows': rows,
@@ -175,8 +175,9 @@ class QuizResultView(StudentQuizMixin, View):
             return redirect('quizzes:take', pk=attempt.pk)
         activity = attempt.quiz.activity
         review_available = results.can_review(attempt)
+        pending = results.pending_count(attempt)
         return render(request, self.template_name, {
-            'attempt': attempt, 'quiz': attempt.quiz, 'activity': activity, 'course': activity.course,
+            'attempt': attempt, 'quiz': attempt.quiz, 'activity': activity, 'course': activity.course, 'pending': pending,
             'percent': round(float(attempt.score) * 100 / float(attempt.max_points)) if attempt.max_points else 0,
             'grade': Grade.objects.filter(activity=activity, student=attempt.student).first(),
             'review_available': review_available,

@@ -3,7 +3,7 @@ from django import forms
 from apps.courses.models import Course
 
 from .models import Question, QuizConfig
-from .services.bank import MAX_CHOICES, teaching_courses, validate_choices
+from .services.bank import MAX_ACCEPTED_LENGTH, MAX_CHOICES, teaching_courses, validate_accepted, validate_choices
 
 
 def _style(form):
@@ -69,8 +69,32 @@ class BaseChoiceFormSet(forms.BaseFormSet):
 ChoiceFormSet = forms.formset_factory(ChoiceForm, formset=BaseChoiceFormSet, extra=0, max_num=MAX_CHOICES, validate_max=True)
 
 
-def choice_formset(data=None, *, question=None):
-    """Formset de opciones: con las de ``question`` al editar, o cuatro filas vacías al crear."""
+class AcceptedAnswerForm(forms.Form):
+    text = forms.CharField(label='Respuesta aceptada', required=False, max_length=MAX_ACCEPTED_LENGTH)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['text'].widget.attrs['class'] = 'input'
+
+
+class BaseAcceptedFormSet(forms.BaseFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        self.cleaned_choices = validate_accepted([(f.cleaned_data.get('text', ''), True) for f in self.forms])
+
+
+AcceptedFormSet = forms.formset_factory(AcceptedAnswerForm, formset=BaseAcceptedFormSet, extra=0, max_num=MAX_CHOICES, validate_max=True)
+
+
+def choice_formset(data=None, *, question=None, kind=Question.Kind.MULTIPLE_CHOICE):
+    """Formset de opciones (o de respuestas aceptadas): con las de ``question`` al editar, o filas vacías al crear."""
+    if kind == Question.Kind.SHORT_ANSWER:
+        if data is not None:
+            return AcceptedFormSet(data, prefix='choices')
+        initial = [{'text': c.text} for c in question.choices.all()] if question is not None else []
+        return AcceptedFormSet(initial=initial + [{}] * max(0, 2 - len(initial)), prefix='choices')
     if data is None and question is not None:
         initial = [{'text': c.text, 'is_correct': c.is_correct} for c in question.choices.all()]
         initial += [{}] * max(0, 4 - len(initial))
