@@ -118,6 +118,22 @@ def can_review(attempt, now=None):
     return True
 
 
+def _order_items(question, answer):
+    """Para la revisión de una pregunta de ordenar: lo que puso el alumno junto a lo correcto, posición por posición."""
+    by_id = {c.pk: c for c in question.choices.all()}
+    expected = answer_service.correct_order(question)
+    given = [i for i in (answer.response or [] if answer else []) if i in by_id]
+    return [
+        {
+            'position': index + 1,
+            'correct': by_id[want],
+            'given': by_id[given[index]] if index < len(given) else None,
+            'ok': index < len(given) and given[index] == want,
+        }
+        for index, want in enumerate(expected)
+    ]
+
+
 def review_rows(attempt):
     """Por pregunta, en el orden en que la vio el alumno: opciones marcadas y puntos. Para el alumno y el docente."""
     quiz = attempt.quiz
@@ -134,11 +150,14 @@ def review_rows(attempt):
         ids = [c for c in attempt.layout.get('choices', {}).get(str(question_id), []) if c in by_id]
         ids += [c for c in by_id if c not in ids]
         is_short = question.kind == Question.Kind.SHORT_ANSWER
+        items = _order_items(question, answer) if question.kind == Question.Kind.ORDERING else []
         rows.append({
             'question': question,
             'kind': question.kind,
             # En una respuesta corta lo que se muestra es el texto del alumno y las respuestas aceptadas, no una lista de opciones.
-            'choices': [] if is_short else [{'choice': by_id[c], 'chosen': c == chosen, 'correct': by_id[c].is_correct} for c in ids],
+            'choices': [] if is_short or question.kind == Question.Kind.ORDERING else [
+                {'choice': by_id[c], 'chosen': c == chosen, 'correct': by_id[c].is_correct} for c in ids
+            ],
             'text': answer.text if answer and (is_short or question.kind == Question.Kind.OPEN) else '',
             'answer_id': answer.pk if answer else None,
             'feedback': answer.feedback if answer else '',
@@ -147,6 +166,8 @@ def review_rows(attempt):
             'is_correct': bool(answer and answer.is_correct),
             'points': answer.points_awarded if answer and answer.points_awarded is not None else Decimal(0),
             # Abierta con texto: el docente puede calificarla; sin calificar todavía, el alumno la ve «por calificar».
+            'items': items,
+            'placed': sum(1 for item in items if item['ok']),
             'gradable': question.kind == Question.Kind.OPEN and answer_service.has_answer(question, answer),
             'pending': bool(answer and question.kind == Question.Kind.OPEN and answer.points_awarded is None),
         })
@@ -162,15 +183,18 @@ def question_stats(quiz):
     """
     attempts = quiz.attempts.exclude(status=QuizAttempt.Status.IN_PROGRESS).count()
     rows = Answer.objects.filter(attempt__quiz=quiz).exclude(attempt__status=QuizAttempt.Status.IN_PROGRESS).values_list(
-        'question_id', 'choice_id', 'is_correct', 'text',
+        'question_id', 'choice_id', 'is_correct', 'text', 'response',
     )
     short_ids = set(quiz.questions.filter(kind=Question.Kind.SHORT_ANSWER).values_list('pk', flat=True))
     chosen = {}
     written = {}  # respuestas de texto que no acertaron: sirven para ver qué más convendría aceptar
     answered_text = Counter()
     correct = Counter()
-    for question_id, choice_id, is_correct, text in rows:
+    answered_response = Counter()
+    for question_id, choice_id, is_correct, text, response in rows:
         chosen.setdefault(question_id, Counter())[choice_id] += 1
+        if response:
+            answered_response[question_id] += 1
         if text.strip():
             answered_text[question_id] += 1
             if not is_correct and question_id in short_ids:
@@ -181,7 +205,13 @@ def question_stats(quiz):
     for question in quiz.questions.prefetch_related('choices'):
         counts = chosen.get(question.pk, Counter())
         is_short = question.kind in answer_service.TEXT_KINDS
-        answered = answered_text[question.pk] if is_short else sum(n for choice_id, n in counts.items() if choice_id is not None)
+        by_response = question.kind in answer_service.RESPONSE_KINDS
+        if is_short:
+            answered = answered_text[question.pk]
+        elif by_response:
+            answered = answered_response[question.pk]
+        else:
+            answered = sum(n for choice_id, n in counts.items() if choice_id is not None)
         stats.append({
             'question': question,
             'kind': question.kind,
@@ -196,7 +226,7 @@ def question_stats(quiz):
                     'choice': c, 'count': counts.get(c.pk, 0),
                     'percent': round(counts.get(c.pk, 0) * 100 / attempts) if attempts else 0,
                 }
-                for c in ([] if is_short else question.choices.all())
+                for c in ([] if is_short or by_response else question.choices.all())
             ],
         })
     return stats

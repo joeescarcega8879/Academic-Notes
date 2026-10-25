@@ -14,6 +14,7 @@ MIN_CHOICES = 2
 MAX_CHOICES = 8
 TRUE_FALSE_LABELS = ('Verdadero', 'Falso')
 MAX_ACCEPTED_LENGTH = 200
+MAX_CHOICE_LENGTH = 500
 
 # «No toques el grupo» en ``save_question`` (``None`` ya significa «pregunta general»).
 UNSET = object()
@@ -88,6 +89,23 @@ def validate_accepted(answers):
     return [(text, True) for text in cleaned]
 
 
+def validate_items(items):
+    """Elementos de una pregunta de ordenar, ya en el orden correcto: ``[(texto, _), ...]`` -> ``[(texto, False), ...]``.
+
+    Exige de 2 a 8 con texto y sin repetidos (mayúsculas y acentos no los distinguen).
+    """
+    cleaned = [text.strip() for text, _ in items if text and text.strip()]
+    if len(cleaned) < MIN_CHOICES:
+        raise ValidationError(f'Escribe al menos {MIN_CHOICES} elementos para ordenar.')
+    if len(cleaned) > MAX_CHOICES:
+        raise ValidationError(f'Máximo {MAX_CHOICES} elementos.')
+    if any(len(text) > MAX_CHOICE_LENGTH for text in cleaned):
+        raise ValidationError(f'Un elemento no puede pasar de {MAX_CHOICE_LENGTH} caracteres.')
+    if len({normalize(text) or text.casefold() for text in cleaned}) != len(cleaned):
+        raise ValidationError('Hay elementos repetidos.')
+    return [(text, False) for text in cleaned]
+
+
 def can_edit_question(user, membership, question):
     """Edita la autora o el autor, o quien es propietario de la organización."""
     if question.author_id == user.pk:
@@ -126,6 +144,8 @@ def save_question(
         rows = validate_accepted(choices or [])
     elif kind == Question.Kind.OPEN:
         rows = []  # no tiene respuestas que comparar: la califica el docente
+    elif kind == Question.Kind.ORDERING:
+        rows = validate_items(choices or [])  # en el orden correcto; el alumno los verá revueltos
     else:
         raise ValidationError('Tipo de pregunta desconocido.')
 
@@ -179,7 +199,9 @@ def duplicate_question(question, *, by, course=UNSET):
         organization=question.organization, author=by, kind=question.kind, text=f'{question.text} (copia)',
         points=question.points, explanation=question.explanation, topic=question.topic,
         course=question.course if course is UNSET else course,
-        choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind in (Question.Kind.MULTIPLE_CHOICE, Question.Kind.SHORT_ANSWER) else None,
+        choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind in (
+            Question.Kind.MULTIPLE_CHOICE, Question.Kind.SHORT_ANSWER, Question.Kind.ORDERING,
+        ) else None,
         true_is_correct=(
             next(c.is_correct for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
             if question.kind == Question.Kind.TRUE_FALSE else None

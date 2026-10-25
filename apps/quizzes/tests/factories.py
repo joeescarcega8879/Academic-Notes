@@ -27,7 +27,7 @@ class QuestionFactory(factory.django.DjangoModelFactory):
     points = 1
     explanation = ''
     topic = ''
-    choices = None  # [(texto, es_correcta), ...] para opción múltiple; las respuestas aceptadas en una respuesta corta
+    choices = None  # [(texto, es_correcta), ...] para opción múltiple; las respuestas aceptadas en una respuesta corta y los elementos, en orden, al ordenar
     true_is_correct = True  # para verdadero o falso
 
     @classmethod
@@ -37,7 +37,7 @@ class QuestionFactory(factory.django.DjangoModelFactory):
             organization=kwargs['organization'], author=kwargs['author'], kind=kind, text=kwargs['text'],
             points=kwargs['points'], explanation=kwargs['explanation'], topic=kwargs['topic'], course=kwargs['course'],
             choices=(choices or DEFAULT_CHOICES) if kind == Question.Kind.MULTIPLE_CHOICE else (
-                choices if kind == Question.Kind.SHORT_ANSWER else None
+                choices if kind in (Question.Kind.SHORT_ANSWER, Question.Kind.ORDERING) else None
             ),
             true_is_correct=true_is_correct if kind == Question.Kind.TRUE_FALSE else None,
         )

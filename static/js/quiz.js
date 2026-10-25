@@ -31,6 +31,10 @@
     form.querySelectorAll("input[type=radio]:checked").forEach(function (input) {
       data.append(input.name, input.value);
     });
+    // El orden de las preguntas de ordenar (vacío hasta que el alumno mueve algo).
+    form.querySelectorAll("input[type=hidden][name^=o_]").forEach(function (input) {
+      data.append(input.name, input.value);
+    });
     // Las respuestas de texto se mandan siempre, también vacías: así borrar lo escrito se guarda.
     form.querySelectorAll("input[type=text], textarea").forEach(function (input) {
       data.append(input.name, input.value);
@@ -118,6 +122,45 @@
       form.submit();
     }
   }
+
+  // Preguntas de ordenar: las flechas intercambian el elemento con su vecino y guardan el nuevo orden.
+  function setupOrdering(list) {
+    var hidden = list.parentNode.querySelector("input[type=hidden][name^=o_]");
+    var notice = list.parentNode.querySelector("[data-orden-aviso]");
+
+    function refresh() {
+      var items = list.children;
+      for (var i = 0; i < items.length; i++) {
+        items[i].querySelector("[data-mover='-1']").disabled = i === 0;
+        items[i].querySelector("[data-mover='1']").disabled = i === items.length - 1;
+      }
+    }
+
+    list.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-mover]");
+      if (!button || button.disabled) {
+        return;
+      }
+      var item = button.closest("li");
+      var step = parseInt(button.getAttribute("data-mover"), 10);
+      var neighbour = step < 0 ? item.previousElementSibling : item.nextElementSibling;
+      if (!neighbour) {
+        return;
+      }
+      list.insertBefore(step < 0 ? item : neighbour, step < 0 ? neighbour : item);
+      refresh();
+      hidden.value = Array.prototype.map.call(list.children, function (li) { return li.getAttribute("data-id"); }).join(",");
+      var position = Array.prototype.indexOf.call(list.children, item) + 1;
+      if (notice) {
+        notice.textContent = "Elemento movido a la posición " + position + " de " + list.children.length;
+      }
+      var again = item.querySelector("[data-mover='" + step + "']");
+      (again && !again.disabled ? again : item.querySelector("[data-mover]:not(:disabled)")).focus();
+      hidden.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    refresh();
+  }
+  form.querySelectorAll("[data-orden]").forEach(setupOrdering);
 
   form.addEventListener("change", schedule);
   form.addEventListener("submit", function (event) {
