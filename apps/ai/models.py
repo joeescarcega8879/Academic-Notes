@@ -111,3 +111,58 @@ class AIDraft(TenantModel):
     def pending_count(self):
         """Propuestas que el docente aún no decide (para las plantillas, que no pueden llamar ``count('pending')``)."""
         return self.count('pending')
+
+
+class AIReview(TenantModel):
+    """La calificación que la IA sugiere para una entrega. No es una calificación hasta que el docente la confirma.
+
+    Una por entrega. ``token`` es el código al azar de la última solicitud: solo vive en el servidor, no se liga a ningún
+    dato del alumno hacia fuera y la respuesta debe devolverlo. **No se guarda el texto enviado**, solo su tamaño y su
+    huella; sí se guardan las frases del trabajo que la IA citó como evidencia (``aspects``), que ya están en la entrega.
+    ``aspects`` es ``[{name, points, max_points, quote, comment, evidenced}]``; ``evidenced`` dice que la cita aparece
+    literalmente en el texto que se envió.
+    """
+
+    organization_source = 'submission'
+
+    class Status(models.TextChoices):
+        QUEUED = 'queued', 'Revisando'
+        SUGGESTED = 'suggested', 'Sugerida'
+        CONFIRMED = 'confirmed', 'Confirmada'
+        DISCARDED = 'discarded', 'Descartada'
+        FAILED = 'failed', 'No se pudo'
+
+    submission = models.OneToOneField('grades.Submission', on_delete=models.CASCADE, related_name='ai_review')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    status = models.CharField('estado', max_length=10, choices=Status.choices, default=Status.QUEUED)
+    token = models.CharField(max_length=32, blank=True)
+    score = models.FloatField('calificación sugerida', null=True, blank=True)
+    feedback = models.TextField('comentario sugerido', blank=True)
+    aspects = models.JSONField('puntos evaluados', default=list)
+    replacements = models.PositiveIntegerField('sustituciones al depurar', default=0)
+    input_chars = models.PositiveIntegerField('caracteres enviados', default=0)
+    input_hash = models.CharField('huella de lo enviado', max_length=64, blank=True)
+    error = models.CharField('motivo del fallo', max_length=300, blank=True)  # ya listo para mostrarse al docente
+    final_score = models.FloatField('calificación confirmada', null=True, blank=True)
+    confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_in_bulk = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['submission__student__last_name', 'submission__student__first_name', 'id']
+        verbose_name = 'revisión con IA'
+        verbose_name_plural = 'revisiones con IA'
+
+    def __str__(self):
+        return f'{self.submission} · {self.get_status_display()}'
+
+    @property
+    def unevidenced(self):
+        """Cuántos puntos evaluados no tienen una frase del trabajo que los sustente."""
+        return sum(1 for aspect in self.aspects if not aspect.get('evidenced'))
+
+    @property
+    def fully_evidenced(self):
+        return bool(self.aspects) and not self.unevidenced

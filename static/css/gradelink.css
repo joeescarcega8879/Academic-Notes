@@ -1702,3 +1702,38 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
   .batch-problem { max-width: none; }
   .batch-actions { align-items: stretch; }
 }
+
+/* Revisar con IA: la bandeja de calificaciones sugeridas */
+.rv-ask { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.rv-facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+.rv-tbl td { vertical-align: top; }
+.rv-score { display: flex; align-items: baseline; gap: 6px; margin-top: 8px; }
+.rv-score .input { width: 84px; font-weight: 700; font-size: 16px; }
+.rv-feedback { margin-top: 6px; width: 100%; min-width: 200px; }
+.rv-more summary { cursor: pointer; color: var(--brand-primary); font-size: 12.5px; margin-top: 6px; }
+.rv-aspects { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rv-aspect { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface-2); }
+.rv-aspect.no-evidence { border-color: var(--warn); }
+.rv-aspect-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rv-aspect-head strong { flex: 1; min-width: 140px; }
+.rv-quote { margin: 6px 0 0; padding-left: 10px; border-left: 3px solid var(--brand-primary); font-size: 12.5px; overflow-wrap: anywhere; }
+.rv-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.rv-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.rv-summary > div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.rv-summary b { display: block; font-size: 22px; }
+.rv-dist { display: flex; gap: 6px; align-items: flex-end; height: 64px; margin-top: 8px; }
+.rv-dist-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.rv-dist-bar { width: 100%; min-height: 2px; background: var(--brand-primary); border-radius: 3px 3px 0 0; opacity: .8; }
+.rv-dist-labels { display: flex; gap: 6px; margin-top: 4px; }
+.rv-dist-labels span { flex: 1; text-align: center; font-size: 10.5px; }
+@media (max-width: 760px) {
+  .rv-ask, .rv-summary { grid-template-columns: minmax(0, 1fr); }
+  .rv-tbl, .rv-tbl tbody, .rv-tbl tr, .rv-tbl td { display: block; width: 100%; }
+  .rv-tbl thead { display: none; }
+  .rv-tbl tr { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .rv-tbl tr:last-child { border-bottom: 0; }
+  .rv-tbl td { padding: 6px 0; border: 0; }
+  .rv-tbl td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+  .rv-tbl td[data-label="Alumno"]::before { display: none; }
+  .rv-actions { flex-direction: row; flex-wrap: wrap; }
+}

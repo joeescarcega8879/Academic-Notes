@@ -24,6 +24,9 @@ def sample_from_schema(schema):
 class FakeProvider(AIProvider):
     """Responde lo que se le programe (``responses``, una por llamada) o, si no hay nada, un ejemplo del esquema.
 
+    Una respuesta programada puede ser una función que recibe el ``prompt`` y devuelve el dato: sirve cuando la
+    respuesta debe repetir algo que el servidor inventa en cada solicitud (el token de una revisión).
+
     Guarda en ``calls`` lo que recibe: las pruebas de privacidad lo revisan para comprobar que no se fuga ningún dato.
     """
 
@@ -47,6 +50,8 @@ class FakeProvider(AIProvider):
         if self.error is not None:
             raise self.error if isinstance(self.error, ProviderError) else ProviderError(str(self.error))
         data = self.responses.pop(0) if self.responses else sample_from_schema(schema)
+        if callable(data):
+            data = data(prompt)
         return AIResult(data=data, tokens_in=max(1, len(prompt + system) // 4), tokens_out=max(1, len(str(data)) // 4), model=self.model)
 
 

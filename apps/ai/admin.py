@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AIDraft, AIRequest
+from .models import AIDraft, AIRequest, AIReview
 
 
 @admin.register(AIRequest)
@@ -27,6 +27,22 @@ class AIDraftAdmin(admin.ModelAdmin):
     list_filter = ('kind', 'status', 'organization')
     date_hierarchy = 'created_at'
     readonly_fields = [f.name for f in AIDraft._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AIReview)
+class AIReviewAdmin(admin.ModelAdmin):
+    """Calificaciones sugeridas por la IA: de solo lectura. La nota real vive en ``Grade`` y su historial."""
+
+    list_display = ('created_at', 'organization', 'submission', 'status', 'score', 'final_score', 'replacements', 'confirmed_in_bulk')
+    list_filter = ('status', 'confirmed_in_bulk', 'organization')
+    date_hierarchy = 'created_at'
+    readonly_fields = [f.name for f in AIReview._meta.fields]
 
     def has_add_permission(self, request):
         return False

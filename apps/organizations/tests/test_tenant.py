@@ -19,7 +19,7 @@ from apps.courses.tests.factories import EnrollmentFactory, CourseFactory
 from apps.courses.models import AcademicYear, Course, Enrollment, Student
 from apps.syllabus.models import Syllabus, SyllabusWeek
 from apps.syllabus.tests.factories import SyllabusFactory, SyllabusWeekFactory
-from apps.ai.models import AIDraft, AIRequest
+from apps.ai.models import AIDraft, AIRequest, AIReview
 from apps.batches.models import BatchFile
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
@@ -33,7 +33,7 @@ pytestmark = pytest.mark.django_db
 TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
     Activity, Submission, Grade, GradeHistory, Question, Choice, QuizConfig, QuizQuestion, QuizChoice, QuizAttempt,
-    Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest, AIDraft, BatchFile,
+    Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest, AIDraft, AIReview, BatchFile,
 ]
 
 
@@ -224,9 +224,10 @@ def dos_organizaciones():
         quiz = make_quiz(materia, questions=1)
         intento = QuizAttemptFactory(quiz=quiz, student=materia.enrollments.get().student)
         answer(intento, quiz.questions.get())
-        Submission.objects.create(
+        entrega = Submission.objects.create(
             activity=evaluacion, student=materia.enrollments.get().student, text="Mi entrega", submitted_at=timezone.now(),
         )
+        AIReview.objects.create(submission=entrega, requested_by=profesor)
         SyllabusWeekFactory(syllabus=SyllabusFactory(course=materia), position=1)
         AIRequest.objects.create(
             organization=materia.organization, user=profesor, kind=AIRequest.Kind.PROBE, provider='fake', status=AIRequest.Status.OK,

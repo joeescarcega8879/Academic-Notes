@@ -246,6 +246,11 @@ class GradeHistory(TenantModel):
         UPDATED = 'updated', 'Cambió la calificación'
         DELETED = 'deleted', 'Eliminó la calificación'
 
+    class Origin(models.TextChoices):
+        MANUAL = '', 'Docente'
+        AI = 'ai', 'Sugerida por IA, confirmada por el docente'
+        AI_BULK = 'ai_bulk', 'Sugerida por IA, confirmada en bloque'
+
     organization_source = None
     organization = models.ForeignKey('organizations.Organization', on_delete=models.PROTECT, related_name='+')
 
@@ -260,6 +265,8 @@ class GradeHistory(TenantModel):
     old_feedback = models.TextField(blank=True)
     new_feedback = models.TextField(blank=True)
     late_penalty = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    # De dónde viene el cambio: vacío = lo escribió el docente; si lo sugirió la IA, queda dicho aquí.
+    origin = models.CharField('origen', max_length=10, choices=Origin.choices, blank=True, default='', db_default='')
     changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
     changed_at = models.DateTimeField(auto_now_add=True)
 

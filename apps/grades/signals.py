@@ -38,7 +38,7 @@ def _record(grade, action, old, new):
         old_score=old['score'] if old else None, new_score=new['score'] if new else None,
         old_feedback=old['feedback'] if old else '', new_feedback=new['feedback'] if new else '',
         late_penalty=(new or old)['late_penalty'],
-        changed_by=getattr(grade, '_changed_by', None),
+        changed_by=getattr(grade, '_changed_by', None), origin=getattr(grade, '_origin', ''),
     )
 
 
