@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Revisar con IA · {{ activity.title }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
+  <h1>Revisar con IA</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% if bulk_count and not confirming %}
+    <a class="btn btn-primary" href="{% url 'ai:review' activity.pk %}?confirmar=1">Confirmar las sugeridas sin cambios ({{ bulk_count }})</a>
+  {% endif %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="flash flash-warning mb-12">La IA puede equivocarse. <strong>Nada llega a un alumno ni cambia una calificación hasta que tú lo confirmes</strong>, una por una o en bloque. Cada sugerencia trae la frase del trabajo que la sustenta; si no aparece en el trabajo, se marca «Sin evidencia».</div>
+
+{% if confirming %}
+<div class="card mb-12">
+  <h3 class="section-title" style="margin-top: 0">¿Confirmar {{ summary.count }} calificaci{{ summary.count|pluralize:"ón,ones" }} sugerida{{ summary.count|pluralize }}?</h3>
+  <p class="text-sm text-muted" style="margin: 0">Se guardarán tal como las sugirió la IA. Después puedes corregir cualquiera como una calificación normal; todas quedan en el historial como «sugerida por IA, confirmada en bloque». Solo entran las que traen evidencia en todos los puntos.</p>
+  <div class="rv-summary">
+    <div><b>{{ summary.count }}</b><span class="text-sm text-muted">entrega{{ summary.count|pluralize }}</span></div>
+    <div><b>{{ summary.average|floatformat:"-2" }}</b><span class="text-sm text-muted">promedio sobre {{ activity.max_score|floatformat:"-2" }}</span></div>
+    <div>
+      <span class="text-sm text-muted">Distribución</span>
+      <div class="rv-dist">{% for bucket in summary.distribution %}<div class="rv-dist-col" title="{{ bucket.label }}: {{ bucket.count }}"><span class="rv-dist-bar" style="height: {{ bucket.height }}%"></span><span class="text-xs text-muted">{{ bucket.count }}</span></div>{% endfor %}</div>
+      <div class="rv-dist-labels text-xs text-muted">{% for bucket in summary.distribution %}<span>{{ bucket.label }}</span>{% endfor %}</div>
+    </div>
+  </div>
+  <form method="post" action="{% url 'ai:review_bulk' activity.pk %}" class="action-bar">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">Sí, confirmar {{ summary.count }}</button>
+    <a class="btn btn-ghost" href="{% url 'ai:review' activity.pk %}">Cancelar</a>
+  </form>
+</div>
+{% endif %}
+
+<div class="card mb-12">
+  <div class="rv-ask">
+    <div>
+      <h3 class="section-title" style="margin-top: 0">Pedir sugerencias de calificación</h3>
+      <p class="text-sm text-muted" style="margin: 0">
+        Entregas con el trabajo leído y sin calificación. A la IA viaja <strong>solo el cuerpo del trabajo</strong>, sin portada y con nombres,
+        matrículas y correos cambiados por marcadores; no viaja nada que identifique a un alumno.
+      </p>
+      <div class="rv-facts">
+        {% if ready_count %}<span class="chip ok">{{ ready_count }} lista{{ ready_count|pluralize }} para revisar</span>{% else %}<span class="chip">Nada nuevo por revisar</span>{% endif %}
+        {% for label, count in skipped %}<span class="chip warn">{{ count }} · {{ label }}</span>{% endfor %}
+        {% if usage and ready_count %}<span class="chip info">Gastará {{ asking }} de {% if usage.remaining is None %}tus usos{% else %}tus {{ usage.remaining }} usos{% endif %} de IA este mes</span>{% endif %}
+      </div>
+      {% if reason %}<p class="text-sm" style="margin: 10px 0 0"><strong>{{ reason }}</strong></p>{% endif %}
+    </div>
+    <form method="post" action="{% url 'ai:review' activity.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary"{% if reason or not ready_count %} disabled{% endif %}>Pedir sugerencias{% if ready_count and not reason %} ({{ asking }}){% endif %}</button>
+    </form>
+  </div>
+</div>
+
+<div class="table-wrap"{% if busy %} data-ai-poll="{% url 'ai:review_status' activity.pk %}"{% endif %}>
+  <div class="table-head">
+    <h3>Sugerencias</h3>
+    {% if counts.queued %}<span class="chip info">{{ counts.queued }} revisando</span>{% endif %}
+    {% if counts.suggested %}<span class="chip ok">{{ counts.suggested }} por revisar</span>{% endif %}
+    {% if counts.failed %}<span class="chip bad">{{ counts.failed }} fall{{ counts.failed|pluralize:"ó,aron" }}</span>{% endif %}
+    {% if counts.confirmed %}<span class="chip">{{ counts.confirmed }} confirmada{{ counts.confirmed|pluralize }}</span>{% endif %}
+    {% if counts.discarded %}<span class="chip">{{ counts.discarded }} descartada{{ counts.discarded|pluralize }}</span>{% endif %}
+  </div>
+  <table class="tbl rv-tbl">
+    <thead><tr><th>Alumno</th><th>Sugerencia</th><th>Por qué</th><th>Acciones</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td data-label="Alumno">
+            <strong>{{ r.submission.student }}</strong>
+            <div class="text-xs text-muted">{% if r.submission.student.student_number %}{{ r.submission.student.student_number }} · {% endif %}{% if r.submission.read_status %}{{ r.submission.get_read_status_display }}{% else %}Respuesta escrita{% endif %}{% if r.submission.ocr_confidence is not None %} ({{ r.submission.ocr_confidence|floatformat:0 }} %){% endif %}</div>
+            <div class="text-xs"><a href="{% if r.submission.file %}{% url 'grades:submission_file' r.submission.pk %}{% else %}{% url 'grades:submission_detail' r.submission.pk %}{% endif %}">Ver el original</a></div>
+          </td>
+
+          {% if r.status == 'queued' %}
+            <td data-label="Sugerencia"><span class="chip info">Revisando…</span></td>
+            <td data-label="Por qué"><span class="text-sm text-muted">Suele tardar unos 15 segundos por trabajo. La página se actualiza sola.</span></td>
+            <td data-label="Acciones">
+              <form method="post" action="{% url 'ai:review_discard' r.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm btn-danger-ghost">Cancelar</button></form>
+            </td>
+
+          {% elif r.status == 'suggested' %}
+            <td data-label="Sugerencia">
+              <span class="chip {% if r.fully_evidenced %}ok{% else %}warn{% endif %}">{% if r.fully_evidenced %}Sugerida{% else %}Revísala{% endif %}</span>
+              <div class="rv-score"><input class="input" type="text" inputmode="decimal" name="score" form="confirm-{{ r.pk }}" value="{{ r.score|stringformat:'g' }}" aria-label="Calificación de {{ r.submission.student }}"> <span class="text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span></div>
+              <details class="rv-more"><summary>Cambiar el comentario</summary>
+                <textarea class="input rv-feedback" rows="3" name="feedback" form="confirm-{{ r.pk }}" aria-label="Comentario para {{ r.submission.student }}">{{ r.feedback }}</textarea>
+              </details>
+            </td>
+            <td data-label="Por qué">
+              {% if r.fully_evidenced %}<span class="chip ok">{{ r.aspects|length }} de {{ r.aspects|length }} con evidencia</span>
+              {% else %}<span class="chip warn">{{ r.unevidenced }} de {{ r.aspects|length }} sin evidencia</span>{% endif %}
+              {% if r.replacements %}<span class="chip" title="Estos datos se cambiaron por marcadores antes de enviar el trabajo. Suele indicar que el alumno puso su nombre dentro del trabajo.">{{ r.replacements }} dato{{ r.replacements|pluralize }} personal{{ r.replacements|pluralize:",es" }} depurado{{ r.replacements|pluralize }}</span>{% endif %}
+              <ul class="rv-aspects">
+                {% for a in r.aspects %}
+                  <li class="rv-aspect{% if not a.evidenced %} no-evidence{% endif %}">
+                    <div class="rv-aspect-head"><strong>{{ a.name }}</strong><span class="text-sm">{{ a.points|stringformat:'g' }} / {{ a.max_points|stringformat:'g' }}</span>{% if not a.evidenced %}<span class="chip warn">Sin evidencia</span>{% endif %}</div>
+                    {% if a.evidenced and a.quote %}<div class="rv-quote">«{{ a.quote }}»</div>{% endif %}
+                    {% if not a.evidenced %}<div class="text-xs text-muted">La IA citó una frase que no aparece en el trabajo. Búscalo en el original antes de aceptar estos puntos.</div>{% endif %}
+                    {% if a.comment %}<div class="text-xs text-muted">{{ a.comment }}</div>{% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+              {% if not r.fully_evidenced %}<div class="text-xs text-muted" style="margin-top: 6px">No entra en «Confirmar sin cambios».</div>{% endif %}
+            </td>
+            <td data-label="Acciones">
+              <div class="rv-actions">
+                <form method="post" action="{% url 'ai:review_confirm' r.pk %}" id="confirm-{{ r.pk }}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-primary btn-sm">Confirmar</button></form>
+                <form method="post" action="{% url 'ai:review_discard' r.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm btn-danger-ghost">Descartar</button></form>
+              </div>
+            </td>
+
+          {% elif r.status == 'confirmed' %}
+            <td data-label="Sugerencia"><span class="chip ok">Confirmada</span><div class="text-sm" style="margin-top: 6px"><strong>{{ r.final_score|stringformat:'g' }} / {{ activity.max_score|floatformat:"-2" }}</strong></div></td>
+            <td data-label="Por qué"><span class="text-sm text-muted">Sugerida por IA y confirmada{% if r.confirmed_in_bulk %} en bloque{% endif %}{% if r.final_score != r.score %}, con tu corrección (la IA sugirió {{ r.score|stringformat:'g' }}){% endif %}. Quedó en el historial de calificaciones.</span></td>
+            <td data-label="Acciones"><a class="btn btn-ghost btn-sm" href="{% url 'grades:activity_history' activity.pk %}">Ver historial</a></td>
+
+          {% elif r.status == 'discarded' %}
+            <td data-label="Sugerencia"><span class="chip">Descartada</span></td>
+            <td data-label="Por qué"><span class="text-sm text-muted">No se usó la sugerencia. Califica este trabajo a mano, o pídela de nuevo (gasta un uso).</span></td>
+            <td data-label="Acciones">
+              <form method="post" action="{% url 'ai:review_retry' r.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm"{% if reason %} disabled{% endif %}>Pedir de nuevo</button></form>
+            </td>
+
+          {% else %}
+            <td data-label="Sugerencia"><span class="chip bad">No se pudo</span></td>
+            <td data-label="Por qué"><span class="text-sm">{{ r.error }}</span><div class="text-xs text-muted">Si falló el servicio de IA, no se descontó ningún uso.</div></td>
+            <td data-label="Acciones">
+              <form method="post" action="{% url 'ai:review_retry' r.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm"{% if reason %} disabled{% endif %}>Intentar de nuevo</button></form>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted">Todavía no pediste ninguna sugerencia. Cuando lo hagas, aparecerán aquí para que las revises.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<script src="{% static 'js/ia.js' %}?v=1"></script>
+{% endblock %}

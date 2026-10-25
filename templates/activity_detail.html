@@ -47,6 +47,7 @@
           {% if activity.type == 'quiz' %}<a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
           {% if activity.accepts_submissions and not course.is_archived %}
             <a class="btn btn-ghost" href="{% url 'batches:index' activity.pk %}">Lote de PDFs{% with pending=activity.batch_files.count %}{% if pending %} ({{ pending }}){% endif %}{% endwith %}</a>
+            <a class="btn btn-ghost" href="{% url 'ai:review' activity.pk %}">Revisar con IA</a>
           {% endif %}
           <a class="btn btn-ghost" href="{% url 'grades:activity_history' activity.pk %}">Historial</a>
         </div>
