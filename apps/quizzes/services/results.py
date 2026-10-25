@@ -9,7 +9,8 @@ from apps.courses.services.text import sort_enrollments
 from apps.grades.models import Grade
 from apps.grades.services.gradebook import grade_activity, remove_grade
 
-from ..models import Answer, QuizAttempt, QuizConfig
+from ..models import Answer, Question, QuizAttempt, QuizConfig
+from . import answers as answer_service
 
 TWO_PLACES = Decimal('0.01')
 
@@ -111,10 +112,15 @@ def review_rows(attempt):
         by_id = {c.pk: c for c in question.choices.all()}
         ids = [c for c in attempt.layout.get('choices', {}).get(str(question_id), []) if c in by_id]
         ids += [c for c in by_id if c not in ids]
+        is_short = question.kind == Question.Kind.SHORT_ANSWER
         rows.append({
             'question': question,
-            'choices': [{'choice': by_id[c], 'chosen': c == chosen, 'correct': by_id[c].is_correct} for c in ids],
-            'answered': chosen is not None,
+            'kind': question.kind,
+            # En una respuesta corta lo que se muestra es el texto del alumno y las respuestas aceptadas, no una lista de opciones.
+            'choices': [] if is_short else [{'choice': by_id[c], 'chosen': c == chosen, 'correct': by_id[c].is_correct} for c in ids],
+            'text': answer.text if answer and is_short else '',
+            'accepted': [c.text for c in question.correct_choices] if is_short else [],
+            'answered': answer_service.has_answer(question, answer),
             'is_correct': bool(answer and answer.is_correct),
             'points': answer.points_awarded if answer and answer.points_awarded is not None else Decimal(0),
         })
@@ -130,20 +136,29 @@ def question_stats(quiz):
     """
     attempts = quiz.attempts.exclude(status=QuizAttempt.Status.IN_PROGRESS).count()
     rows = Answer.objects.filter(attempt__quiz=quiz).exclude(attempt__status=QuizAttempt.Status.IN_PROGRESS).values_list(
-        'question_id', 'choice_id', 'is_correct',
+        'question_id', 'choice_id', 'is_correct', 'text',
     )
     chosen = {}
+    written = {}  # respuestas de texto que no acertaron: sirven para ver qué más convendría aceptar
+    answered_text = Counter()
     correct = Counter()
-    for question_id, choice_id, is_correct in rows:
+    for question_id, choice_id, is_correct, text in rows:
         chosen.setdefault(question_id, Counter())[choice_id] += 1
+        if text.strip():
+            answered_text[question_id] += 1
+            if not is_correct:
+                written.setdefault(question_id, Counter())[answer_service.normalize(text) or text.strip()] += 1
         if is_correct:
             correct[question_id] += 1
     stats = []
     for question in quiz.questions.prefetch_related('choices'):
         counts = chosen.get(question.pk, Counter())
-        answered = sum(n for choice_id, n in counts.items() if choice_id is not None)
+        is_short = question.kind == Question.Kind.SHORT_ANSWER
+        answered = answered_text[question.pk] if is_short else sum(n for choice_id, n in counts.items() if choice_id is not None)
         stats.append({
             'question': question,
+            'kind': question.kind,
+            'common_wrong': written.get(question.pk, Counter()).most_common(5),
             'attempts': attempts,
             'answered': answered,
             'unanswered': attempts - answered,
@@ -154,7 +169,7 @@ def question_stats(quiz):
                     'choice': c, 'count': counts.get(c.pk, 0),
                     'percent': round(counts.get(c.pk, 0) * 100 / attempts) if attempts else 0,
                 }
-                for c in question.choices.all()
+                for c in ([] if is_short else question.choices.all())
             ],
         })
     return stats

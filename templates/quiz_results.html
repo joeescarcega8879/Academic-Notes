@@ -72,6 +72,10 @@
             {% for c in item.choices %}
               <div{% if c.choice.is_correct %} style="color: var(--ok); font-weight: 600"{% endif %}>{{ c.choice.text|truncatechars:40 }}: {{ c.count }} ({{ c.percent }} %)</div>
             {% endfor %}
+            {% if item.kind == 'short_answer' %}
+              {% for text, count in item.common_wrong %}<div>«{{ text|truncatechars:40 }}»: {{ count }}</div>{% empty %}<span class="text-muted">Sin respuestas incorrectas.</span>{% endfor %}
+              {% if item.common_wrong %}<div class="text-muted">Respuestas incorrectas más comunes; si alguna es válida, añádela a las aceptadas.</div>{% endif %}
+            {% endif %}
           </td>
         </tr>
       {% empty %}

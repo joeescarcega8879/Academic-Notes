@@ -16,19 +16,24 @@
     {% include 'partials/form_fields.html' %}
 
     {% if formset %}
-      <h3 class="section-title" style="margin-top: 18px">Opciones</h3>
-      <p class="text-sm text-muted" style="margin-top: 0">Escribe de 2 a 8 opciones y marca la correcta. Las filas vacías se ignoran.</p>
+      {% if kind == 'short_answer' %}
+        <h3 class="section-title" style="margin-top: 18px">Respuestas aceptadas</h3>
+        <p class="text-sm text-muted" style="margin-top: 0">Escribe de 1 a 8 respuestas válidas. Al calificar no cuentan las mayúsculas, los acentos ni los signos («Mexico» acepta «méxico»), pero sí las palabras: añade las variantes que quieras aceptar. Las filas vacías se ignoran.</p>
+      {% else %}
+        <h3 class="section-title" style="margin-top: 18px">Opciones</h3>
+        <p class="text-sm text-muted" style="margin-top: 0">Escribe de 2 a 8 opciones y marca la correcta. Las filas vacías se ignoran.</p>
+      {% endif %}
       {% if formset.non_form_errors %}<div class="flash flash-error" style="margin-bottom: 10px">{{ formset.non_form_errors }}</div>{% endif %}
       {{ formset.management_form }}
       <div id="choices">
         {% for choice in formset %}
           <div class="flex-row gap-14 choice-row" style="align-items: center; margin-bottom: 8px">
-            <label>{{ choice.is_correct }} Correcta</label>
+            {% if kind != 'short_answer' %}<label>{{ choice.is_correct }} Correcta</label>{% endif %}
             <div style="flex: 1">{{ choice.text }}{{ choice.text.errors }}</div>
           </div>
         {% endfor %}
       </div>
-      <button type="button" class="btn btn-ghost" id="add-choice">Agregar opción</button>
+      <button type="button" class="btn btn-ghost" id="add-choice">{% if kind == 'short_answer' %}Agregar respuesta{% else %}Agregar opción{% endif %}</button>
     {% endif %}
 
     <div class="flex-row gap-14" style="margin-top: 18px">

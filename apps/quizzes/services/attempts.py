@@ -17,6 +17,7 @@ from django.utils import timezone
 from apps.courses.models import Enrollment
 
 from ..models import Answer, Question, QuizAttempt
+from . import answers as answer_service
 from . import results
 from .exams import noun
 
@@ -72,6 +73,8 @@ def build_layout(quiz, rng=None):
         rng.shuffle(questions)
     choices = {}
     for question in questions:
+        if question.kind not in answer_service.CHOICE_KINDS:
+            continue  # lo que hay en sus «opciones» (las respuestas aceptadas, por ejemplo) no se le muestra al alumno
         ids = [c.pk for c in question.choices.all()]
         # Verdadero/Falso conserva su orden natural: barajarlo solo confunde.
         if quiz.shuffle_choices and question.kind == Question.Kind.MULTIPLE_CHOICE:
@@ -91,12 +94,11 @@ def score_attempt(attempt):
         answer = answers.get(question.pk)
         if answer is None:
             answer = Answer(attempt=attempt, question=question)
-        correct = bool(answer.choice_id and answer.choice.is_correct)
+        correct, points = answer_service.grade(question, answer)
         answer.is_correct = correct
-        answer.points_awarded = question.points if correct else Decimal(0)
+        answer.points_awarded = points
         answer.save()
-        if correct:
-            earned += question.points
+        earned += points
     attempt.score, attempt.max_points = earned, total
 
 
@@ -204,9 +206,10 @@ def start_attempt(quiz, student, now=None):
 
 @transaction.atomic
 def save_answers(attempt, selections, now=None):
-    """Guarda respuestas parciales: ``{id de pregunta: id de opción o None}``. Devuelve los segundos restantes.
+    """Guarda respuestas parciales: ``{id de pregunta: respuesta}``. Devuelve los segundos restantes.
 
-    Pasado el plazo (más el margen) no se guarda nada y el intento se cierra con lo que ya había.
+    La respuesta es el id de la opción (opción múltiple y verdadero o falso) o el texto (respuesta corta); ``None``
+    la borra. Pasado el plazo (más el margen) no se guarda nada y el intento se cierra con lo que ya había.
     """
     now = now or timezone.now()
     attempt = QuizAttempt.objects.select_for_update().get(pk=attempt.pk)
@@ -216,14 +219,16 @@ def save_answers(attempt, selections, now=None):
         raise AttemptExpired(finalize_attempt(attempt, expired=True, now=now))
 
     questions = {q.pk: q for q in attempt.quiz.questions.prefetch_related('choices')}
-    for question_id, choice_id in selections.items():
+    to_save = {}
+    for question_id, value in selections.items():
         question = questions.get(question_id)
         if question is None:
-            raise ValidationError('Hay una pregunta que no es de este quiz.')
-        if choice_id is not None and choice_id not in {c.pk for c in question.choices.all()}:
-            raise ValidationError('Hay una opción que no es de esa pregunta.')
-    for question_id, choice_id in selections.items():
-        Answer.objects.update_or_create(attempt=attempt, question_id=question_id, defaults={'choice_id': choice_id})
+            raise ValidationError(f'Hay una pregunta que no es de este {noun(attempt.quiz.activity)}.')
+        stored = answer_service.coerce(question, value, {c.pk for c in question.choices.all()})
+        if stored is not answer_service.IGNORE:
+            to_save[question_id] = stored
+    for question_id, defaults in to_save.items():
+        Answer.objects.update_or_create(attempt=attempt, question_id=question_id, defaults=defaults)
     return remaining_seconds(attempt, now)
 
 

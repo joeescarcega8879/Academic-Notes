@@ -9,6 +9,14 @@
       <span class="chip">{{ row.points|floatformat:"-2" }} / {{ row.question.points|floatformat:"-2" }}</span>
     </div>
     <p style="white-space: pre-line; margin: 8px 0 10px">{{ row.question.text }}</p>
+    {% if row.kind == 'short_answer' %}
+      <p style="padding: 6px 10px; margin: 0 0 4px; border-radius: 6px; {% if row.is_correct %}background: var(--ok-bg); color: var(--ok){% elif row.answered %}background: var(--bad); color: #fff{% else %}background: var(--surface-2){% endif %}">
+        {% if row.answered %}{{ row.text }}<span class="text-xs"> · {% if is_teacher %}respuesta del alumno{% else %}tu respuesta{% endif %}</span>{% else %}Sin respuesta{% endif %}
+      </p>
+      {% if not row.is_correct %}
+        <p class="text-sm" style="margin: 6px 0 0"><strong>{% if row.accepted|length > 1 %}Respuestas aceptadas{% else %}Respuesta aceptada{% endif %}:</strong> {{ row.accepted|join:" · " }}</p>
+      {% endif %}
+    {% endif %}
     <ul style="list-style: none; padding: 0; margin: 0">
       {% for item in row.choices %}
         <li style="padding: 6px 10px; margin-bottom: 4px; border-radius: 6px;

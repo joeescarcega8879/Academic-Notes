@@ -8,10 +8,12 @@ from apps.organizations import limits
 from apps.organizations.models import Membership
 
 from ..models import Choice, Question
+from .answers import normalize
 
 MIN_CHOICES = 2
 MAX_CHOICES = 8
 TRUE_FALSE_LABELS = ('Verdadero', 'Falso')
+MAX_ACCEPTED_LENGTH = 200
 
 # «No toques el grupo» en ``save_question`` (``None`` ya significa «pregunta general»).
 UNSET = object()
@@ -66,6 +68,26 @@ def validate_choices(choices):
     return cleaned
 
 
+def validate_accepted(answers):
+    """Respuestas que acepta una pregunta de respuesta corta: ``[(texto, _), ...]`` -> ``[(texto, True), ...]``.
+
+    Exige de 1 a 8 con texto, sin repetidas una vez normalizadas (mayúsculas, acentos y signos no las distinguen).
+    """
+    cleaned = [text.strip() for text, _ in answers if text and text.strip()]
+    if not cleaned:
+        raise ValidationError('Escribe al menos una respuesta que se acepte.')
+    if len(cleaned) > MAX_CHOICES:
+        raise ValidationError(f'Máximo {MAX_CHOICES} respuestas aceptadas.')
+    if any(len(text) > MAX_ACCEPTED_LENGTH for text in cleaned):
+        raise ValidationError(f'Una respuesta aceptada no puede pasar de {MAX_ACCEPTED_LENGTH} caracteres.')
+    normalized = [normalize(text) for text in cleaned]
+    if not all(normalized):
+        raise ValidationError('Una respuesta aceptada necesita letras o números.')
+    if len(set(normalized)) != len(normalized):
+        raise ValidationError('Hay respuestas repetidas: mayúsculas, acentos y signos no cuentan como diferencia.')
+    return [(text, True) for text in cleaned]
+
+
 def can_edit_question(user, membership, question):
     """Edita la autora o el autor, o quien es propietario de la organización."""
     if question.author_id == user.pk:
@@ -81,7 +103,8 @@ def save_question(
     """Crea o actualiza una pregunta con sus opciones.
 
     Opción múltiple: ``choices`` es ``[(texto, es_correcta), ...]``. Verdadero o falso: ``true_is_correct`` dice si
-    la respuesta correcta es "Verdadero". El tipo de una pregunta existente no cambia.
+    la respuesta correcta es "Verdadero". Respuesta corta: ``choices`` son las respuestas que se aceptan. El tipo de
+    una pregunta existente no cambia.
 
     ``course`` es el grupo del banco (``None``: pregunta general). Sin indicarlo, una pregunta nueva es general y
     una existente conserva su grupo. ``ai_generated`` marca la pregunta como propuesta por la IA y aprobada por el docente.
@@ -99,6 +122,8 @@ def save_question(
         rows = [(TRUE_FALSE_LABELS[0], bool(true_is_correct)), (TRUE_FALSE_LABELS[1], not true_is_correct)]
     elif kind == Question.Kind.MULTIPLE_CHOICE:
         rows = validate_choices(choices or [])
+    elif kind == Question.Kind.SHORT_ANSWER:
+        rows = validate_accepted(choices or [])
     else:
         raise ValidationError('Tipo de pregunta desconocido.')
 
@@ -152,7 +177,7 @@ def duplicate_question(question, *, by, course=UNSET):
         organization=question.organization, author=by, kind=question.kind, text=f'{question.text} (copia)',
         points=question.points, explanation=question.explanation, topic=question.topic,
         course=question.course if course is UNSET else course,
-        choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind == Question.Kind.MULTIPLE_CHOICE else None,
+        choices=[(c.text, c.is_correct) for c in question.choices.all()] if question.kind in (Question.Kind.MULTIPLE_CHOICE, Question.Kind.SHORT_ANSWER) else None,
         true_is_correct=(
             next(c.is_correct for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
             if question.kind == Question.Kind.TRUE_FALSE else None

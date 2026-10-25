@@ -22,15 +22,21 @@
         <span class="chip">{{ row.question.points|floatformat:"-2" }} punto{{ row.question.points|pluralize }}</span>
       </div>
       <p style="white-space: pre-line; margin: 8px 0 12px">{{ row.question.text }}</p>
-      <fieldset style="border: 0; padding: 0; margin: 0">
-        <legend class="sr-only" style="position: absolute; left: -9999px">Opciones de la pregunta {{ forloop.counter }}</legend>
-        {% for choice in row.choices %}
-          <label style="display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; margin-bottom: 4px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer">
-            <input type="radio" name="q_{{ row.question.pk }}" value="{{ choice.pk }}"{% if row.selected == choice.pk %} checked{% endif %}>
-            <span>{{ choice.text }}</span>
-          </label>
-        {% endfor %}
-      </fieldset>
+      {% if row.question.kind == 'short_answer' %}
+        <label class="sr-only" for="q_{{ row.question.pk }}" style="position: absolute; left: -9999px">Respuesta a la pregunta {{ forloop.counter }}</label>
+        <input class="input" type="text" id="q_{{ row.question.pk }}" name="q_{{ row.question.pk }}" value="{{ row.text }}"
+               maxlength="500" autocomplete="off" placeholder="Escribe tu respuesta">
+      {% else %}
+        <fieldset style="border: 0; padding: 0; margin: 0">
+          <legend class="sr-only" style="position: absolute; left: -9999px">Opciones de la pregunta {{ forloop.counter }}</legend>
+          {% for choice in row.choices %}
+            <label style="display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; margin-bottom: 4px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer">
+              <input type="radio" name="q_{{ row.question.pk }}" value="{{ choice.pk }}"{% if row.selected == choice.pk %} checked{% endif %}>
+              <span>{{ choice.text }}</span>
+            </label>
+          {% endfor %}
+        </fieldset>
+      {% endif %}
     </div>
   {% endfor %}
   <div class="flex-row gap-14">

@@ -18,6 +18,7 @@ class Question(TenantModel):
     class Kind(models.TextChoices):
         MULTIPLE_CHOICE = 'multiple_choice', 'Opción múltiple'
         TRUE_FALSE = 'true_false', 'Verdadero o falso'
+        SHORT_ANSWER = 'short_answer', 'Respuesta corta'
 
     # Como el grupo, la pregunta pertenece a la organización y la elige quien la crea.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
@@ -46,6 +47,7 @@ class Question(TenantModel):
 
     @property
     def correct_choices(self):
+        """Las opciones correctas; en una respuesta corta, las respuestas que se aceptan."""
         return [c for c in self.choices.all() if c.is_correct]
 
 
@@ -125,6 +127,10 @@ class QuizQuestion(TenantModel):
     def __str__(self):
         return self.text[:60]
 
+    @property
+    def correct_choices(self):
+        return [c for c in self.choices.all() if c.is_correct]
+
 
 class QuizChoice(TenantModel):
     organization_source = 'question'
@@ -187,6 +193,8 @@ class Answer(TenantModel):
     attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE, related_name='answers')
     choice = models.ForeignKey(QuizChoice, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    # Lo que escribió el alumno en una pregunta de respuesta corta.
+    text = models.TextField(blank=True, default='', db_default='')
     is_correct = models.BooleanField(null=True)
     points_awarded = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     saved_at = models.DateTimeField(auto_now=True)

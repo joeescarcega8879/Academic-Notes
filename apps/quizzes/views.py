@@ -99,7 +99,7 @@ class QuestionFormMixin(BankMixin):
                 verdadero = next(c for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
                 initial['correct'] = 'true' if verdadero.is_correct else 'false'
             return TrueFalseForm(data, instance=question, initial=initial, **who), None
-        return QuestionForm(data, instance=question, initial=initial, **who), choice_formset(data, question=question)
+        return QuestionForm(data, instance=question, initial=initial, **who), choice_formset(data, question=question, kind=kind)
 
     def render_page(self, request, kind, form, formset, question=None):
         return render(request, self.template_name, {
