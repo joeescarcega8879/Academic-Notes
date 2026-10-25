@@ -5,7 +5,7 @@
 <header class="topbar">
   {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
   <h1>{{ activity.title }}</h1>
-  <span class="sub">Quiz · {{ course.name }}</span>
+  <span class="sub">{{ activity.get_type_display }} · {{ course.name }}</span>
   <div class="spacer"></div>
 </header>
 {% endblock %}
@@ -30,7 +30,7 @@
       <p class="text-muted" style="margin: 0">{{ blocked }}</p>
     {% else %}
       {% if quiz.time_limit_minutes %}<p class="text-sm">Al comenzar empieza a correr el tiempo.</p>{% endif %}
-      <button type="submit" class="btn btn-primary">{% if attempts_used %}Comenzar otro intento{% else %}Comenzar el quiz{% endif %}</button>
+      <button type="submit" class="btn btn-primary">{% if attempts_used %}Comenzar otro intento{% else %}Comenzar el {{ activity.get_type_display|lower }}{% endif %}</button>
     {% endif %}
   </form>
 </div>

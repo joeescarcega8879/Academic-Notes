@@ -1,4 +1,4 @@
-"""Resolver un quiz: el alumno empieza, responde, guarda y envía."""
+"""Resolver un quiz o un examen en línea: el alumno empieza, responde, guarda y envía."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -14,7 +14,7 @@ from core.utils import parse_id
 
 from .models import QuizAttempt, QuizConfig
 from .services import attempts as service
-from .services import results
+from .services import exams, results
 
 
 def parse_selections(post):
@@ -40,11 +40,11 @@ class StudentQuizMixin(OrganizationMemberMixin):
             raise Http404
 
     def load_quiz(self, request, pk):
-        """(actividad, configuración, ficha del alumno) de un quiz publicado en el que el usuario está inscrito."""
+        """(actividad, configuración, ficha del alumno) de un quiz o examen en línea publicado en el que el usuario está inscrito."""
         self.student_only(request)
         activity = get_object_or_404(
             Activity.objects.for_organization(request.organization).filter(
-                type=Activity.Type.QUIZ, published=True, course__enrollments__student__user=request.user,
+                type__in=(Activity.Type.QUIZ, Activity.Type.EXAM), published=True, course__enrollments__student__user=request.user,
             ).select_related('course', 'criterion__period').distinct(),
             pk=pk,
         )
@@ -85,9 +85,9 @@ class QuizOverviewView(StudentQuizMixin, View):
         blocked = None
         if open_attempt is None:
             if state == 'not_open':
-                blocked = 'El quiz todavía no abre.'
+                blocked = f'El {exams.noun(activity)} todavía no abre.'
             elif state == 'closed':
-                blocked = 'El quiz ya cerró.'
+                blocked = f'El {exams.noun(activity)} ya cerró.'
             elif used >= quiz.attempts_allowed:
                 blocked = 'Ya usaste todos tus intentos.'
             elif activity.course.is_archived:

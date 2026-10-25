@@ -32,10 +32,10 @@ class ActivityForm(forms.ModelForm):
         for name in ('opens_at', 'due_at'):
             self.fields[name].input_formats = [DATETIME_LOCAL, '%Y-%m-%dT%H:%M:%S']
         quiz = getattr(self.instance, 'quiz', None) if self.instance.pk else None
-        if quiz is not None and self.instance.type == Activity.Type.QUIZ and quiz.questions.exists():
-            # Cambiar el tipo de un quiz armado dejaría preguntas e intentos huérfanos.
+        if quiz is not None and quiz.questions.exists():
+            # Cambiar el tipo de un quiz (o de un examen en línea) armado dejaría preguntas e intentos huérfanos.
             self.fields['type'].disabled = True
-            self.fields['type'].help_text = 'Un quiz con preguntas no puede cambiar de tipo.'
+            self.fields['type'].help_text = f'Un {self.instance.get_type_display().lower()} con preguntas no puede cambiar de tipo.'
         criterion = self.fields['criterion']
         criterion.queryset = course.scheme.criteria()
         criterion.required = False

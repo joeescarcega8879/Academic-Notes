@@ -18,6 +18,7 @@ from apps.courses.models import Enrollment
 
 from ..models import Answer, Question, QuizAttempt
 from . import results
+from .exams import noun
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class AttemptExpired(Exception):
 # ── Ventana de disponibilidad ─────────────────────────────────────────
 
 def window_state(activity, now=None):
-    """``open``, ``not_open`` o ``closed``. Un quiz no admite intentos nuevos después de su fecha límite."""
+    """``open``, ``not_open`` o ``closed``. Un quiz o examen no admite intentos nuevos después de su fecha límite."""
     now = now or timezone.now()
     if activity.opens_at and now < activity.opens_at:
         return 'not_open'
@@ -175,16 +176,16 @@ def start_attempt(quiz, student, now=None):
 
     activity.course.ensure_editable()
     if not activity.published:
-        raise ValidationError('Este quiz no está disponible.')
+        raise ValidationError(f'Este {noun(activity)} no está disponible.')
     if not Enrollment.objects.filter(student=student, course=activity.course).exists():
         raise ValidationError('No estás inscrito en este grupo.')
     state = window_state(activity, now)
     if state == 'not_open':
-        raise ValidationError('El quiz todavía no abre.')
+        raise ValidationError(f'El {noun(activity)} todavía no abre.')
     if state == 'closed':
-        raise ValidationError('El quiz ya cerró.')
+        raise ValidationError(f'El {noun(activity)} ya cerró.')
     if not quiz.questions.exists():
-        raise ValidationError('El quiz todavía no tiene preguntas.')
+        raise ValidationError(f'El {noun(activity)} todavía no tiene preguntas.')
     used = attempts_used(quiz, student)
     if used >= quiz.attempts_allowed:
         raise ValidationError('Ya usaste todos tus intentos.')

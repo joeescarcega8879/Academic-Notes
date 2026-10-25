@@ -6,6 +6,7 @@ app_name = 'quizzes'
 
 urlpatterns = [
     path('actividades/<int:pk>/quiz/', builder_views.BuilderView.as_view(), name='builder'),
+    path('actividades/<int:pk>/examen-en-linea/', builder_views.ExamOnlineView.as_view(), name='exam_online'),
     path('actividades/<int:pk>/quiz/resultados/', results_views.QuizResultsView.as_view(), name='results'),
     path('intentos/<int:pk>/revision/', results_views.AttemptReviewView.as_view(), name='review'),
     path('intentos/<int:pk>/eliminar/', results_views.AttemptDeleteView.as_view(), name='attempt_delete'),

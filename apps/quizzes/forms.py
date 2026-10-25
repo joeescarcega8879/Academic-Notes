@@ -90,11 +90,14 @@ class QuizConfigForm(forms.ModelForm):
     def __init__(self, *args, allow_time_limit=True, **kwargs):
         super().__init__(*args, **kwargs)
         _style(self)
+        noun = self.instance.activity.get_type_display().lower() if self.instance.activity_id else 'quiz'
+        # Las opciones nombran lo que se está armando: no se tocan en el modelo para no cambiar su migración.
+        self.fields['feedback_mode'].choices = [(value, label.replace('el quiz', f'el {noun}')) for value, label in QuizConfig.Feedback.choices]
         if not allow_time_limit:
             # Deshabilitado: lo que llegue en la petición se ignora y se conserva el valor actual (si lo hay).
             field = self.fields['time_limit_minutes']
             field.disabled = True
-            field.help_text = 'Los quizzes con tiempo límite son del plan Pro.'
+            field.help_text = 'Los quizzes y exámenes con tiempo límite son del plan Pro.'
 
 
 class BankFilterForm(forms.Form):

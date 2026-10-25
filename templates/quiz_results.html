@@ -4,10 +4,10 @@
 {% block topbar %}
 <header class="topbar">
   {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
-  <h1>Resultados del quiz</h1>
+  <h1>Resultados del {{ activity.get_type_display|lower }}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
-  <a class="btn btn-ghost" href="{% url 'quizzes:builder' activity.pk %}">Armar quiz</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:builder' activity.pk %}">Armar {{ activity.get_type_display|lower }}</a>
 </header>
 {% endblock %}
 
@@ -75,7 +75,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="text-muted">El quiz no tiene preguntas.</td></tr>
+        <tr><td colspan="5" class="text-muted">El {{ activity.get_type_display|lower }} no tiene preguntas.</td></tr>
       {% endfor %}
     </tbody>
   </table>

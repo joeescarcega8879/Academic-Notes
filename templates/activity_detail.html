@@ -32,11 +32,21 @@
 
   {% if is_teacher %}
     <div class="clusters">
-      {% if activity.type == 'quiz' or not course.is_archived %}
+      {% if activity.type == 'quiz' or activity.quiz or not course.is_archived %}
         <div class="cluster">
           <span class="cluster-label">Actividad</span>
           <div class="cluster-btns">
             {% if activity.type == 'quiz' %}<a class="btn btn-ghost" href="{% url 'quizzes:builder' activity.pk %}">Armar quiz</a>{% endif %}
+            {% if activity.type == 'exam' %}
+              {% if activity.quiz %}
+                <a class="btn btn-ghost" href="{% url 'quizzes:builder' activity.pk %}">Armar examen</a>
+              {% elif not course.is_archived %}
+                <form method="post" action="{% url 'quizzes:exam_online' activity.pk %}" class="inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-ghost">Aplicar en línea</button>
+                </form>
+              {% endif %}
+            {% endif %}
             {% if not course.is_archived %}<a class="btn btn-ghost btn-action" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>{% endif %}
           </div>
         </div>
@@ -44,7 +54,7 @@
       <div class="cluster">
         <span class="cluster-label">Seguimiento</span>
         <div class="cluster-btns">
-          {% if activity.type == 'quiz' %}<a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
+          {% if activity.type == 'quiz' or activity.quiz %}<a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
           {% if activity.accepts_submissions and not course.is_archived %}
             <a class="btn btn-ghost" href="{% url 'batches:index' activity.pk %}">Lote de PDFs{% with pending=activity.batch_files.count %}{% if pending %} ({{ pending }}){% endif %}{% endwith %}</a>
             <a class="btn btn-ghost" href="{% url 'ai:review' activity.pk %}">Revisar con IA</a>
@@ -79,9 +89,13 @@
   {% if activity.opens_at %}<div class="kv-row"><div class="k">Abre</div><div class="v">{{ activity.opens_at|date:"d/m/Y H:i" }}</div></div>{% endif %}
   {% if activity.due_at %}
     <div class="kv-row"><div class="k">Fecha límite</div><div class="v">{{ activity.due_at|date:"d/m/Y H:i" }}</div></div>
-    <div class="kv-row"><div class="k">Entregas tardías</div>
-      <div class="v">{% if activity.allow_late %}Se aceptan{% if activity.late_penalty %} con {{ activity.late_penalty|floatformat:"-2" }} % de penalización{% endif %}{% else %}No se aceptan{% endif %}</div>
-    </div>
+    {% if not activity.quiz %}
+      <div class="kv-row"><div class="k">Entregas tardías</div>
+        <div class="v">{% if activity.allow_late %}Se aceptan{% if activity.late_penalty %} con {{ activity.late_penalty|floatformat:"-2" }} % de penalización{% endif %}{% else %}No se aceptan{% endif %}</div>
+      </div>
+    {% else %}
+      <div class="kv-row"><div class="k">Después del cierre</div><div class="v">Ya no se puede empezar ni enviar</div></div>
+    {% endif %}
   {% endif %}
   {% if activity.instructions %}
     <h3 class="section-title" style="margin-top: 14px">Instrucciones</h3>
@@ -136,11 +150,11 @@
     </table>
   </div>
 {% else %}
-  {% if activity.type == 'quiz' %}
+  {% if activity.type == 'quiz' or activity.quiz %}
     <div class="card mb-12">
-      <h3 class="section-title">Quiz</h3>
-      <p style="margin-top: 0">Este quiz se resuelve en línea y se califica solo.</p>
-      <a class="btn btn-primary" href="{% url 'quizzes:overview' activity.pk %}">Ir al quiz</a>
+      <h3 class="section-title">{{ activity.get_type_display }}</h3>
+      <p style="margin-top: 0">Este {{ activity.get_type_display|lower }} se resuelve en línea y se califica solo.</p>
+      <a class="btn btn-primary" href="{% url 'quizzes:overview' activity.pk %}">Ir al {{ activity.get_type_display|lower }}</a>
     </div>
   {% endif %}
   {% if activity.accepts_submissions %}

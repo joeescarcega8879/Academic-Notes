@@ -10,6 +10,7 @@ from apps.organizations.limits import PlanLimitError
 from .models import QuizConfig
 from .services.bank import copy_bank
 from .services.builder import copy_quiz_content
+from .services.exams import uses_quiz_engine
 
 
 @receiver(post_save, sender=Activity)
@@ -21,18 +22,23 @@ def ensure_quiz_config(sender, instance, raw=False, **kwargs):
 
 @receiver(activity_publishing)
 def require_questions_to_publish(sender, activity, **kwargs):
-    """Un quiz sin preguntas no se puede publicar."""
-    if activity.type != Activity.Type.QUIZ:
+    """Un quiz sin preguntas no se puede publicar; un examen en línea, además, necesita su ventana de apertura y cierre."""
+    if activity.type not in (Activity.Type.QUIZ, Activity.Type.EXAM):
         return
     quiz = QuizConfig.objects.filter(activity_id=activity.pk).first() if activity.pk else None
+    if activity.type == Activity.Type.EXAM and quiz is None:
+        return  # examen que se califica a mano
+    noun = activity.get_type_display().lower()
     if quiz is None or not quiz.questions.exists():
-        raise ValidationError('Agrega al menos una pregunta al quiz antes de publicarlo.')
+        raise ValidationError(f'Agrega al menos una pregunta al {noun} antes de publicarlo.')
+    if activity.type == Activity.Type.EXAM and not (activity.opens_at and activity.due_at):
+        raise ValidationError('Un examen en línea necesita fecha de apertura y de cierre antes de publicarse.')
 
 
 @receiver(activity_cloned)
 def copy_quiz_to_cloned_activity(sender, source, clone, **kwargs):
-    """Al duplicar un grupo, sus quizzes llevan su configuración y sus preguntas (sin intentos)."""
-    if source.type == Activity.Type.QUIZ:
+    """Al duplicar un grupo, sus quizzes y exámenes en línea llevan su configuración y sus preguntas (sin intentos)."""
+    if uses_quiz_engine(source):
         origin = QuizConfig.objects.filter(activity=source).first()
         if origin is not None:
             copy_quiz_content(origin, clone)

@@ -1,4 +1,4 @@
-"""Constructor de quizzes: configuración y preguntas."""
+"""Constructor de quizzes y exámenes en línea: configuración y preguntas."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -16,24 +16,27 @@ from core.utils import parse_id
 
 from .forms import BankFilterForm, QuizConfigForm
 from .models import Question, QuizConfig, QuizQuestion
-from .services import builder
+from .services import builder, exams
 from .services.bank import questions_for_course
 
 PICKER_PAGE_SIZE = 15
 
 
 class OwnQuizMixin(TeacherRequiredMixin):
-    """El quiz de una actividad de un grupo activo del docente, en la organización activa."""
+    """El quiz (o el examen aplicado en línea) de una actividad de un grupo del docente, en la organización activa."""
 
     @cached_property
     def activity(self):
         return get_object_or_404(
             Activity.objects.for_organization(self.request.organization).select_related('course', 'criterion__period'),
-            pk=self.kwargs['pk'], type=Activity.Type.QUIZ, course__professor=self.request.user,
+            pk=self.kwargs['pk'], type__in=(Activity.Type.QUIZ, Activity.Type.EXAM), course__professor=self.request.user,
         )
 
     @cached_property
     def quiz(self):
+        if self.activity.type == Activity.Type.EXAM:
+            # Un examen solo tiene preguntas si el docente lo aplicó en línea: aquí no se crea por visitar la página.
+            return get_object_or_404(QuizConfig.objects.for_organization(self.request.organization), activity=self.activity)
         quiz, _ = QuizConfig.objects.get_or_create(activity=self.activity)
         return quiz
 
@@ -67,6 +70,8 @@ class BuilderView(OwnQuizMixin, View):
             picker = picker.filter(kind=data['kind'])
         page = Paginator(picker, PICKER_PAGE_SIZE).get_page(request.GET.get('bp'))
         can_edit = not (archived_course or quiz.is_locked)
+        # La IA todavía no arma exámenes: sus preguntas del banco y las propias sí.
+        ai_available = can_edit and self.activity.type == Activity.Type.QUIZ
         query = request.GET.copy()
         query.pop('bp', None)
 
@@ -81,8 +86,8 @@ class BuilderView(OwnQuizMixin, View):
             'picker': page, 'picker_querystring': query.urlencode(),
             'picker_filters': {'q': data.get('q', ''), 'topic': data.get('topic', ''), 'kind': data.get('kind', '')},
             'kinds': Question.Kind.choices,
-            'ai': ai_ui.quiz_panel(request.organization, self.activity.course, activity=self.activity) if can_edit else None,
-            'ai_drafts': ai_drafts.open_quiz_drafts(request.user, request.organization, self.activity.course, self.activity) if can_edit else [],
+            'ai': ai_ui.quiz_panel(request.organization, self.activity.course, activity=self.activity) if ai_available else None,
+            'ai_drafts': ai_drafts.open_quiz_drafts(request.user, request.organization, self.activity.course, self.activity) if ai_available else [],
         })
 
     def post(self, request, pk):
@@ -97,7 +102,7 @@ class BuilderView(OwnQuizMixin, View):
                 if not form.is_valid():
                     return self.render_page(request, config_form=form)
                 form.save()
-                messages.success(request, 'Se guardó la configuración del quiz.')
+                messages.success(request, f'Se guardó la configuración del {exams.noun(self.activity)}.')
             elif action == 'add':
                 ids = [i for i in map(parse_id, request.POST.getlist('question')) if i is not None]
                 questions = questions_for_course(request.organization, self.activity.course).filter(pk__in=ids)
@@ -107,7 +112,7 @@ class BuilderView(OwnQuizMixin, View):
                 question = get_object_or_404(QuizQuestion.objects.filter(quiz=self.quiz), pk=request.POST.get('question_id') or 0)
                 if action == 'remove':
                     builder.remove_question(question)
-                    messages.success(request, 'Se quitó la pregunta del quiz.')
+                    messages.success(request, f'Se quitó la pregunta del {exams.noun(self.activity)}.')
                 elif action == 'points':
                     builder.set_points(question, request.POST.get('points', ''))
                     messages.success(request, 'Se actualizaron los puntos.')
@@ -120,4 +125,25 @@ class BuilderView(OwnQuizMixin, View):
                 messages.error(request, 'Acción desconocida.')
         except ValidationError as error:
             messages.error(request, ' '.join(error.messages))
+        return redirect('quizzes:builder', pk=pk)
+
+
+class ExamOnlineView(TeacherRequiredMixin, View):
+    """Aplica un examen en línea (o vuelve a calificarlo a mano) desde la página de la actividad."""
+
+    def post(self, request, pk):
+        activity = get_object_or_404(
+            Activity.objects.for_organization(request.organization).select_related('course'),
+            pk=pk, type=Activity.Type.EXAM, course__professor=request.user,
+        )
+        try:
+            if request.POST.get('action') == 'disable':
+                exams.disable_online(activity)
+                messages.success(request, 'El examen vuelve a calificarse a mano.')
+                return redirect(activity)
+            exams.enable_online(activity)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+            return redirect(activity)
+        messages.success(request, 'El examen se aplicará en línea. Arma sus preguntas y fija su ventana antes de publicarlo.')
         return redirect('quizzes:builder', pk=pk)

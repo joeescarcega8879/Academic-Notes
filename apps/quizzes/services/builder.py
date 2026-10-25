@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Sum
 
 from ..models import QuizChoice, QuizConfig, QuizQuestion
+from .exams import noun
 
 
 def ensure_editable(quiz):
@@ -14,7 +15,7 @@ def ensure_editable(quiz):
     quiz.activity.course.ensure_editable()
     if quiz.is_locked:
         raise ValidationError(
-            'Este quiz ya tiene intentos: sus preguntas no se pueden cambiar. Duplica el grupo para armar otra versión.'
+            f'Este {noun(quiz.activity)} ya tiene intentos: sus preguntas no se pueden cambiar. Duplica el grupo para armar otra versión.'
         )
 
 
@@ -103,7 +104,7 @@ def sync_activity_points(quiz):
     quiz.activity.course.ensure_editable()
     count, total = totals(quiz)
     if not count:
-        raise ValidationError('El quiz todavía no tiene preguntas.')
+        raise ValidationError(f'El {noun(quiz.activity)} todavía no tiene preguntas.')
     quiz.activity.max_score = float(total)
     quiz.activity.save()
 
