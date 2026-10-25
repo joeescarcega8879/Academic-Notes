@@ -14,14 +14,14 @@
     </div>
     <p style="white-space: pre-line; margin: 8px 0 10px">{{ row.question.text }}</p>
     {% if row.kind == 'short_answer' %}
-      <p style="padding: 6px 10px; margin: 0 0 4px; border-radius: 6px; {% if row.is_correct %}background: var(--ok-bg); color: var(--ok){% elif row.answered %}background: var(--bad); color: #fff{% else %}background: var(--surface-2){% endif %}">
+      <p class="no-math" style="padding: 6px 10px; margin: 0 0 4px; border-radius: 6px; {% if row.is_correct %}background: var(--ok-bg); color: var(--ok){% elif row.answered %}background: var(--bad); color: #fff{% else %}background: var(--surface-2){% endif %}">
         {% if row.answered %}{{ row.text }}<span class="text-xs"> · {% if is_teacher %}respuesta del alumno{% else %}tu respuesta{% endif %}</span>{% else %}Sin respuesta{% endif %}
       </p>
       {% if not row.is_correct %}
         <p class="text-sm" style="margin: 6px 0 0"><strong>{% if row.accepted|length > 1 %}Respuestas aceptadas{% else %}Respuesta aceptada{% endif %}:</strong> {{ row.accepted|join:" · " }}</p>
       {% endif %}
     {% elif row.kind == 'open' %}
-      <div style="padding: 10px 12px; margin: 0 0 4px; border-radius: 6px; background: var(--surface-2); white-space: pre-line">{% if row.answered %}{{ row.text }}{% else %}Sin respuesta{% endif %}</div>
+      <div class="no-math" style="padding: 10px 12px; margin: 0 0 4px; border-radius: 6px; background: var(--surface-2); white-space: pre-line">{% if row.answered %}{{ row.text }}{% else %}Sin respuesta{% endif %}</div>
       {% if grading and row.gradable %}
         <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-start; margin-top: 10px">
           <div class="field" style="min-width: 150px">

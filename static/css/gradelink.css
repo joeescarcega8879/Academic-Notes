@@ -1440,8 +1440,9 @@ table.gs tfoot .gs-name, table.gs tfoot .gs-final { z-index: 4; }
 /* campos */
 .input, .select { border-radius: 12px; }
 .input:focus, .select:focus { border-color: var(--sky); box-shadow: 0 0 0 4px var(--sky-50); }
-/* Las filas de opciones del formulario de preguntas ocupan todo el ancho que les deja la casilla. */
-.choice-row .input { width: 100%; }
+/* Las filas de opciones del formulario de preguntas y las respuestas escritas por el alumno ocupan todo el ancho. */
+.choice-row .input, .quiz-question .input { width: 100%; }
+.quiz-question textarea.input { min-height: 8em; resize: vertical; }
 
 /* barra lateral */
 .nav a { border-radius: 12px; }
