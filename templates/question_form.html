@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{% if question %}Editar{% else %}Nueva{% endif %} pregunta · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -11,8 +12,9 @@
 
 {% block content %}
 <div class="card mw-760">
-  <form method="post" novalidate>
+  <form method="post" novalidate data-math-editor data-kind="{{ kind }}">
     {% csrf_token %}
+    <div data-math-palette></div>
     {% include 'partials/form_fields.html' %}
     {% if kind == 'open' %}<p class="text-sm text-muted">El alumno escribe su respuesta y tú la calificas con puntos de 0 a los de la pregunta. Usa la explicación como guía para calificar: el alumno la ve al revisar.</p>{% endif %}
 
@@ -76,4 +78,5 @@
 </script>
 {% endif %}
 {% include 'partials/math.html' %}
+<script defer src="{% static 'js/math_editor.js' %}"></script>
 {% endblock %}
