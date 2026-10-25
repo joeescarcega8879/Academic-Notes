@@ -7,7 +7,7 @@ queda por calificar: la puntúa el docente.
 
 import re
 import unicodedata
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 
@@ -17,6 +17,11 @@ from ..models import Question
 
 CHOICE_KINDS = (Question.Kind.MULTIPLE_CHOICE, Question.Kind.TRUE_FALSE)
 TEXT_KINDS = (Question.Kind.SHORT_ANSWER, Question.Kind.OPEN)
+# Preguntas cuya respuesta se guarda como datos (``Answer.response``) y no como opción o texto.
+RESPONSE_KINDS = (Question.Kind.ORDERING,)
+# Las que muestran su lista de «opciones» al alumno (revueltas en el orden del intento).
+LISTED_KINDS = CHOICE_KINDS + RESPONSE_KINDS
+TWO_PLACES = Decimal('0.01')
 MAX_TEXT_LENGTH = 500
 MAX_OPEN_LENGTH = 5000
 
@@ -64,7 +69,20 @@ def coerce(question, value, choice_ids):
         if len(text) > limit:
             raise ValidationError(f'Una respuesta no puede pasar de {limit} caracteres.')
         return {'text': text}
+    if question.kind == Question.Kind.ORDERING:
+        return _coerce_order(value, choice_ids)
     raise ValidationError('Tipo de pregunta desconocido.')
+
+
+def _coerce_order(value, choice_ids):
+    """El orden que dio el alumno: lista de ids de los elementos (o texto «3,1,2»). Vacío borra la respuesta."""
+    if value is None or value == '' or value == []:
+        return {'response': None}
+    parts = list(value) if isinstance(value, (list, tuple)) else str(value).split(',')
+    ids = [part if isinstance(part, int) else parse_id(part.strip()) for part in parts]
+    if None in ids or len(set(ids)) != len(ids) or set(ids) != set(choice_ids):
+        raise ValidationError('Ordena todos los elementos de la pregunta.')
+    return {'response': ids}
 
 
 def has_answer(question, answer):
@@ -73,6 +91,8 @@ def has_answer(question, answer):
         return False
     if question.kind in TEXT_KINDS:
         return bool(answer.text.strip())
+    if question.kind in RESPONSE_KINDS:
+        return bool(answer.response)
     return answer.choice_id is not None
 
 
@@ -83,6 +103,8 @@ def grade(question, answer):
     """
     if question.kind == Question.Kind.OPEN:
         return (None, None) if answer.text.strip() else (False, Decimal(0))
+    if question.kind == Question.Kind.ORDERING:
+        return _grade_order(question, answer)
     if question.kind in CHOICE_KINDS:
         correct = bool(answer.choice_id and answer.choice.is_correct)
     elif question.kind == Question.Kind.SHORT_ANSWER:
@@ -90,3 +112,23 @@ def grade(question, answer):
     else:
         correct = False
     return correct, (question.points if correct else Decimal(0))
+
+
+def partial_points(question, placed, total):
+    """Puntos proporcionales: ``placed`` de ``total`` aciertos, redondeados a 2 decimales (mitad hacia arriba)."""
+    if not total:
+        return Decimal(0)
+    return (question.points * placed / total).quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
+
+
+def correct_order(question):
+    """Los ids de los elementos de una pregunta de ordenar, en el orden correcto."""
+    return [choice.pk for choice in sorted(question.choices.all(), key=lambda c: (c.position, c.pk))]
+
+
+def _grade_order(question, answer):
+    """Cada elemento en su lugar vale lo mismo; solo se marca correcta si acertó todos."""
+    expected = correct_order(question)
+    given = answer.response or []
+    placed = sum(1 for want, got in zip(expected, given) if want == got)
+    return bool(expected) and placed == len(expected), partial_points(question, placed, len(expected))

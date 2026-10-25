@@ -22,7 +22,22 @@
         <span class="chip">{{ row.question.points|floatformat:"-2" }} punto{{ row.question.points|pluralize }}</span>
       </div>
       <p style="white-space: pre-line; margin: 8px 0 12px">{{ row.question.text }}</p>
-      {% if row.question.kind == 'open' %}
+      {% if row.question.kind == 'ordering' %}
+        <p class="text-sm text-muted" style="margin: 0 0 8px">Usa las flechas para subir o bajar cada elemento. Si no mueves ninguno, la pregunta cuenta como sin responder.</p>
+        <ol class="orden" data-orden>
+          {% for choice in row.choices %}
+            <li data-id="{{ choice.pk }}">
+              <span class="txt">{{ choice.text }}</span>
+              <span class="mover">
+                <button type="button" class="ico-orden" data-mover="-1" aria-label="Subir">↑</button>
+                <button type="button" class="ico-orden" data-mover="1" aria-label="Bajar">↓</button>
+              </span>
+            </li>
+          {% endfor %}
+        </ol>
+        <input type="hidden" name="o_{{ row.question.pk }}" value="{{ row.order_value }}">
+        <span class="sr-only" role="status" aria-live="polite" style="position: absolute; left: -9999px" data-orden-aviso></span>
+      {% elif row.question.kind == 'open' %}
         <label class="sr-only" for="q_{{ row.question.pk }}" style="position: absolute; left: -9999px">Respuesta a la pregunta {{ forloop.counter }}</label>
         <textarea class="input" id="q_{{ row.question.pk }}" name="q_{{ row.question.pk }}" rows="6" maxlength="5000"
                   placeholder="Escribe tu respuesta">{{ row.text }}</textarea>

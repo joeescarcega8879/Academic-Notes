@@ -65,6 +65,17 @@ def remaining_seconds(attempt, now=None):
     return max(0, int((attempt.deadline - now).total_seconds()))
 
 
+def _shuffled_differently(ids, rng):
+    """Los elementos de una pregunta de ordenar, revueltos y nunca ya en su orden correcto."""
+    original = list(ids)
+    shuffled = list(ids)
+    for _ in range(10):
+        rng.shuffle(shuffled)
+        if shuffled != original:
+            return shuffled
+    return original[1:] + original[:1] if len(original) > 1 else original
+
+
 def build_layout(quiz, rng=None):
     """Orden de las preguntas y de las opciones de cada una, fijado al empezar el intento."""
     rng = rng or random.SystemRandom()
@@ -73,9 +84,13 @@ def build_layout(quiz, rng=None):
         rng.shuffle(questions)
     choices = {}
     for question in questions:
-        if question.kind not in answer_service.CHOICE_KINDS:
+        if question.kind not in answer_service.LISTED_KINDS:
             continue  # lo que hay en sus «opciones» (las respuestas aceptadas, por ejemplo) no se le muestra al alumno
         ids = [c.pk for c in question.choices.all()]
+        if question.kind == Question.Kind.ORDERING:
+            ids = _shuffled_differently(ids, rng)
+            choices[str(question.pk)] = ids
+            continue
         # Verdadero/Falso conserva su orden natural: barajarlo solo confunde.
         if quiz.shuffle_choices and question.kind == Question.Kind.MULTIPLE_CHOICE:
             rng.shuffle(ids)

@@ -20,6 +20,7 @@ class Question(TenantModel):
         TRUE_FALSE = 'true_false', 'Verdadero o falso'
         SHORT_ANSWER = 'short_answer', 'Respuesta corta'
         OPEN = 'open', 'Respuesta abierta'
+        ORDERING = 'ordering', 'Ordenar'
 
     # Como el grupo, la pregunta pertenece a la organización y la elige quien la crea.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
@@ -198,6 +199,8 @@ class Answer(TenantModel):
     text = models.TextField(blank=True, default='', db_default='')
     # Comentario del docente en una respuesta abierta; el alumno lo lee con su revisión.
     feedback = models.TextField(blank=True, default='', db_default='')
+    # Lo que contestó el alumno en las preguntas de ordenar: los ids de los elementos en el orden que les dio.
+    response = models.JSONField(null=True, blank=True)
     is_correct = models.BooleanField(null=True)
     points_awarded = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     saved_at = models.DateTimeField(auto_now=True)

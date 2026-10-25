@@ -12,20 +12,21 @@ from apps.courses.models import Student
 from apps.grades.models import Activity, Grade
 from core.utils import parse_id
 
-from .models import QuizAttempt, QuizConfig
+from .models import Question, QuizAttempt, QuizConfig
 from .services import attempts as service
 from .services import exams, results
 
 
 def parse_selections(post):
-    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción o texto escrito. Lo que no viene, no se toca.
+    """Respuestas del formulario: ``q_<pregunta>`` = id de la opción o texto escrito, ``o_<pregunta>`` = el orden de los
+    elementos («3,1,2»). Lo que no viene, no se toca.
 
     Un valor vacío borra la respuesta. Qué hacer con el valor (un id de opción, un texto) depende del tipo de
     pregunta y lo decide el servicio; aquí solo se separan las respuestas por pregunta.
     """
     selections = {}
     for name, value in post.items():
-        question_id = parse_id(name[2:]) if name.startswith('q_') else None
+        question_id = parse_id(name[2:]) if name.startswith(('q_', 'o_')) else None
         if question_id is None:
             continue
         selections[question_id] = None if value == '' else value
@@ -116,19 +117,27 @@ class QuizTakeView(StudentQuizMixin, View):
         quiz = attempt.quiz
         questions = {q.pk: q for q in quiz.questions.prefetch_related('choices')}
         choices = attempt.layout.get('choices', {})
-        saved = {question_id: (choice_id, text) for question_id, choice_id, text in attempt.answers.values_list('question_id', 'choice_id', 'text')}
+        saved = {
+            question_id: (choice_id, text, response)
+            for question_id, choice_id, text, response in attempt.answers.values_list('question_id', 'choice_id', 'text', 'response')
+        }
         rows = []
         for question_id in attempt.layout.get('questions', []):
             question = questions.get(question_id)
             if question is None:
                 continue
             by_id = {c.pk: c for c in question.choices.all()}
-            choice_id, text = saved.get(question_id, (None, ''))
+            choice_id, text, response = saved.get(question_id, (None, '', None))
+            shown = choices.get(str(question_id), [])
+            if question.kind == Question.Kind.ORDERING and response:
+                shown = response  # el orden que ya le había dado el alumno
             rows.append({
                 'question': question,
-                'choices': [by_id[c] for c in choices.get(str(question_id), []) if c in by_id],
+                'choices': [by_id[c] for c in shown if c in by_id],
                 'selected': choice_id,
                 'text': text,
+                # En las de ordenar, vacío hasta que el alumno mueve algo: sin mover cuenta como sin responder.
+                'order_value': ','.join(str(i) for i in response) if question.kind == Question.Kind.ORDERING and response else '',
             })
         return render(request, self.template_name, {
             'attempt': attempt, 'activity': quiz.activity, 'course': quiz.activity.course, 'rows': rows,
