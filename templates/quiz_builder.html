@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Armar quiz · {{ activity.title }} · {{ site_name }}{% endblock %}
+{% block title %}Armar {{ activity.get_type_display|lower }} · {{ activity.title }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
   {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
-  <h1>Armar quiz</h1>
+  <h1>Armar {{ activity.get_type_display|lower }}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
   <a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>
@@ -13,9 +13,9 @@
 {% endblock %}
 
 {% block content %}
-{% if read_only %}<div class="flash mb-12">El grupo está archivado: el quiz es de solo lectura.</div>{% endif %}
+{% if read_only %}<div class="flash mb-12">El grupo está archivado: el {{ activity.get_type_display|lower }} es de solo lectura.</div>{% endif %}
 {% if locked %}
-  <div class="flash mb-12">Este quiz ya tiene intentos: sus preguntas y puntos no se pueden cambiar. La configuración sí.</div>
+  <div class="flash mb-12">Este {{ activity.get_type_display|lower }} ya tiene intentos: sus preguntas y puntos no se pueden cambiar. La configuración sí.</div>
 {% endif %}
 
 <div class="card mb-12">
@@ -35,7 +35,7 @@
   </div>
   <p class="text-xs text-muted" style="margin-bottom: 0">
     La calificación del alumno se calcula sobre los puntos de la actividad: si saca {{ total_points|floatformat:"-2" }} de {{ total_points|floatformat:"-2" }} obtiene el máximo.
-    {% if not activity.published %}Para publicarlo necesita al menos una pregunta.{% endif %}
+    {% if not activity.published %}Para publicarlo necesita al menos una pregunta{% if activity.type == 'exam' %} y sus fechas de apertura y cierre{% endif %}.{% endif %}
   </p>
 </div>
 
@@ -65,10 +65,10 @@
 
 <div class="table-wrap mb-12">
   <div class="table-head">
-    <h3>Preguntas del quiz</h3>
+    <h3>Preguntas del {{ activity.get_type_display|lower }}</h3>
     <div class="spacer"></div>
     {% if not locked and not read_only %}
-      <button type="button" class="btn btn-primary ai-btn"{% if ai.reason %} disabled title="{{ ai.reason }}"{% else %} data-ai-open="modal-ai-quiz"{% endif %}>Generar con IA</button>
+      {% if ai %}<button type="button" class="btn btn-primary ai-btn"{% if ai.reason %} disabled title="{{ ai.reason }}"{% else %} data-ai-open="modal-ai-quiz"{% endif %}>Generar con IA</button>{% endif %}
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'multiple_choice' %}?add_to={{ activity.pk }}">Nueva opción múltiple</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}?add_to={{ activity.pk }}">Nueva verdadero/falso</a>
     {% endif %}

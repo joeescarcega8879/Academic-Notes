@@ -123,9 +123,10 @@
     var total = form.querySelectorAll(".quiz-question").length;
     var answered = form.querySelectorAll("input[type=radio]:checked").length;
     var missing = total - answered;
+    var noun = form.getAttribute("data-noun") || "quiz";
     var message = missing > 0
-      ? "Te faltan " + missing + " pregunta(s) por responder. ¿Enviar el quiz de todos modos?"
-      : "¿Enviar el quiz? Ya no podrás cambiar tus respuestas.";
+      ? "Te faltan " + missing + " pregunta(s) por responder. ¿Enviar el " + noun + " de todos modos?"
+      : "¿Enviar el " + noun + "? Ya no podrás cambiar tus respuestas.";
     if (!window.confirm(message)) {
       event.preventDefault();
       return;

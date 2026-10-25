@@ -62,7 +62,7 @@ def sync_grade(quiz, student, *, by=None):
         return None
     return grade_activity(
         activity, student, score=float(activity_score(quiz, attempts)), by=by, source=Grade.Source.QUIZ,
-        feedback=f'Calificación automática del quiz ({len(attempts)} intento{"s" if len(attempts) != 1 else ""}).',
+        feedback=f'Calificación automática del {activity.get_type_display().lower()} ({len(attempts)} intento{"s" if len(attempts) != 1 else ""}).',
     )
 
 

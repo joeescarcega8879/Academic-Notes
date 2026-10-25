@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" id="quiz-form" data-autosave-url="{% url 'quizzes:autosave' attempt.pk %}" data-remaining="{{ remaining|default_if_none:'' }}">
+<form method="post" id="quiz-form" data-noun="{{ activity.get_type_display|lower }}" data-autosave-url="{% url 'quizzes:autosave' attempt.pk %}" data-remaining="{{ remaining|default_if_none:'' }}">
   {% csrf_token %}
   {% for row in rows %}
     <div class="card mb-12 quiz-question mw-760">
@@ -34,7 +34,7 @@
     </div>
   {% endfor %}
   <div class="flex-row gap-14">
-    <button type="submit" class="btn btn-primary">Enviar quiz</button>
+    <button type="submit" class="btn btn-primary">Enviar {{ activity.get_type_display|lower }}</button>
     <span class="text-sm text-muted">Tus respuestas se guardan solas mientras contestas.</span>
   </div>
 </form>

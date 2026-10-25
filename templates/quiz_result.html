@@ -3,7 +3,7 @@
 
 {% block topbar %}
 <header class="topbar">
-  {% url 'quizzes:overview' activity.pk as back_url %}{% include 'partials/back.html' with url=back_url label='Volver al quiz' %}
+  {% url 'quizzes:overview' activity.pk as back_url %}{% with noun=activity.get_type_display|lower %}{% include 'partials/back.html' with url=back_url label='Volver al '|add:noun %}{% endwith %}
   <h1>Resultado</h1>
   <span class="sub">{{ activity.title }} · intento {{ attempt.number }}</span>
   <div class="spacer"></div>
@@ -30,8 +30,8 @@
 {% elif not review_available %}
   <div class="card mw-640">
     <p class="text-muted" style="margin: 0">
-      {% if quiz.feedback_mode == 'after_close' %}Las respuestas correctas y las explicaciones se mostrarán cuando cierre el quiz.
-      {% else %}Este quiz solo muestra la calificación.{% endif %}
+      {% if quiz.feedback_mode == 'after_close' %}Las respuestas correctas y las explicaciones se mostrarán cuando cierre el {{ activity.get_type_display|lower }}.
+      {% else %}Este {{ activity.get_type_display|lower }} solo muestra la calificación.{% endif %}
     </p>
   </div>
 {% endif %}
