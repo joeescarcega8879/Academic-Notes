@@ -19,13 +19,23 @@ from .services import exams, results
 
 def parse_selections(post):
     """Respuestas del formulario: ``q_<pregunta>`` = id de la opción o texto escrito, ``o_<pregunta>`` = el orden de los
-    elementos («3,1,2»). Lo que no viene, no se toca.
+    elementos («3,1,2»), ``m_<pregunta>_<elemento>`` = la pareja elegida. Lo que no viene, no se toca.
 
     Un valor vacío borra la respuesta. Qué hacer con el valor (un id de opción, un texto) depende del tipo de
     pregunta y lo decide el servicio; aquí solo se separan las respuestas por pregunta.
     """
     selections = {}
     for name, value in post.items():
+        if name.startswith('m_'):  # m_<pregunta>_<elemento> = la pareja elegida; vacío = sin elegir
+            question_id, _, left_id = name[2:].partition('_')
+            question_id, left_id = parse_id(question_id), parse_id(left_id)
+            if question_id is not None and left_id is not None:
+                pairs = selections.get(question_id)
+                if not isinstance(pairs, dict):
+                    pairs = selections[question_id] = {}
+                if value != '':
+                    pairs[left_id] = value
+            continue
         question_id = parse_id(name[2:]) if name.startswith(('q_', 'o_')) else None
         if question_id is None:
             continue
@@ -131,9 +141,12 @@ class QuizTakeView(StudentQuizMixin, View):
             shown = choices.get(str(question_id), [])
             if question.kind == Question.Kind.ORDERING and response:
                 shown = response  # el orden que ya le había dado el alumno
+            pairs = response if question.kind == Question.Kind.MATCHING and isinstance(response, dict) else {}
             rows.append({
                 'question': question,
                 'choices': [by_id[c] for c in shown if c in by_id],
+                # En las de relacionar: cada elemento de la izquierda con la pareja que ya eligió (si eligió).
+                'lefts': [{'choice': c, 'selected': pairs.get(str(c.pk))} for c in question.choices.all()] if question.kind == Question.Kind.MATCHING else [],
                 'selected': choice_id,
                 'text': text,
                 # En las de ordenar, vacío hasta que el alumno mueve algo: sin mover cuenta como sin responder.

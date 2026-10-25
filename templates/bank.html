@@ -11,6 +11,7 @@
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'short_answer' %}{{ group_query }}">Nueva respuesta corta</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'open' %}{{ group_query }}">Nueva respuesta abierta</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'ordering' %}{{ group_query }}">Nueva de ordenar</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'matching' %}{{ group_query }}">Nueva de relacionar</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:import' %}{{ group_query }}">Importar</a>
   {% include 'partials/notifications.html' %}
 </header>

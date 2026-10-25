@@ -17,7 +17,10 @@
     {% if kind == 'open' %}<p class="text-sm text-muted">El alumno escribe su respuesta y tú la calificas con puntos de 0 a los de la pregunta. Usa la explicación como guía para calificar: el alumno la ve al revisar.</p>{% endif %}
 
     {% if formset %}
-      {% if kind == 'ordering' %}
+      {% if kind == 'matching' %}
+        <h3 class="section-title" style="margin-top: 18px">Parejas</h3>
+        <p class="text-sm text-muted" style="margin-top: 0">Escribe de 2 a 8 parejas: el elemento de la izquierda y lo que le corresponde. Al alumno le saldrá la columna izquierda en este orden y las respuestas de la derecha revueltas. Las filas vacías se ignoran.</p>
+      {% elif kind == 'ordering' %}
         <h3 class="section-title" style="margin-top: 18px">Elementos en el orden correcto</h3>
         <p class="text-sm text-muted" style="margin-top: 0">Escribe de 2 a 8 elementos <strong>en el orden correcto</strong>, del primero al último. El alumno los verá revueltos y tendrá que ordenarlos. Las filas vacías se ignoran.</p>
       {% elif kind == 'short_answer' %}
@@ -32,12 +35,13 @@
       <div id="choices">
         {% for choice in formset %}
           <div class="flex-row gap-14 choice-row" style="align-items: center; margin-bottom: 8px">
-            {% if kind == 'ordering' %}<span class="orden-num" aria-hidden="true"></span>{% elif kind != 'short_answer' %}<label>{{ choice.is_correct }} Correcta</label>{% endif %}
+            {% if kind == 'ordering' %}<span class="orden-num" aria-hidden="true"></span>{% elif kind == 'matching' or kind == 'short_answer' %}{% else %}<label>{{ choice.is_correct }} Correcta</label>{% endif %}
             <div style="flex: 1">{{ choice.text }}{{ choice.text.errors }}</div>
+            {% if kind == 'matching' %}<span class="pareja-flecha" aria-hidden="true">→</span><div style="flex: 1">{{ choice.match_text }}{{ choice.match_text.errors }}</div>{% endif %}
           </div>
         {% endfor %}
       </div>
-      <button type="button" class="btn btn-ghost" id="add-choice">{% if kind == 'short_answer' %}Agregar respuesta{% elif kind == 'ordering' %}Agregar elemento{% else %}Agregar opción{% endif %}</button>
+      <button type="button" class="btn btn-ghost" id="add-choice">{% if kind == 'short_answer' %}Agregar respuesta{% elif kind == 'ordering' %}Agregar elemento{% elif kind == 'matching' %}Agregar pareja{% else %}Agregar opción{% endif %}</button>
     {% endif %}
 
     <div class="flex-row gap-14" style="margin-top: 18px">

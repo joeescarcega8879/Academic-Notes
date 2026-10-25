@@ -74,6 +74,7 @@
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'short_answer' %}?add_to={{ activity.pk }}">Nueva respuesta corta</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'open' %}?add_to={{ activity.pk }}">Nueva respuesta abierta</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'ordering' %}?add_to={{ activity.pk }}">Nueva de ordenar</a>
+      <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'matching' %}?add_to={{ activity.pk }}">Nueva de relacionar</a>
     {% endif %}
   </div>
   <table class="tbl">
@@ -83,7 +84,7 @@
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>{{ question.text|truncatechars:100 }}{% if question.ai_generated %} <span class="chip info">Hecha con IA</span>{% endif %}<div class="text-xs text-muted">{{ question.get_kind_display }}</div></td>
-          <td>{% if question.kind == 'open' %}<span class="text-muted">La califica el docente</span>{% elif question.kind == 'ordering' %}{% for choice in question.choices.all %}{{ choice.text|truncatechars:20 }}{% if not forloop.last %} → {% endif %}{% endfor %}{% else %}{% for choice in question.correct_choices %}{{ choice.text|truncatechars:40 }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
+          <td>{% if question.kind == 'open' %}<span class="text-muted">La califica el docente</span>{% elif question.kind == 'matching' %}{% for choice in question.choices.all %}{{ choice.text|truncatechars:15 }} → {{ choice.match_text|truncatechars:15 }}{% if not forloop.last %} · {% endif %}{% endfor %}{% elif question.kind == 'ordering' %}{% for choice in question.choices.all %}{{ choice.text|truncatechars:20 }}{% if not forloop.last %} → {% endif %}{% endfor %}{% else %}{% for choice in question.correct_choices %}{{ choice.text|truncatechars:40 }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
           <td style="white-space: nowrap">
             {% if locked or read_only %}{{ question.points|floatformat:"-2" }}{% else %}
               <form method="post" class="inline-form">{% csrf_token %}

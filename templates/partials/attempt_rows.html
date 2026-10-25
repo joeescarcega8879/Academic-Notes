@@ -8,11 +8,11 @@
         {% elif row.answered %}<span class="chip ok">Calificada</span>
         {% else %}<span class="chip">Sin responder</span>{% endif %}
       {% elif row.is_correct %}<span class="chip ok">Correcta</span>
-      {% elif row.kind == 'ordering' and row.answered and row.points %}<span class="chip info">Parcial</span>
+      {% elif row.by_parts and row.answered and row.points %}<span class="chip info">Parcial</span>
       {% elif row.answered %}<span class="chip" style="color: var(--bad)">Incorrecta</span>
       {% else %}<span class="chip">Sin responder</span>{% endif %}
       <span class="chip">{% if row.pending %}—{% else %}{{ row.points|floatformat:"-2" }}{% endif %} / {{ row.question.points|floatformat:"-2" }}</span>
-      {% if row.kind == 'ordering' and row.answered %}<span class="chip">{{ row.placed }} de {{ row.items|length }} en su lugar</span>{% endif %}
+      {% if row.by_parts and row.answered %}<span class="chip">{{ row.placed }} de {{ row.items|length }} {% if row.kind == 'ordering' %}en su lugar{% else %}parejas{% endif %}</span>{% endif %}
     </div>
     <p style="white-space: pre-line; margin: 8px 0 10px">{{ row.question.text }}</p>
     {% if row.kind == 'short_answer' %}
@@ -36,6 +36,21 @@
       {% else %}
         <p class="text-sm text-muted" style="margin: 0 0 6px">Sin responder. El orden correcto era:</p>
         <ol style="margin: 0; padding-left: 22px">{% for item in row.items %}<li>{{ item.correct.text }}</li>{% endfor %}</ol>
+      {% endif %}
+    {% elif row.kind == 'matching' %}
+      {% if row.answered %}
+        <div class="orden-rev">
+          <div class="orden-rev-fila encabezado"><span>{% if is_teacher %}Relación del alumno{% else %}Tu relación{% endif %}</span><span>Correcta</span></div>
+          {% for item in row.items %}
+            <div class="orden-rev-fila">
+              <span class="{% if item.ok %}bien{% else %}mal{% endif %}">{{ item.left }} → {% if item.given %}{{ item.given }}{% else %}—{% endif %}</span>
+              <span class="bien">{% if item.ok %}✓ correcto{% else %}Debía ser: {{ item.correct }}{% endif %}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-muted" style="margin: 0 0 6px">Sin responder. Las parejas correctas eran:</p>
+        <ul style="margin: 0; padding-left: 22px">{% for item in row.items %}<li>{{ item.left }} → {{ item.correct }}</li>{% endfor %}</ul>
       {% endif %}
     {% elif row.kind == 'open' %}
       <div class="no-math" style="padding: 10px 12px; margin: 0 0 4px; border-radius: 6px; background: var(--surface-2); white-space: pre-line">{% if row.answered %}{{ row.text }}{% else %}Sin respuesta{% endif %}</div>

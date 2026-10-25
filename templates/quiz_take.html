@@ -22,7 +22,20 @@
         <span class="chip">{{ row.question.points|floatformat:"-2" }} punto{{ row.question.points|pluralize }}</span>
       </div>
       <p style="white-space: pre-line; margin: 8px 0 12px">{{ row.question.text }}</p>
-      {% if row.question.kind == 'ordering' %}
+      {% if row.question.kind == 'matching' %}
+        <p class="text-sm text-muted" style="margin: 0 0 8px">Elige una opción para cada elemento. Cada opción se usa una sola vez.</p>
+        <div data-pareo>
+          {% for left in row.lefts %}
+            <div class="pareja-fila">
+              <div class="pareja-izq">{{ left.choice.text }}</div>
+              <select class="select" name="m_{{ row.question.pk }}_{{ left.choice.pk }}" aria-label="Pareja de {{ left.choice.text }}">
+                <option value="">Elige…</option>
+                {% for option in row.choices %}<option value="{{ option.pk }}"{% if left.selected == option.pk %} selected{% endif %}>{{ option.match_text }}</option>{% endfor %}
+              </select>
+            </div>
+          {% endfor %}
+        </div>
+      {% elif row.question.kind == 'ordering' %}
         <p class="text-sm text-muted" style="margin: 0 0 8px">Usa las flechas para subir o bajar cada elemento. Si no mueves ninguno, la pregunta cuenta como sin responder.</p>
         <ol class="orden" data-orden>
           {% for choice in row.choices %}
