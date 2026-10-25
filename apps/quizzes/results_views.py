@@ -7,6 +7,7 @@ from django.views import View
 
 from apps.accounts.mixins import TeacherRequiredMixin
 from apps.grades.models import Grade
+from core.utils import parse_id
 
 from .builder_views import OwnQuizMixin
 from .models import QuizAttempt
@@ -40,10 +41,31 @@ class AttemptReviewView(OwnAttemptMixin, View):
     def get(self, request, pk):
         attempt = self.get_attempt(pk)
         activity = attempt.quiz.activity
+        rows = results.review_rows(attempt)
         return render(request, 'attempt_review.html', {
-            'attempt': attempt, 'activity': activity, 'course': activity.course, 'rows': results.review_rows(attempt),
+            'attempt': attempt, 'activity': activity, 'course': activity.course, 'rows': rows,
             'grade': Grade.objects.filter(activity=activity, student=attempt.student).first(),
+            'has_open': any(row['gradable'] for row in rows), 'pending': results.pending_count(attempt),
         })
+
+
+class AttemptGradeView(OwnAttemptMixin, View):
+    """El docente califica las respuestas abiertas de un intento: puntos y comentario por respuesta."""
+
+    def post(self, request, pk):
+        attempt = self.get_attempt(pk)
+        entries = {}
+        for name, value in request.POST.items():
+            answer_id = parse_id(name[len('points_'):]) if name.startswith('points_') else None
+            if answer_id is not None:
+                entries[answer_id] = (value, request.POST.get(f'comment_{answer_id}', ''))
+        try:
+            results.grade_open_answers(attempt, entries, by=request.user)
+        except ValidationError as error:
+            messages.error(request, ' '.join(error.messages))
+        else:
+            messages.success(request, 'Se guardó la calificación.')
+        return redirect('quizzes:review', pk=attempt.pk)
 
 
 class AttemptDeleteView(OwnAttemptMixin, View):

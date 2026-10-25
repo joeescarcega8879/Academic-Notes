@@ -72,6 +72,7 @@
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'multiple_choice' %}?add_to={{ activity.pk }}">Nueva opción múltiple</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}?add_to={{ activity.pk }}">Nueva verdadero/falso</a>
       <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'short_answer' %}?add_to={{ activity.pk }}">Nueva respuesta corta</a>
+      <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'open' %}?add_to={{ activity.pk }}">Nueva respuesta abierta</a>
     {% endif %}
   </div>
   <table class="tbl">
@@ -81,7 +82,7 @@
         <tr>
           <td>{{ forloop.counter }}</td>
           <td>{{ question.text|truncatechars:100 }}{% if question.ai_generated %} <span class="chip info">Hecha con IA</span>{% endif %}<div class="text-xs text-muted">{{ question.get_kind_display }}</div></td>
-          <td>{% for choice in question.correct_choices %}{{ choice.text|truncatechars:40 }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+          <td>{% if question.kind == 'open' %}<span class="text-muted">La califica el docente</span>{% else %}{% for choice in question.correct_choices %}{{ choice.text|truncatechars:40 }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
           <td style="white-space: nowrap">
             {% if locked or read_only %}{{ question.points|floatformat:"-2" }}{% else %}
               <form method="post" class="inline-form">{% csrf_token %}

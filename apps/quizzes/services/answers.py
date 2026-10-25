@@ -1,7 +1,8 @@
 """Respuestas de los alumnos: cómo se leen, se comparan y se califican según el tipo de pregunta.
 
 Opción múltiple y verdadero o falso guardan la opción elegida. La respuesta corta guarda el texto que escribió el
-alumno y lo compara, ya normalizado, con las respuestas que el docente aceptó.
+alumno y lo compara, ya normalizado, con las respuestas que el docente aceptó. La respuesta abierta guarda el texto y
+queda por calificar: la puntúa el docente.
 """
 
 import re
@@ -15,7 +16,9 @@ from core.utils import parse_id
 from ..models import Question
 
 CHOICE_KINDS = (Question.Kind.MULTIPLE_CHOICE, Question.Kind.TRUE_FALSE)
+TEXT_KINDS = (Question.Kind.SHORT_ANSWER, Question.Kind.OPEN)
 MAX_TEXT_LENGTH = 500
+MAX_OPEN_LENGTH = 5000
 
 # «No hay nada que guardar»: un valor que no es un id válido se ignora (no borra la respuesta que ya había).
 IGNORE = object()
@@ -55,10 +58,11 @@ def coerce(question, value, choice_ids):
         if choice_id not in choice_ids:
             raise ValidationError('Hay una opción que no es de esa pregunta.')
         return {'choice_id': choice_id}
-    if question.kind == Question.Kind.SHORT_ANSWER:
+    if question.kind in TEXT_KINDS:
+        limit = MAX_OPEN_LENGTH if question.kind == Question.Kind.OPEN else MAX_TEXT_LENGTH
         text = '' if value is None else str(value).strip()
-        if len(text) > MAX_TEXT_LENGTH:
-            raise ValidationError(f'Una respuesta no puede pasar de {MAX_TEXT_LENGTH} caracteres.')
+        if len(text) > limit:
+            raise ValidationError(f'Una respuesta no puede pasar de {limit} caracteres.')
         return {'text': text}
     raise ValidationError('Tipo de pregunta desconocido.')
 
@@ -67,13 +71,18 @@ def has_answer(question, answer):
     """El alumno contestó esta pregunta (una respuesta en blanco cuenta como sin responder)."""
     if answer is None:
         return False
-    if question.kind == Question.Kind.SHORT_ANSWER:
+    if question.kind in TEXT_KINDS:
         return bool(answer.text.strip())
     return answer.choice_id is not None
 
 
 def grade(question, answer):
-    """``(es_correcta, puntos)`` de una respuesta. Las preguntas sin contestar valen 0."""
+    """``(es_correcta, puntos)`` de una respuesta. Las preguntas sin contestar valen 0.
+
+    Una respuesta abierta con texto devuelve ``(None, None)``: queda por calificar y la puntúa el docente.
+    """
+    if question.kind == Question.Kind.OPEN:
+        return (None, None) if answer.text.strip() else (False, Decimal(0))
     if question.kind in CHOICE_KINDS:
         correct = bool(answer.choice_id and answer.choice.is_correct)
     elif question.kind == Question.Kind.SHORT_ANSWER:

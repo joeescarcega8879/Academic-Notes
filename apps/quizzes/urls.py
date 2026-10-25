@@ -9,6 +9,7 @@ urlpatterns = [
     path('actividades/<int:pk>/examen-en-linea/', builder_views.ExamOnlineView.as_view(), name='exam_online'),
     path('actividades/<int:pk>/quiz/resultados/', results_views.QuizResultsView.as_view(), name='results'),
     path('intentos/<int:pk>/revision/', results_views.AttemptReviewView.as_view(), name='review'),
+    path('intentos/<int:pk>/calificar/', results_views.AttemptGradeView.as_view(), name='attempt_grade'),
     path('intentos/<int:pk>/eliminar/', results_views.AttemptDeleteView.as_view(), name='attempt_delete'),
     path('actividades/<int:pk>/resolver/', take_views.QuizOverviewView.as_view(), name='overview'),
     path('intentos/<int:pk>/', take_views.QuizTakeView.as_view(), name='take'),

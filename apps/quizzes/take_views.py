@@ -175,8 +175,9 @@ class QuizResultView(StudentQuizMixin, View):
             return redirect('quizzes:take', pk=attempt.pk)
         activity = attempt.quiz.activity
         review_available = results.can_review(attempt)
+        pending = results.pending_count(attempt)
         return render(request, self.template_name, {
-            'attempt': attempt, 'quiz': attempt.quiz, 'activity': activity, 'course': activity.course,
+            'attempt': attempt, 'quiz': attempt.quiz, 'activity': activity, 'course': activity.course, 'pending': pending,
             'percent': round(float(attempt.score) * 100 / float(attempt.max_points)) if attempt.max_points else 0,
             'grade': Grade.objects.filter(activity=activity, student=attempt.student).first(),
             'review_available': review_available,

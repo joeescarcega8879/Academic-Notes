@@ -22,7 +22,12 @@
         <span class="chip">{{ row.question.points|floatformat:"-2" }} punto{{ row.question.points|pluralize }}</span>
       </div>
       <p style="white-space: pre-line; margin: 8px 0 12px">{{ row.question.text }}</p>
-      {% if row.question.kind == 'short_answer' %}
+      {% if row.question.kind == 'open' %}
+        <label class="sr-only" for="q_{{ row.question.pk }}" style="position: absolute; left: -9999px">Respuesta a la pregunta {{ forloop.counter }}</label>
+        <textarea class="input" id="q_{{ row.question.pk }}" name="q_{{ row.question.pk }}" rows="6" maxlength="5000"
+                  placeholder="Escribe tu respuesta">{{ row.text }}</textarea>
+        <p class="text-xs text-muted" style="margin: 6px 0 0">Tu docente califica esta pregunta.</p>
+      {% elif row.question.kind == 'short_answer' %}
         <label class="sr-only" for="q_{{ row.question.pk }}" style="position: absolute; left: -9999px">Respuesta a la pregunta {{ forloop.counter }}</label>
         <input class="input" type="text" id="q_{{ row.question.pk }}" name="q_{{ row.question.pk }}" value="{{ row.text }}"
                maxlength="500" autocomplete="off" placeholder="Escribe tu respuesta">

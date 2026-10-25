@@ -32,7 +32,7 @@
       data.append(input.name, input.value);
     });
     // Las respuestas de texto se mandan siempre, también vacías: así borrar lo escrito se guarda.
-    form.querySelectorAll("input[type=text]").forEach(function (input) {
+    form.querySelectorAll("input[type=text], textarea").forEach(function (input) {
       data.append(input.name, input.value);
     });
     return data;

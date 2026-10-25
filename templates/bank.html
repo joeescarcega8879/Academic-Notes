@@ -9,6 +9,7 @@
   <a class="btn btn-primary" href="{% url 'quizzes:question_create' 'multiple_choice' %}{{ group_query }}">Nueva opción múltiple</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'true_false' %}{{ group_query }}">Nueva verdadero/falso</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'short_answer' %}{{ group_query }}">Nueva respuesta corta</a>
+  <a class="btn btn-ghost" href="{% url 'quizzes:question_create' 'open' %}{{ group_query }}">Nueva respuesta abierta</a>
   <a class="btn btn-ghost" href="{% url 'quizzes:import' %}{{ group_query }}">Importar</a>
   {% include 'partials/notifications.html' %}
 </header>

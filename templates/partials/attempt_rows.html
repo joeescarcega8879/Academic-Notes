@@ -3,10 +3,14 @@
   <div class="card mb-12 mw-760">
     <div class="flex-row items-baseline gap-14">
       <strong>{{ forloop.counter }}.</strong>
-      {% if row.is_correct %}<span class="chip ok">Correcta</span>
+      {% if row.kind == 'open' %}
+        {% if row.pending %}<span class="chip info">Por calificar</span>
+        {% elif row.answered %}<span class="chip ok">Calificada</span>
+        {% else %}<span class="chip">Sin responder</span>{% endif %}
+      {% elif row.is_correct %}<span class="chip ok">Correcta</span>
       {% elif row.answered %}<span class="chip" style="color: var(--bad)">Incorrecta</span>
       {% else %}<span class="chip">Sin responder</span>{% endif %}
-      <span class="chip">{{ row.points|floatformat:"-2" }} / {{ row.question.points|floatformat:"-2" }}</span>
+      <span class="chip">{% if row.pending %}—{% else %}{{ row.points|floatformat:"-2" }}{% endif %} / {{ row.question.points|floatformat:"-2" }}</span>
     </div>
     <p style="white-space: pre-line; margin: 8px 0 10px">{{ row.question.text }}</p>
     {% if row.kind == 'short_answer' %}
@@ -15,6 +19,23 @@
       </p>
       {% if not row.is_correct %}
         <p class="text-sm" style="margin: 6px 0 0"><strong>{% if row.accepted|length > 1 %}Respuestas aceptadas{% else %}Respuesta aceptada{% endif %}:</strong> {{ row.accepted|join:" · " }}</p>
+      {% endif %}
+    {% elif row.kind == 'open' %}
+      <div style="padding: 10px 12px; margin: 0 0 4px; border-radius: 6px; background: var(--surface-2); white-space: pre-line">{% if row.answered %}{{ row.text }}{% else %}Sin respuesta{% endif %}</div>
+      {% if grading and row.gradable %}
+        <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-start; margin-top: 10px">
+          <div class="field" style="min-width: 150px">
+            <label for="points_{{ row.answer_id }}">Puntos (de {{ row.question.points|floatformat:"-2" }})</label>
+            <input class="input" type="number" id="points_{{ row.answer_id }}" name="points_{{ row.answer_id }}" min="0"
+                   max="{{ row.question.points|stringformat:'s' }}" step="0.01" value="{% if not row.pending %}{{ row.points|stringformat:'s' }}{% endif %}">
+          </div>
+          <div class="field" style="flex: 1; min-width: 240px">
+            <label for="comment_{{ row.answer_id }}">Comentario para el alumno (opcional)</label>
+            <textarea class="input" id="comment_{{ row.answer_id }}" name="comment_{{ row.answer_id }}" rows="2" maxlength="1000">{{ row.feedback }}</textarea>
+          </div>
+        </div>
+      {% elif row.feedback %}
+        <p class="text-sm" style="margin: 8px 0 0; white-space: pre-line"><strong>Comentario del docente:</strong> {{ row.feedback }}</p>
       {% endif %}
     {% endif %}
     <ul style="list-style: none; padding: 0; margin: 0">

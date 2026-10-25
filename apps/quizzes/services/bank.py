@@ -103,8 +103,8 @@ def save_question(
     """Crea o actualiza una pregunta con sus opciones.
 
     Opción múltiple: ``choices`` es ``[(texto, es_correcta), ...]``. Verdadero o falso: ``true_is_correct`` dice si
-    la respuesta correcta es "Verdadero". Respuesta corta: ``choices`` son las respuestas que se aceptan. El tipo de
-    una pregunta existente no cambia.
+    la respuesta correcta es "Verdadero". Respuesta corta: ``choices`` son las respuestas que se aceptan. Respuesta
+    abierta: no lleva opciones. El tipo de una pregunta existente no cambia.
 
     ``course`` es el grupo del banco (``None``: pregunta general). Sin indicarlo, una pregunta nueva es general y
     una existente conserva su grupo. ``ai_generated`` marca la pregunta como propuesta por la IA y aprobada por el docente.
@@ -124,6 +124,8 @@ def save_question(
         rows = validate_choices(choices or [])
     elif kind == Question.Kind.SHORT_ANSWER:
         rows = validate_accepted(choices or [])
+    elif kind == Question.Kind.OPEN:
+        rows = []  # no tiene respuestas que comparar: la califica el docente
     else:
         raise ValidationError('Tipo de pregunta desconocido.')
 

@@ -98,7 +98,8 @@ def score_attempt(attempt):
         answer.is_correct = correct
         answer.points_awarded = points
         answer.save()
-        earned += points
+        if points is not None:  # una respuesta abierta por calificar aún no suma
+            earned += points
     attempt.score, attempt.max_points = earned, total
 
 

@@ -14,6 +14,7 @@
   <form method="post" novalidate>
     {% csrf_token %}
     {% include 'partials/form_fields.html' %}
+    {% if kind == 'open' %}<p class="text-sm text-muted">El alumno escribe su respuesta y tú la calificas con puntos de 0 a los de la pregunta. Usa la explicación como guía para calificar: el alumno la ve al revisar.</p>{% endif %}
 
     {% if formset %}
       {% if kind == 'short_answer' %}

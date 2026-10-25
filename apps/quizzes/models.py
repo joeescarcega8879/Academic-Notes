@@ -19,6 +19,7 @@ class Question(TenantModel):
         MULTIPLE_CHOICE = 'multiple_choice', 'Opción múltiple'
         TRUE_FALSE = 'true_false', 'Verdadero o falso'
         SHORT_ANSWER = 'short_answer', 'Respuesta corta'
+        OPEN = 'open', 'Respuesta abierta'
 
     # Como el grupo, la pregunta pertenece a la organización y la elige quien la crea.
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
@@ -195,6 +196,8 @@ class Answer(TenantModel):
     choice = models.ForeignKey(QuizChoice, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
     # Lo que escribió el alumno en una pregunta de respuesta corta.
     text = models.TextField(blank=True, default='', db_default='')
+    # Comentario del docente en una respuesta abierta; el alumno lo lee con su revisión.
+    feedback = models.TextField(blank=True, default='', db_default='')
     is_correct = models.BooleanField(null=True)
     points_awarded = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     saved_at = models.DateTimeField(auto_now=True)

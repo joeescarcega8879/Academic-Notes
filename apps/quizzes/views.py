@@ -99,6 +99,8 @@ class QuestionFormMixin(BankMixin):
                 verdadero = next(c for c in question.choices.all() if c.text == TRUE_FALSE_LABELS[0])
                 initial['correct'] = 'true' if verdadero.is_correct else 'false'
             return TrueFalseForm(data, instance=question, initial=initial, **who), None
+        if kind == Question.Kind.OPEN:
+            return QuestionForm(data, instance=question, initial=initial, **who), None
         return QuestionForm(data, instance=question, initial=initial, **who), choice_formset(data, question=question, kind=kind)
 
     def render_page(self, request, kind, form, formset, question=None):
@@ -116,7 +118,7 @@ class QuestionFormMixin(BankMixin):
                     text=form.cleaned_data['text'], points=form.cleaned_data['points'],
                     explanation=form.cleaned_data['explanation'], topic=form.cleaned_data['topic'],
                     choices=formset.cleaned_choices if formset is not None else None,
-                    true_is_correct=(form.cleaned_data['correct'] == 'true') if formset is None else None,
+                    true_is_correct=(form.cleaned_data['correct'] == 'true') if kind == Question.Kind.TRUE_FALSE else None,
                     question=question, course=form.cleaned_data['course'],
                 )
             except ValidationError as error:
