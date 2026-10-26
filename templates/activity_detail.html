@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load rubric_tags %}
 {% block title %}{{ activity.title }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
@@ -78,6 +79,11 @@
   {% endif %}
 
   <div class="kv-row"><div class="k">Puntos</div><div class="v">{{ activity.max_score|floatformat:"-2" }}</div></div>
+  {% with version=activity.rubric_version %}{% if version %}
+    <div class="kv-row"><div class="k">Rúbrica</div><div class="v">{{ version.rubric.name }} · versión {{ version.number }} · {{ version.max_points|floatformat:"-2" }} pts</div>
+      {% if is_teacher %}<a class="edit-link" href="{{ version.rubric.get_absolute_url }}">Ver rúbrica</a>{% endif %}
+    </div>
+  {% endif %}{% endwith %}
   <div class="kv-row"><div class="k">Criterio</div><div class="v">{{ activity.criterion.name }} · {{ activity.criterion.period.name }}</div></div>
   {% with week=activity.syllabus_week %}{% if week %}
     <div class="kv-row"><div class="k">Semana del temario</div><div class="v">{{ week }}</div>
@@ -138,7 +144,7 @@
               {% if enrollment.grade %}
                 <span class="grade style-pill ok">{{ enrollment.grade.score|floatformat:"-2" }}</span>
                 <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span>
-                {% if enrollment.grade.source == 'quiz' %}<span class="chip">Automática</span>{% endif %}
+                {% if enrollment.grade.source == 'quiz' %}<span class="chip">Automática</span>{% elif enrollment.grade.source == 'rubric' %}<span class="chip">Rúbrica</span>{% endif %}
               {% else %}<span class="text-muted">Sin calificar</span>{% endif %}
             </td>
             <td class="text-muted">{{ enrollment.grade.feedback|default:"—" }}</td>
@@ -157,6 +163,7 @@
       <a class="btn btn-primary" href="{% url 'quizzes:overview' activity.pk %}">Ir al {{ activity.get_type_display|lower }}</a>
     </div>
   {% endif %}
+  {% if activity.rubric_version %}{% rubric_panel activity grade %}{% endif %}
   {% if activity.accepts_submissions %}
     <div class="card mb-12">
       <h3 class="section-title">Tu entrega</h3>

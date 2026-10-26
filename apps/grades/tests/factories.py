@@ -5,6 +5,12 @@ from apps.courses.tests.factories import CourseFactory, StudentRecordFactory, as
 from apps.grades.models import Activity, Grade
 
 
+def _rubric_for(course):
+    from apps.rubrics.tests.factories import make_rubric
+
+    return make_rubric(course.professor, organization=course.organization).current_version
+
+
 class ActivityFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Activity
@@ -17,6 +23,8 @@ class ActivityFactory(factory.django.DjangoModelFactory):
     # Las pruebas tratan a las actividades como normales; el borrador se pide explícitamente. Un quiz nace en
     # borrador porque no se puede publicar sin preguntas.
     published = factory.LazyAttribute(lambda o: o.type != Activity.Type.QUIZ)
+    # Un proyecto se califica siempre con rúbrica: el de las pruebas ya trae una (rubric_version=None para quitársela).
+    rubric_version = factory.LazyAttribute(lambda o: _rubric_for(o.course) if o.type == Activity.Type.PROJECT else None)
 
 
 class GradeFactory(factory.django.DjangoModelFactory):

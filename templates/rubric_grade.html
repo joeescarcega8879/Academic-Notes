@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Calificar a {{ student }} · {{ activity.title }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% url 'rubrics:grade_list' activity.pk as list_url %}
+  {% include 'partials/back.html' with url=list_url label='Volver a la lista' %}
+  <h1>Calificar a {{ student }}</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12">
+  {% if submission %}
+    <p class="text-sm" style="margin: 0 0 6px">
+      Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
+      {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% else %}<span class="chip ok">A tiempo</span>{% endif %}
+    </p>
+    {% if submission.text %}<p style="white-space: pre-line; margin: 6px 0">{{ submission.text|truncatechars:600 }}</p>{% endif %}
+    {% if submission.link %}<p style="margin: 6px 0"><a href="{{ submission.link }}" target="_blank" rel="noopener noreferrer nofollow">{{ submission.link }}</a></p>{% endif %}
+    {% if submission.file %}<p style="margin: 6px 0"><a class="btn btn-ghost btn-sm" href="{% url 'grades:submission_file' submission.pk %}">Descargar {{ submission.original_name|default:"archivo" }}</a></p>{% endif %}
+    <a class="text-sm" href="{% url 'grades:submission_detail' submission.pk %}" target="_blank" rel="noopener">Ver la entrega completa</a>
+  {% else %}
+    <p class="text-muted" style="margin: 0">{{ student }} no tiene entrega registrada. Puedes calificar de todos modos (una entrega en papel, por ejemplo).</p>
+  {% endif %}
+</div>
+
+{% if error %}<div class="flash flash-error" role="alert" style="margin-bottom: 12px">{{ error }}</div>{% endif %}
+{% if adjusted %}
+  <div class="flash" style="margin-bottom: 12px">La calificación de {{ student }} se ajustó a mano ({{ grade.score|floatformat:"-2" }}). Si guardas aquí, vuelve a ser la que suma la rúbrica.</div>
+{% endif %}
+
+<form method="post" id="rubric-grade" novalidate data-max-points="{{ version.max_points|stringformat:'s' }}" data-activity-max="{{ activity.max_score|stringformat:'s' }}" data-criteria="{{ rows|length }}"{% if penalizable %} data-penalty="{{ activity.late_penalty|stringformat:'s' }}"{% endif %}>
+  {% csrf_token %}
+  {% with cols=rows.0.levels|length %}
+  <div class="rub" style="--cols: {{ cols }}">
+    <div class="rub-head" aria-hidden="true">
+      <div>Criterio</div>
+      {% for cell in rows.0.levels %}<div>{{ cell.level.name }}</div>{% endfor %}
+    </div>
+    {% for row in rows %}
+      <div class="rub-crit">
+        <div class="rub-cn" id="crit-{{ row.criterion.pk }}">{{ row.criterion.name }}<small>máx. {{ row.criterion.max_points|floatformat:"-2" }} pts</small></div>
+        <div class="rub-options" role="radiogroup" aria-labelledby="crit-{{ row.criterion.pk }}">
+          {% for cell in row.levels %}
+            <label class="rub-lv rub-pick">
+              <input type="radio" class="sr-only" name="c_{{ row.criterion.pk }}" value="{{ cell.level.pk }}" data-points="{{ cell.level.points|stringformat:'s' }}"{% if cell.selected %} checked{% endif %}>
+              <span class="rub-lvn">{{ cell.level.name }}</span>
+              <span class="rub-p">{{ cell.level.points|floatformat:"-2" }} pts</span>
+              {{ cell.level.description }}
+            </label>
+          {% endfor %}
+        </div>
+        <div class="rub-cm"><input class="input" type="text" name="n_{{ row.criterion.pk }}" value="{{ row.comment }}" maxlength="{{ comment_max }}" placeholder="Comentario sobre «{{ row.criterion.name }}» (opcional)" aria-label="Comentario de {{ row.criterion.name }}"></div>
+      </div>
+    {% endfor %}
+  </div>
+  {% endwith %}
+
+  <div class="card" style="margin-top: 12px">
+    <div class="field"><label for="feedback">Comentario general (opcional)</label><textarea class="input" id="feedback" name="feedback" rows="3">{{ feedback }}</textarea></div>
+    {% if penalizable %}
+      <label class="text-sm"><input type="checkbox" name="waive"{% if waive %} checked{% endif %}> Sin penalización ({{ activity.late_penalty|floatformat:"-2" }} % por entrega tardía)</label>
+    {% endif %}
+  </div>
+
+  <div class="rub-total">
+    <div><span class="text-sm text-muted">Rúbrica</span><br><b id="grade-points">0 / {{ version.max_points|floatformat:"-2" }}</b> <span class="text-sm text-muted" id="grade-count"></span></div>
+    <div><span class="text-sm text-muted">Calificación de la actividad</span><br><b id="grade-score">—</b> <span class="text-sm text-muted">de {{ activity.max_score|floatformat:"-2" }}</span>{% if penalizable %}<div class="text-xs text-muted" id="grade-penalty" aria-live="polite"></div>{% endif %}</div>
+    <div class="flex-row gap-14" style="flex-wrap: wrap">
+      {% if next_student %}<button type="submit" name="siguiente" value="1" class="btn btn-ghost">Guardar y siguiente</button>{% endif %}
+      <button type="submit" class="btn btn-primary">Guardar calificación</button>
+    </div>
+  </div>
+</form>
+<script src="{% static 'js/rubrica.js' %}?v=2"></script>
+{% endblock %}

@@ -21,6 +21,8 @@ from apps.syllabus.models import Syllabus, SyllabusWeek
 from apps.syllabus.tests.factories import SyllabusFactory, SyllabusWeekFactory
 from apps.ai.models import AIDraft, AIRequest, AIReview
 from apps.batches.models import BatchFile
+from apps.rubrics.models import Rubric, RubricCriterion, RubricLevel, RubricScore, RubricVersion
+from apps.rubrics.tests.factories import make_rubric
 
 from apps.organizations.tests.factories import MembershipFactory, OrganizationFactory
 from apps.organizations.managers import OrganizationQuerySet
@@ -34,6 +36,7 @@ TENANT_MODELS = [
     AcademicYear, Course, Student, Enrollment, EvaluationScheme, EvaluationPeriod, EvaluationCriterion,
     Activity, Submission, Grade, GradeHistory, Question, Choice, QuizConfig, QuizQuestion, QuizChoice, QuizAttempt,
     Answer, Conversation, Message, Syllabus, SyllabusWeek, AIRequest, AIDraft, AIReview, BatchFile,
+    Rubric, RubricVersion, RubricCriterion, RubricLevel, RubricScore,
 ]
 
 
@@ -219,7 +222,10 @@ def dos_organizaciones():
         materia = CourseFactory(professor=profesor)
         alumno = EnrollmentFactory(course=materia).student.user
         evaluacion = ActivityFactory(course=materia)
-        GradeFactory(activity=evaluacion, student=alumno)
+        nota = GradeFactory(activity=evaluacion, student=alumno)
+        version = make_rubric(profesor).current_version
+        criterio = version.criteria.first()
+        RubricScore.objects.create(grade=nota, criterion=criterio, level=criterio.levels.first(), points=criterio.max_points)
         QuestionFactory(author=profesor)
         quiz = make_quiz(materia, questions=1)
         intento = QuizAttemptFactory(quiz=quiz, student=materia.enrollments.get().student)

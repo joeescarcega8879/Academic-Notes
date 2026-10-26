@@ -182,6 +182,8 @@ Estrategia de entrada: piloto gratuito de un periodo para las primeras 5 escuela
 
 Plantillas `Rubric` → `RubricCriterion` → `RubricLevel` (criterios × niveles con puntos), reutilizables entre actividades y grupos.
 
+**Hecho (Sprint 6c, app `rubrics`):** el contenido vive en `RubricVersion` (la rúbrica es el nombre y las versiones son sus ediciones). Mientras nadie califique con una versión se corrige en su lugar; una versión con calificaciones queda congelada: al guardar nace la siguiente, las actividades aún sin calificar pasan a ella y las ya calificadas conservan la anterior, así ninguna nota dada cambia. `Activity.rubric_version` apunta a una versión concreta; `RubricScore` guarda por calificación el nivel, los puntos y el comentario de cada criterio. La nota es la suma de los niveles escalada al máximo de la actividad (17 de 20 sobre 10 son 8.5), con la penalización por entrega tardía aplicada después, como siempre. Un proyecto exige rúbrica (formulario y publicación); un quiz o un examen en línea no la llevan. Las rúbricas son del docente; compartirlas dentro de la escuela queda para el Sprint 9.
+
 ### Automatizaciones
 
 - Recalculo del promedio ponderado al calificar.

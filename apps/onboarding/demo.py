@@ -31,6 +31,9 @@ from apps.quizzes.models import Choice, Question, QuizAttempt
 from apps.quizzes.services import attempts as quiz_attempts
 from apps.quizzes.services.bank import save_question
 from apps.quizzes.services.builder import add_questions
+from apps.rubrics.models import Rubric
+from apps.rubrics.services import editor as rubric_editor
+from apps.rubrics.services import library as rubric_library
 
 from .services import register_student, register_teacher
 
@@ -214,6 +217,12 @@ def _make_bank(teacher, organization, rows, course=None):
     return questions
 
 
+def _make_rubric(teacher, organization, template):
+    """Rúbrica de ejemplo a partir de una plantilla del editor."""
+    _, draft = rubric_editor.validate(rubric_editor.template_draft(template))
+    return rubric_library.create_rubric(organization=organization, author=teacher, draft=draft)
+
+
 @transaction.atomic
 def build_demo(*, seed=SEED, now=None):
     """Crea la escuela de ejemplo y devuelve un ``DemoSummary``. Lanza ``DemoExists`` si ya hay una."""
@@ -232,6 +241,9 @@ def build_demo(*, seed=SEED, now=None):
     # La escuela de ejemplo usa el plan Pro: así se ve todo (sin topes, quizzes con tiempo, boletas sin marca).
     organization.plan = Organization.Plan.TEACHER
     organization.save(update_fields=['plan'])
+    # Las rúbricas de ejemplo: los proyectos se califican siempre con una.
+    project_rubric = _make_rubric(teacher, organization, 'proyecto')
+    essay_rubric = _make_rubric(teacher, organization, 'ensayo')
     current = AcademicYear.current_for(organization)
     previous = AcademicYear.objects.create(
         organization=organization, name=f'{current.start_date.year - 1}–{current.start_date.year}',
@@ -261,7 +273,7 @@ def build_demo(*, seed=SEED, now=None):
     hw3 = b.activity(maths, 'Tarea 3: Problemas', Activity.Type.HOMEWORK, days=-8, due=-7, allow_late=False)
     b.homework(hw3, maths_students, teacher, skip_students=weak | {s.pk for s in maths_students[3:5]}, late_share=0)
     b.activity(maths, 'Tarea 4: Geometría', Activity.Type.HOMEWORK, days=2, due=5, allow_late=True, late_penalty=20)
-    b.activity(maths, 'Proyecto final: Maqueta', Activity.Type.PROJECT, top=100, days=10, due=21, weight=3)
+    b.activity(maths, 'Proyecto final: Maqueta', Activity.Type.PROJECT, top=100, days=10, due=21, weight=3, rubric_version=project_rubric.current_version)
     b.activity(maths, 'Proyecto extra (borrador)', Activity.Type.PROJECT, top=100, published=False)
     part = b.activity(maths, 'Participación de octubre', Activity.Type.PARTICIPATION, days=-3)
     b.grade_all(part, maths_students, teacher, skip=0.1)
@@ -307,7 +319,10 @@ def build_demo(*, seed=SEED, now=None):
         b.homework(activity, spanish_students, teacher)
     e1 = b.activity(spanish, 'Examen del primer parcial', Activity.Type.EXAM, criterion=exam_a, days=-30)
     b.grade_all(e1, spanish_students, teacher)
-    essay = b.activity(spanish, 'Ensayo argumentativo', Activity.Type.PROJECT, top=100, criterion=writing, days=-10, due=-9, late_penalty=15)
+    essay = b.activity(
+        spanish, 'Ensayo argumentativo', Activity.Type.PROJECT, top=100, criterion=writing, days=-10, due=-9, late_penalty=15,
+        rubric_version=essay_rubric.current_version,
+    )
     b.homework(essay, spanish_students, teacher, late_share=0.4)
     b.activity(spanish, 'Examen del segundo parcial', Activity.Type.EXAM, criterion=exam_b, days=14)
     b.activity(spanish, 'Antología (borrador)', Activity.Type.HOMEWORK, criterion=reading, published=False)
@@ -374,6 +389,7 @@ def delete_demo():
         Activity.objects.filter(course__organization=organization).delete()
         Course.objects.filter(organization=organization).delete()
         Question.objects.filter(organization=organization).delete()
+        Rubric.objects.filter(organization=organization).delete()  # tras las actividades: ellas protegen a sus versiones
         Student.objects.filter(organization=organization).delete()
         # La bitácora va al final: borrar notas también escribe en ella.
         GradeHistory.objects.filter(organization=organization).delete()

@@ -139,6 +139,12 @@ class Activity(TenantModel):
     )
     # La redactó la IA y el docente la aprobó (``AIDraft`` guarda quién y cuándo).
     ai_generated = models.BooleanField('redactada con IA', default=False)
+    # La rúbrica con la que se califica (una versión concreta, que no cambia bajo los pies de lo ya calificado).
+    # PROTECT: una versión en uso no se borra; la rúbrica se archiva en su lugar.
+    rubric_version = models.ForeignKey(
+        'rubrics.RubricVersion', null=True, blank=True, on_delete=models.PROTECT, related_name='activities',
+        verbose_name='rúbrica',
+    )
     # Cuántas de las primeras páginas de un PDF son la portada (donde viene la matrícula). Lo usa el lote de PDFs.
     cover_pages = models.PositiveSmallIntegerField(
         'páginas de portada', choices=[(0, 'Sin portada'), (1, '1 página'), (2, '2 páginas')], default=1, db_default=1,
@@ -156,6 +162,11 @@ class Activity(TenantModel):
     @property
     def accepts_submissions(self):
         return self.type in self.SUBMISSION_TYPES
+
+    @property
+    def requires_rubric(self):
+        """Un proyecto se califica siempre con rúbrica."""
+        return self.type == self.Type.PROJECT
 
     def __str__(self):
         return f"{self.title} · {self.course.name}"
@@ -198,6 +209,7 @@ class Grade(TenantModel):
     class Source(models.TextChoices):
         MANUAL = 'manual', 'Docente'
         QUIZ = 'quiz', 'Quiz (automática)'
+        RUBRIC = 'rubric', 'Rúbrica'
 
     organization_source = 'activity'
 

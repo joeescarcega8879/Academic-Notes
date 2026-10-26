@@ -140,7 +140,7 @@ class ActivityDetailView(OrganizationMemberMixin, View):
 
     def get_activity(self, request, pk):
         activities = Activity.objects.for_organization(request.organization).select_related(
-            'course', 'criterion__period', 'syllabus_week',
+            'course', 'criterion__period', 'syllabus_week', 'rubric_version__rubric',
         )
         if request.membership.is_teacher:
             return get_object_or_404(activities.filter(course__professor=request.user), pk=pk)
@@ -293,14 +293,25 @@ class GradingView(OwnActiveCourseMixin, View):
             'only_submission': rows[0]['submission'] if only and rows else None,
         })
 
+    @staticmethod
+    def rubric_redirect(activity, only):
+        """Una actividad con rúbrica se califica en las pantallas de la rúbrica, no con una nota escrita."""
+        if only is not None:
+            return redirect('rubrics:grade_student', pk=activity.pk, student_pk=only.pk)
+        return redirect('rubrics:grade_list', pk=activity.pk)
+
     def get(self, request, pk):
         activity = self.get_activity(pk)
         only = self.only_student(activity)
+        if activity.rubric_version_id:
+            return self.rubric_redirect(activity, only)
         return self.page(request, activity, self.rows(activity, only), only)
 
     def post(self, request, pk):
         activity = self.get_activity(pk)
         only = self.only_student(activity)
+        if activity.rubric_version_id:
+            return self.rubric_redirect(activity, only)
         rows, entries, errors = self.rows(activity, only), [], {}
 
         for row in rows:
