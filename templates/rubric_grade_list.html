@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Calificar · {{ activity.title }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
+  <h1>Calificar con rúbrica</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<p class="text-sm text-muted" style="margin-top: 0">
+  Rúbrica: <a href="{{ version.rubric.get_absolute_url }}">{{ version.rubric.name }}</a> · versión {{ version.number }} · {{ version.max_points|floatformat:"-2" }} puntos, que valen {{ activity.max_score|floatformat:"-2" }} en la actividad.
+</p>
+<div class="table-wrap">
+  <div class="table-head"><h3>Alumnos</h3></div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Alumno</th>
+        {% if activity.accepts_submissions %}<th>Entrega</th>{% endif %}
+        <th>Calificación</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.student cls='sm' %}<div>{{ row.student }}<div class="text-xs text-muted">{{ row.student.student_number }}</div></div></div></td>
+          {% if activity.accepts_submissions %}
+            <td>
+              {% if row.submission %}
+                <a href="{% url 'grades:submission_detail' row.submission.pk %}" target="_blank" rel="noopener">Ver entrega</a>
+                {% if row.submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% endif %}
+              {% else %}<span class="chip warn">Sin entrega</span>{% endif %}
+            </td>
+          {% endif %}
+          <td>
+            {% if row.grade %}
+              <span class="grade style-pill ok">{{ row.grade.score|floatformat:"-2" }}</span> <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span>
+            {% else %}<span class="text-muted">Sin calificar</span>{% endif %}
+          </td>
+          <td><a class="btn btn-ghost btn-sm" href="{% url 'rubrics:grade_student' activity.pk row.student.pk %}">{% if row.grade %}Revisar{% else %}Calificar{% endif %}</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

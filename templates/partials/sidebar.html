@@ -40,6 +40,7 @@
         {% endif %}
       </a>
       <a href="{% url 'quizzes:bank' %}" class="{% if request.resolver_match.app_name == 'quizzes' %}is-active{% endif %}"><i data-icon="book-open"></i><span class="nav-label">Banco de preguntas</span></a>
+      <a href="{% url 'rubrics:list' %}" class="{% if request.resolver_match.app_name == 'rubrics' %}is-active{% endif %}"><i data-icon="check-circle"></i><span class="nav-label">Rúbricas</span></a>
       <a href="{% url 'academic_years' %}" class="{% if request.resolver_match.view_name == 'academic_years' %}is-active{% endif %}"><i data-icon="calendar"></i><span class="nav-label">Ciclos escolares</span></a>
       <a href="{% url 'profile' %}" class="{% if request.resolver_match.view_name == 'profile' %}is-active{% endif %}"><i data-icon="user"></i><span class="nav-label">Perfil</span></a>
       <a href="{% url 'organizations:settings' %}" class="{% if request.resolver_match.view_name == 'organizations:settings' %}is-active{% endif %}"><i data-icon="settings"></i><span class="nav-label">Ajustes</span></a>

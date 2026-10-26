@@ -1,0 +1,10 @@
+{% if version %}
+<div class="card mb-12">
+  <h3 class="section-title">{% if scored %}Así se calificó tu trabajo{% else %}Cómo se calificará{% endif %}</h3>
+  <p class="text-sm text-muted" style="margin-top: 0">
+    {{ version.rubric.name }} · {{ version.max_points|floatformat:"-2" }} puntos{% if scored %}. Obtuviste {{ points|floatformat:"-2" }}{% endif %}.
+  </p>
+  {% if adjusted %}<div class="flash" style="margin: 10px 0">Tu docente ajustó la calificación final: puede no coincidir con la suma de los niveles.</div>{% endif %}
+  {% include 'partials/rubric_grid.html' %}
+</div>
+{% endif %}

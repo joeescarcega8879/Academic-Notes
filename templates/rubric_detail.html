@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ rubric.name }} · Rúbricas · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% url 'rubrics:list' as list_url %}
+  {% include 'partials/back.html' with url=list_url label='Volver a las rúbricas' %}
+  <h1>{{ rubric.name }}</h1>
+  <span class="sub">Versión {{ version.number }} · {{ version.max_points|floatformat:"-2" }} puntos{% if rubric.is_archived %} · archivada{% endif %}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-primary" href="{% url 'rubrics:update' rubric.pk %}">Editar</a>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+{% if rubric.description %}<p class="text-muted" style="margin-top: 0">{{ rubric.description }}</p>{% endif %}
+{% if locked %}
+  <div class="flash" style="margin-bottom: 12px">Ya se calificó con esta versión. Si la editas, se guarda como versión {{ version.number|add:1 }} y lo ya calificado conserva la actual.</div>
+{% endif %}
+
+<div class="card mb-12">{% include 'partials/rubric_grid.html' %}</div>
+
+<div class="table-wrap mb-12">
+  <div class="table-head"><h3>Dónde se usa</h3><span class="grade style-pill ok">{{ activities|length }}</span></div>
+  <table class="tbl">
+    <thead><tr><th>Actividad</th><th>Grupo</th><th>Versión</th></tr></thead>
+    <tbody>
+      {% for activity in activities %}
+        <tr>
+          <td><a href="{{ activity.get_absolute_url }}">{{ activity.title }}</a></td>
+          <td>{{ activity.course.name }}</td>
+          <td>{{ activity.rubric_version.number }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="text-muted">Ninguna actividad la usa todavía. Elígela al crear o editar una actividad.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="flex-row gap-14" style="flex-wrap: wrap">
+  <form method="post" action="{% url 'rubrics:duplicate' rubric.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost">Duplicar</button></form>
+  <form method="post" action="{% url 'rubrics:archive' rubric.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost">{% if rubric.is_archived %}Restaurar{% else %}Archivar{% endif %}</button></form>
+  {% if not activities %}
+    <form method="post" action="{% url 'rubrics:delete' rubric.pk %}" class="inline-form" onsubmit="return confirm('¿Eliminar esta rúbrica? No se puede deshacer.')">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-danger-ghost">Eliminar</button></form>
+  {% endif %}
+</div>
+{% endblock %}

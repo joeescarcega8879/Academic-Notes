@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Rúbricas · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Rúbricas</h1>
+  <span class="sub">{{ organization.name }}</span>
+  <div class="spacer"></div>
+  <a class="btn btn-primary" href="{% url 'rubrics:create' %}">Nueva rúbrica</a>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<form method="get" class="card mb-12">
+  <div class="flex-row gap-14" style="flex-wrap: wrap; align-items: flex-end">
+    <div class="field" style="min-width: 240px; flex: 1"><label for="q">Buscar</label><input class="input" type="search" id="q" name="q" value="{{ query }}" placeholder="Nombre o descripción"></div>
+    <label style="margin-bottom: 14px"><input type="checkbox" name="archivadas" value="1"{% if archived %} checked{% endif %}> Ver archivadas{% if archived_count %} ({{ archived_count }}){% endif %}</label>
+    <button type="submit" class="btn btn-ghost" style="margin-bottom: 14px">Filtrar</button>
+  </div>
+</form>
+
+{% if rows %}
+  <div class="rub-lib">
+    {% for row in rows %}
+      <article class="rub-card">
+        <h2><a href="{{ row.rubric.get_absolute_url }}">{{ row.rubric.name }}</a></h2>
+        <p class="text-xs text-muted">{{ row.criteria }} criterio{{ row.criteria|pluralize }} · {{ row.levels }} nivel{{ row.levels|pluralize:",es" }}{% if row.rubric.description %} · {{ row.rubric.description }}{% endif %}</p>
+        <div class="rub-pts">{{ row.version.max_points|floatformat:"-2" }} pts</div>
+        <div>
+          {% if row.activities %}
+            <span class="chip ok">Usada en {{ row.activities }} actividad{{ row.activities|pluralize:"es" }}</span>
+            <span class="chip">{{ row.groups }} grupo{{ row.groups|pluralize }}</span>
+          {% else %}<span class="chip">Sin usar todavía</span>{% endif %}
+          {% if row.version.number > 1 %}<span class="chip">Versión {{ row.version.number }}</span>{% endif %}
+        </div>
+        <p class="text-xs text-muted" style="margin: 6px 0 0">Modificada el {{ row.rubric.updated_at|date:"j \d\e F" }}</p>
+        <div class="flex-row gap-14" style="margin-top: 10px; flex-wrap: wrap">
+          <a class="btn btn-ghost btn-sm" href="{{ row.rubric.get_absolute_url }}">Ver</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'rubrics:update' row.rubric.pk %}">Editar</a>
+          <form method="post" action="{% url 'rubrics:duplicate' row.rubric.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Duplicar</button></form>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card">
+    <p class="text-muted" style="margin: 0">
+      {% if query %}Ninguna rúbrica coincide con «{{ query }}».{% elif archived %}No tienes rúbricas archivadas.{% else %}Todavía no tienes rúbricas. Empieza con una plantilla o crea una en blanco.{% endif %}
+    </p>
+  </div>
+{% endif %}
+
+{% if not archived %}
+  <h3 class="section-title" style="margin-top: 22px">O empieza con una plantilla</h3>
+  <div class="flex-row gap-14" style="flex-wrap: wrap">
+    {% for key, template in templates.items %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'rubrics:create' %}?plantilla={{ key }}">{{ template.title }}</a>
+    {% endfor %}
+    <a class="btn btn-ghost btn-sm" href="{% url 'rubrics:create' %}">En blanco</a>
+  </div>
+  <p class="text-xs text-muted" style="margin-top: 8px">Las plantillas traen criterios y descripciones de ejemplo que editas a tu gusto.</p>
+{% endif %}
+{% endblock %}

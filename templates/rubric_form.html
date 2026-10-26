@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if rubric %}Editar{% else %}Nueva{% endif %} rúbrica · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% if rubric %}{% include 'partials/back.html' with url=rubric.get_absolute_url label='Volver a la rúbrica' %}{% else %}{% url 'rubrics:list' as list_url %}{% include 'partials/back.html' with url=list_url label='Volver a las rúbricas' %}{% endif %}
+  <h1>{% if rubric %}Editar rúbrica{% else %}Nueva rúbrica{% endif %}</h1>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="rubric-form" novalidate data-min-levels="{{ limits.min_levels }}" data-max-levels="{{ limits.max_levels }}" data-max-criteria="{{ limits.max_criteria }}">
+  {% csrf_token %}
+  <input type="hidden" name="levels" value="{{ draft.levels|length }}">
+  <input type="hidden" name="criteria" value="{{ draft.criteria|length }}">
+
+  {% if errors %}
+    <div class="flash flash-error" role="alert" style="margin-bottom: 12px">
+      <b>Revisa lo siguiente:</b>
+      <ul style="margin: 6px 0 0 18px; padding: 0">{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+  {% endif %}
+  {% if locked %}
+    <div class="flash" style="margin-bottom: 12px">
+      <b>Esta rúbrica ya se usó para calificar.</b> Al guardar se crea la <b>versión {{ next_version }}</b>: lo ya calificado conserva la versión
+      anterior, así nadie ve cambiar una calificación dada. Las actividades que aún no califican con ella pasan a la nueva.
+    </div>
+  {% endif %}
+
+  <div class="card mb-12">
+    <div class="rub-meta">
+      <div class="field"><label for="rub-name">Nombre</label><input class="input" type="text" id="rub-name" name="name" maxlength="150" value="{{ draft.name }}" required></div>
+      <div class="field"><label for="rub-desc">Para qué sirve (opcional)</label><input class="input" type="text" id="rub-desc" name="description" maxlength="200" value="{{ draft.description }}"></div>
+    </div>
+  </div>
+
+  <div class="rub rub-edit" id="rub-edit" style="--cols: {{ draft.levels|length }}">
+    <div class="rub-head" id="rub-head">
+      <div>Criterio</div>
+      {% for level in draft.levels %}
+        <div data-level>
+          <input class="input" type="text" name="level_{{ forloop.counter0 }}" value="{{ level }}" maxlength="60" aria-label="Nombre del nivel {{ forloop.counter }}">
+          <button type="button" class="rub-rm" data-remove-level>Quitar nivel</button>
+        </div>
+      {% endfor %}
+    </div>
+    {% for criterion in draft.criteria %}
+      {% with i=forloop.counter0 %}
+      <div class="rub-crit" data-criterion>
+        <div class="rub-cn">
+          <input class="input" type="text" name="c{{ i }}_name" value="{{ criterion.name }}" maxlength="150" placeholder="Nombre del criterio" aria-label="Nombre del criterio {{ forloop.counter }}">
+          <button type="button" class="rub-rm" data-remove-criterion>Quitar criterio</button>
+        </div>
+        {% for cell in criterion.cells %}
+          <div class="rub-lv" data-cell>
+            <span class="rub-lvn" data-level-label>{{ cell.level }}</span>
+            <label class="sr-only" for="c{{ i }}_l{{ forloop.counter0 }}_points">Puntos</label>
+            <input class="input rub-points" type="text" inputmode="decimal" id="c{{ i }}_l{{ forloop.counter0 }}_points" name="c{{ i }}_l{{ forloop.counter0 }}_points" value="{{ cell.points }}" maxlength="7">
+            <textarea class="input" name="c{{ i }}_l{{ forloop.counter0 }}_text" rows="3" maxlength="1000" placeholder="Qué se espera en este nivel" aria-label="Descripción">{{ cell.text }}</textarea>
+          </div>
+        {% endfor %}
+      </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+
+  <div class="flex-row gap-14" style="margin-top: 10px; flex-wrap: wrap">
+    <button type="button" class="btn btn-ghost btn-sm" id="add-criterion">+ Agregar criterio</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="add-level">+ Agregar nivel</button>
+  </div>
+
+  <div class="rub-total">
+    <div><span class="text-sm text-muted">Puntos de la rúbrica</span><br><b id="rub-total">0</b> <span class="text-sm text-muted" id="rub-count"></span></div>
+    <div class="flex-row gap-14">
+      <button type="submit" class="btn btn-primary">{% if locked %}Guardar como versión {{ next_version }}{% else %}Guardar{% endif %}</button>
+      <a class="btn btn-ghost" href="{% if rubric %}{{ rubric.get_absolute_url }}{% else %}{% url 'rubrics:list' %}{% endif %}">Cancelar</a>
+    </div>
+  </div>
+</form>
+<script src="{% static 'js/rubrica.js' %}?v=2"></script>
+{% endblock %}

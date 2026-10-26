@@ -1789,3 +1789,54 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
 .mx-destino { margin: 8px 0 0; font-size: .8rem; color: var(--text-muted); }
 .mx-vista { margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); white-space: pre-line; overflow-wrap: anywhere; }
 @media (max-width: 700px) { .mx-paleta { position: static; } }
+
+/* ===========================================================
+   Rúbricas: biblioteca, editor y cuadrícula criterio × nivel
+   =========================================================== */
+.rub-lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.rub-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.rub-card h2 { margin: 0; font-size: 1.05rem; }
+.rub-card h2 a { color: inherit; text-decoration: none; }
+.rub-card h2 a:hover { text-decoration: underline; }
+.rub-card p { margin: 0; }
+.rub-pts { font-size: 1.6rem; font-weight: 700; color: var(--brand-primary); }
+.theme-dark .rub-pts { color: #cfe0f7; }
+.rub-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rub-meta .field { margin: 0; }
+@media (max-width: 700px) { .rub-meta { grid-template-columns: 1fr; } }
+
+.rub { display: grid; gap: 8px; --cols: 4; }
+.rub .input { width: 100%; }
+.rub-head, .rub-crit { display: grid; grid-template-columns: 190px repeat(var(--cols), minmax(0, 1fr)); gap: 8px; }
+.rub-head > div { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); padding: 0 4px; }
+.rub-crit { padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); align-items: stretch; }
+.rub-cn { font-weight: 500; padding: 2px 4px; }
+.rub-cn small { display: block; color: var(--text-muted); font-weight: 400; }
+.rub-lv { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 14px; background: var(--surface); display: block; min-width: 0; overflow-wrap: anywhere; }
+.rub-p { display: block; font-weight: 700; margin-bottom: 2px; }
+.rub-lvn { display: none; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.rub-lv.sel, .rub-pick:has(input:checked) { background: var(--sky-50); border-color: var(--sky); box-shadow: inset 0 0 0 1px var(--sky); }
+.rub-pick { cursor: pointer; }
+.rub-pick:hover { background: var(--surface-2); }
+.rub-pick:has(input:focus-visible) { outline: 3px solid var(--sky); outline-offset: 2px; }
+.rub-options { grid-column: 2 / -1; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; }
+.rub-cm { grid-column: 2 / -1; font-size: 14px; }
+.rub-edit .rub-cn .input, .rub-head .input { margin-bottom: 4px; }
+.rub-edit .rub-lv { padding: 6px; }
+.rub-edit .rub-points { width: 90px; font-weight: 700; margin-bottom: 4px; }
+.rub-edit .rub-lv textarea { font-size: 13px; resize: vertical; min-height: 64px; }
+.rub-rm { background: none; border: 0; color: var(--bad); cursor: pointer; font-size: 12.5px; padding: 4px 2px; }
+.rub-rm:hover { text-decoration: underline; }
+.rub-total { position: sticky; bottom: 0; z-index: 2; margin-top: 12px; display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; box-shadow: var(--shadow-md); }
+.rub-total b { font-size: 1.5rem; color: var(--brand-primary); }
+.theme-dark .rub-total b { color: #cfe0f7; }
+@media (max-width: 860px) {
+  .rub-head { display: none; }
+  .rub-edit .rub-head { display: grid; grid-template-columns: 1fr; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+  .rub-edit .rub-head > div:first-child { display: none; }
+  .rub-crit { grid-template-columns: 1fr; }
+  .rub-options { grid-column: auto; grid-template-columns: 1fr; }
+  .rub-cm { grid-column: auto; }
+  .rub-lvn { display: block; }
+}

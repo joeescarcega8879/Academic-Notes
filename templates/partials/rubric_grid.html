@@ -1,0 +1,22 @@
+{# La rúbrica en solo lectura: criterios en filas y niveles en columnas. Recibe `rows` (ver services.grading.panel_rows). #}
+{% with cols=rows.0.levels|length %}
+<div class="rub" style="--cols: {{ cols }}">
+  <div class="rub-head" aria-hidden="true">
+    <div>Criterio</div>
+    {% for cell in rows.0.levels %}<div>{{ cell.level.name }}</div>{% endfor %}
+  </div>
+  {% for row in rows %}
+    <div class="rub-crit">
+      <div class="rub-cn">{{ row.criterion.name }}<small>máx. {{ row.criterion.max_points|floatformat:"-2" }} pts</small></div>
+      {% for cell in row.levels %}
+        <div class="rub-lv{% if cell.selected %} sel{% endif %}">
+          <span class="rub-lvn">{{ cell.level.name }}</span>
+          <span class="rub-p">{{ cell.level.points|floatformat:"-2" }} pts{% if cell.selected %} <span class="sr-only">(nivel obtenido)</span>{% endif %}</span>
+          {{ cell.level.description }}
+        </div>
+      {% endfor %}
+      {% if row.comment %}<div class="rub-cm"><b>Comentario:</b> {{ row.comment }}</div>{% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endwith %}
