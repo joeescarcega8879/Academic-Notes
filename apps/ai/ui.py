@@ -2,6 +2,7 @@
 
 from django.urls import reverse
 
+from apps.grades.models import Activity
 from apps.syllabus.models import Syllabus
 
 from . import assignment_generation as task_gen
@@ -43,7 +44,8 @@ def _panel_reason(organization, rows):
 def quiz_panel(organization, course, *, activity=None, week=None):
     """Contexto del panel «Generar preguntas con IA» (``partials/ai_quiz_modal.html``) como ``ai``.
 
-    ``activity``: el quiz al que van las preguntas. ``week``: la semana que viene marcada (desde el editor de una semana).
+    ``activity``: el quiz o examen al que van las preguntas. ``week``: la semana que viene marcada (desde el editor de
+    una semana); sin actividad el panel deja elegir entre un quiz nuevo y un examen nuevo.
     """
     preselected = week.pk if week is not None else (activity.syllabus_week_id if activity is not None else None)
     rows = _week_rows(course, preselected)
@@ -51,10 +53,14 @@ def quiz_panel(organization, course, *, activity=None, week=None):
     base_title = ''
     if week is not None:
         base_title = f'Quiz · {week.title.strip() or f"Semana {week.position}"}'
+    exam = activity is not None and activity.type == Activity.Type.EXAM
     return {
         'reason': reason, 'weeks': rows, 'usage': services.usage_summary(organization),
         'action_url': reverse('ai:quiz_generate', args=[course.pk]), 'activity': activity, 'default_title': base_title,
-        'counts': quiz_gen.COUNT_CHOICES, 'mixes': quiz_gen.MIX_CHOICES, 'difficulties': quiz_gen.DIFFICULTY_CHOICES,
+        'counts': quiz_gen.EXAM_COUNT_CHOICES if exam else quiz_gen.COUNT_CHOICES, 'exam_counts': quiz_gen.EXAM_COUNT_CHOICES,
+        'mixes': quiz_gen.MIX_CHOICES, 'difficulties': quiz_gen.DIFFICULTY_CHOICES, 'kinds': quiz_gen.EXAM_KIND_CHOICES,
+        # Con una actividad el tipo ya está decidido; sin ella (desde el temario) el docente elige.
+        'exam': exam, 'choose_kind': activity is None, 'noun': 'examen' if exam else 'quiz',
     }
 
 

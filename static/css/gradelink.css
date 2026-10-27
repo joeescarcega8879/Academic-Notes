@@ -1599,6 +1599,7 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
 .ai-weeks .n { font-weight: 700; color: var(--brand-primary); min-width: 22px; }
 .ai-weeks .t { display: block; font-weight: 500; }
 .ai-weeks .d { display: block; font-size: 12px; color: var(--text-muted); }
+.ai-kinds { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .ai-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 18px; overflow: hidden; align-self: flex-start; }
 .ai-seg label { margin: 0; cursor: pointer; font-weight: 500; }
 .ai-seg input { position: absolute; opacity: 0; pointer-events: none; }

@@ -70,8 +70,7 @@ class BuilderView(OwnQuizMixin, View):
             picker = picker.filter(kind=data['kind'])
         page = Paginator(picker, PICKER_PAGE_SIZE).get_page(request.GET.get('bp'))
         can_edit = not (archived_course or quiz.is_locked)
-        # La IA todavía no arma exámenes: sus preguntas del banco y las propias sí.
-        ai_available = can_edit and self.activity.type == Activity.Type.QUIZ
+        ai_available = can_edit
         query = request.GET.copy()
         query.pop('bp', None)
 

@@ -28,7 +28,7 @@
   </form>
 </div>
 {% if not object and ai_task and not ai_task.reason %}{% include 'partials/ai_assignment_modal.html' %}{% endif %}
-<script src="{% static 'js/ia.js' %}?v=2"></script>
+<script src="{% static 'js/ia.js' %}?v=3"></script>
 {{ form.rubric_points|json_script:"rubric-points" }}
 <script src="{% static 'js/rubrica.js' %}?v=3"></script>
 {% endblock %}

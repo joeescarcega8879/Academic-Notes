@@ -9,12 +9,19 @@
         <button type="button" data-close="modal-ai-quiz" aria-label="Cerrar"><i data-icon="x"></i></button>
       </header>
       <div class="modal-body">
-        <p class="helper">La IA solo usa el texto de las semanas que elijas. Tú revisas cada pregunta antes de que llegue al quiz.</p>
-        {% if not ai.activity %}
+        <p class="helper">La IA solo usa el texto de las semanas que elijas. Tú revisas cada pregunta antes de que llegue {% if ai.choose_kind %}al quiz o al examen{% else %}al {{ ai.noun }}{% endif %}.</p>
+        {% if ai.choose_kind %}
           <div class="field">
-            <label for="ai-title">Nombre del quiz</label>
+            <label>¿Qué vas a armar?</label>
+            <div class="ai-seg" data-ai-kind>
+              <label><input type="radio" name="kind" value="quiz" checked><span>Un quiz</span></label>
+              <label><input type="radio" name="kind" value="exam"><span>Un examen en línea</span></label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="ai-title">Nombre</label>
             <input class="input" id="ai-title" name="title" maxlength="255" value="{{ ai.default_title }}" placeholder="Ej. Quiz · La célula">
-            <span class="text-xs text-muted">Se crea como borrador, enlazado a la primera semana que elijas.</span>
+            <span class="text-xs text-muted">Se crea como borrador, enlazado a la primera semana que elijas. Un examen se crea para aplicarlo en línea (un intento, orden al azar y respuestas al cierre).</span>
           </div>
         {% endif %}
         <div class="field">
@@ -32,7 +39,7 @@
         <div class="ai-grid">
           <div class="field">
             <label for="ai-count">Cuántas preguntas</label>
-            <select class="select" id="ai-count" name="count">{% for n in ai.counts %}<option value="{{ n }}"{% if n == 10 %} selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+            <select class="select" id="ai-count" name="count">{% for n in ai.counts %}<option value="{{ n }}"{% if n == 10 %} selected{% endif %}>{{ n }}</option>{% endfor %}{% if ai.choose_kind %}{% for n in ai.exam_counts %}{% if n > 20 %}<option value="{{ n }}" data-ai-exam-only hidden disabled>{{ n }}</option>{% endif %}{% endfor %}{% endif %}</select>
           </div>
           <div class="field">
             <label for="ai-points">Puntos por pregunta</label>
@@ -40,10 +47,19 @@
           </div>
         </div>
         <div class="ai-grid is-stacked">
-          <div class="field">
-            <label>Tipo</label>
-            <div class="ai-seg">{% for value, label in ai.mixes %}<label><input type="radio" name="mix" value="{{ value }}"{% if forloop.first %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
-          </div>
+          {% if not ai.exam %}
+            <div class="field" data-ai-quiz-only>
+              <label>Tipo</label>
+              <div class="ai-seg">{% for value, label in ai.mixes %}<label><input type="radio" name="mix" value="{{ value }}"{% if forloop.first %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+            </div>
+          {% endif %}
+          {% if ai.exam or ai.choose_kind %}
+            <div class="field"{% if not ai.exam %} data-ai-exam-only hidden{% endif %}>
+              <label>Tipos de pregunta</label>
+              <div class="ai-kinds">{% for value, label in ai.kinds %}<label class="ai-check"><input type="checkbox" name="kinds" value="{{ value }}"{% if value == 'opcion_multiple' or value == 'respuesta_corta' %} checked{% endif %}{% if not ai.exam %} disabled{% endif %}> {{ label }}</label>{% endfor %}</div>
+              <span class="text-xs text-muted">Se reparten de forma pareja entre los que marques.</span>
+            </div>
+          {% endif %}
           <div class="field">
             <label>Dificultad</label>
             <div class="ai-seg">{% for value, label in ai.difficulties %}<label><input type="radio" name="difficulty" value="{{ value }}"{% if value == 'medium' %} checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>

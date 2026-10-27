@@ -199,11 +199,11 @@ class TestVistas:
         assert professor_client.get(reverse("quizzes:builder", args=[actividad.pk])).status_code == 404
         assert not QuizConfig.objects.filter(activity=actividad).exists()
 
-    def test_el_constructor_del_examen_habla_de_examen_y_no_ofrece_ia(self, professor_client, course):
+    def test_el_constructor_del_examen_habla_de_examen_y_ofrece_ia(self, professor_client, course):
         quiz = examen(course)
         pagina = professor_client.get(reverse("quizzes:builder", args=[quiz.activity_id])).content.decode()
         assert "Armar examen" in pagina and "Preguntas del examen" in pagina
-        assert "Generar con IA" not in pagina
+        assert "Generar con IA" in pagina
 
     def test_el_alumno_ve_el_acceso_al_examen(self, student_client, course, enrollment):
         quiz = examen(course)
