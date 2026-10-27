@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from apps.quizzes.models import Question
 from apps.quizzes.services.bank import MAX_CHOICES, MIN_CHOICES, validate_choices
 
-from .text import line_norms, normalize, quoted_in_lines
+from .text import line_norms, math_balanced, normalize, quoted_in_lines, repair_math
 
 MAX_QUESTIONS = 20
 COUNT_CHOICES = (5, 10, 15, 20)
@@ -62,7 +62,11 @@ SYSTEM = (
     'con opciones de longitud parecida y distractores plausibles. «correcta» es la posición (empezando en 0) de la opción correcta.\n'
     '4. Verdadero/falso: una afirmación clara y sin ambigüedad; «verdadero» dice si la afirmación es cierta.\n'
     '5. Escribe en español. La explicación dice en una o dos frases por qué la respuesta es correcta.\n'
-    '6. No repitas preguntas ni uses nombres de personas reales que no estén en el material.'
+    '6. No repitas preguntas ni uses nombres de personas reales que no estén en el material.\n'
+    '7. Si algo es matemática (fórmulas, ecuaciones, fracciones, potencias, raíces, símbolos), escríbelo en LaTeX entre '
+    '«\\(» y «\\)» (por ejemplo \\(\\frac{3}{4}\\) o \\(x^2+5x=0\\)), también en las opciones y en la explicación. Nunca '
+    'uses «$» para fórmulas ni dejes LaTeX sin esos delimitadores; lo que no es matemática va como texto normal. En el '
+    'JSON, cada barra invertida del LaTeX va duplicada (por ejemplo \\\\frac).'
 )
 
 SCHEMA = {
@@ -196,7 +200,7 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
     kind = _KIND_BY_NAME.get(raw.get('tipo'))
     if kind is None or (mix != 'mix' and kind != mix):
         return None
-    text = str(raw.get('pregunta') or '').strip()
+    text = repair_math(str(raw.get('pregunta') or '').strip())
     citation = str(raw.get('cita') or '').strip()
     if not text or len(text) > TEXT_MAX:
         return None
@@ -206,7 +210,7 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
         return None
     item = {
         'kind': kind, 'text': text, 'choices': [], 'true_is_correct': None,
-        'explanation': _text(raw.get('explicacion'), EXPLANATION_MAX), 'citation': citation[:CITATION_MAX],
+        'explanation': repair_math(_text(raw.get('explicacion'), EXPLANATION_MAX)), 'citation': citation[:CITATION_MAX],
         'week': week.position, 'topic': (week.title or f'Semana {week.position}')[:Question._meta.get_field('topic').max_length],
         'points': points, 'state': 'pending', 'edited': False, 'similar': None, 'question_id': None,
     }
@@ -219,7 +223,7 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
     correct = raw.get('correcta')
     if not isinstance(options, list) or isinstance(correct, bool) or not isinstance(correct, int):
         return None
-    options = [str(option).strip() for option in options]
+    options = [repair_math(str(option).strip()) for option in options]
     if not 0 <= correct < len(options) or not options[correct] or any(len(option) > CHOICE_MAX for option in options):
         return None
     if not MIN_CHOICES <= len([option for option in options if option]) <= MAX_CHOICES:
@@ -232,6 +236,12 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
     rng.shuffle(pairs)  # los modelos tienden a poner la correcta en las mismas posiciones
     item['choices'] = [{'text': option, 'correct': is_correct} for option, is_correct in pairs]
     return item
+
+
+def _math_ok(item):
+    r'''Las fórmulas de la propuesta están completas: un ``\(`` sin cerrar la mostraría rota al docente y al alumno.'''
+    parts = (item['text'], item['explanation'], *(choice['text'] for choice in item['choices']))
+    return all(math_balanced(part) for part in parts)
 
 
 def _same(a, b, ratio):
@@ -253,6 +263,8 @@ def parse_items(data, weeks, params, *, mix=None, limit=None, existing=(), rng=N
     items, seen, dropped = [], [], 0
     for raw in raw_items:
         item = _build_item(raw, weeks, norms, mix=mix, points=params['points'], rng=rng)
+        if item is not None and not _math_ok(item):
+            item = None
         key = normalize(item['text']) if item else ''
         if item is None or any(_same(key, other, DUPLICATE_RATIO) for other in seen):
             dropped += 1

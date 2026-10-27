@@ -4,11 +4,9 @@ La clave vive solo en el servidor (``GEMINI_API_KEY``). Con una clave gratuita G
 mejorar sus productos, así que el servicio nunca le manda datos de alumnos (ver ``GEMINI_KEY_TIER``).
 """
 
-import json
-
 from django.conf import settings
 
-from .base import AIProvider, AIResult, ProviderError
+from .base import AIProvider, AIResult, ProviderError, loads_lenient
 
 RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
 
@@ -55,7 +53,7 @@ class GeminiProvider(AIProvider):
         if not text:
             raise ProviderError('Gemini no devolvió contenido (posible bloqueo de seguridad).')
         try:
-            data = json.loads(text)
+            data = loads_lenient(text)
         except ValueError:
             raise ProviderError('Gemini devolvió algo que no es JSON válido.') from None
         usage = response.usage_metadata
