@@ -219,14 +219,23 @@ class TestRolPorOrganizacion:
         assert como_alumno.get(reverse("student_dashboard")).status_code == 200
         assert como_alumno.get(reverse("professor_dashboard")).url == reverse("student_dashboard")
 
-    @pytest.mark.parametrize("rol", [Membership.Role.PARENT, Membership.Role.ADMIN, Membership.Role.COORDINATOR])
-    def test_roles_sin_vistas_aun_van_al_perfil(self, rol):
+    def test_roles_sin_vistas_aun_van_al_perfil(self):
+        usuario = StudentFactory()
+        MembershipFactory(user=usuario, role=Membership.Role.PARENT)
+        client = _client(usuario)
+        for name in ("professor_dashboard", "student_dashboard", "grades:list", "messaging:list"):
+            response = client.get(reverse(name))
+            assert response.status_code == 302 and response.url == reverse("profile"), name
+
+    @pytest.mark.parametrize("rol", [Membership.Role.ADMIN, Membership.Role.COORDINATOR])
+    def test_la_direccion_sin_clases_va_a_su_escuela(self, rol):
         usuario = StudentFactory()
         MembershipFactory(user=usuario, role=rol)
         client = _client(usuario)
         for name in ("professor_dashboard", "student_dashboard", "grades:list", "messaging:list"):
             response = client.get(reverse(name))
-            assert response.status_code == 302 and response.url == reverse("profile"), name
+            assert response.status_code == 302 and response.url == reverse("organizations:school"), name
+        assert client.get(reverse("organizations:school")).status_code == 200
 
     def test_sin_membresias_no_hay_acceso_a_datos(self):
         client = _client(StudentFactory())

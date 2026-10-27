@@ -1842,6 +1842,10 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
   .rub-lvn { display: block; }
 }
 
+/* ── Mi escuela ─────────────────────────────────────────────────────── */
+.sc-invite { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0; }
+.sc-invite .input { flex: 1 1 260px; max-width: 420px; }
+
 /* ── Proyectos por equipos ─────────────────────────────────────────── */
 .field[hidden] { display: none; }
 .tm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }

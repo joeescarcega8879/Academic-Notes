@@ -14,6 +14,7 @@ from apps.organizations import plans
 from apps.organizations.models import Organization
 from apps.organizations.services import SESSION_KEY, active_memberships, pick_membership
 from core import throttle
+from core.utils import safe_next_url
 
 from . import services
 from .forms import RegisterForm, TeacherRegisterForm, WaitlistForm
@@ -63,7 +64,9 @@ class RegisterView(View):
         return self.render(request, self.form_class())
 
     def render(self, request, form, status=200):
-        return render(request, self.template_name, {'form': form, 'role': self.role, 'title': self.title, 'lead': self.lead}, status=status)
+        return render(request, self.template_name, {
+            'form': form, 'role': self.role, 'title': self.title, 'lead': self.lead, 'next': safe_next_url(request),
+        }, status=status)
 
     def post(self, request):
         if request.user.is_authenticated:
@@ -88,7 +91,7 @@ class RegisterView(View):
         if membership is not None:
             request.session[SESSION_KEY] = membership.organization_id
         messages.success(request, self.success_message)
-        return redirect(self.success_url)
+        return redirect(safe_next_url(request) or self.success_url)
 
 
 class TeacherRegisterView(RegisterView):

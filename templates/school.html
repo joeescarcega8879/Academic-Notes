@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Mi escuela · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  <h1>Mi escuela</h1>
+  <span class="sub">{{ organization.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12">
+  <h3 class="section-title" style="margin-top: 0">Invitar a un docente</h3>
+  <p class="text-sm text-muted" style="margin-top: 0">
+    Escribe el correo con el que el docente ya usa {{ site_name }} (o con el que se registrará). Le llega un enlace que vale {{ valid_days }} días.
+    Acepta con su cuenta de siempre: no pierde nada y su espacio personal sigue intacto.
+  </p>
+  <form method="post" action="{% url 'organizations:school_invite' %}" class="sc-invite">
+    {% csrf_token %}
+    <input class="input" type="email" name="email" required maxlength="254" placeholder="docente@escuela.edu.mx" aria-label="Correo del docente" autocomplete="off">
+    <button type="submit" class="btn btn-primary">Enviar invitación</button>
+  </form>
+</div>
+
+<div class="table-wrap mb-12">
+  <div class="table-head"><h3>Equipo</h3><span class="grade style-pill ok">{{ team|length }} persona{{ team|length|pluralize }}</span></div>
+  <table class="tbl">
+    <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Grupos en la escuela</th></tr></thead>
+    <tbody>
+      {% for row in team %}
+        <tr>
+          <td><div class="person-cell">{% include 'partials/avatar.html' with person=row.membership.user cls='sm' %}<span>{{ row.membership.user.get_full_name|default:row.membership.user.username }}{% if row.membership.user_id == user.pk %} <span class="text-xs text-muted">(tú)</span>{% endif %}</span></div></td>
+          <td class="text-muted">{{ row.membership.user.email }}</td>
+          <td><span class="chip{% if row.membership.is_direction %} info{% endif %}">{{ row.membership.get_role_display }}</span></td>
+          <td>{% if row.membership.is_teacher %}{{ row.groups }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted">Todavía no hay nadie en el equipo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="table-wrap">
+  <div class="table-head"><h3>Invitaciones pendientes</h3>{% if invitations %}<span class="grade style-pill ok">{{ invitations|length }}</span>{% endif %}</div>
+  <table class="tbl">
+    <thead><tr><th>Correo</th><th>Enviada</th><th>Vence</th><th></th></tr></thead>
+    <tbody>
+      {% for invitation in invitations %}
+        <tr>
+          <td>{{ invitation.email }}</td>
+          <td class="text-muted">{{ invitation.created_at|date:"d/m/Y" }}{% if invitation.invited_by %} · {{ invitation.invited_by.first_name }}{% endif %}</td>
+          <td>{% if invitation.is_expired %}<span class="chip bad">Venció el {{ invitation.expires_at|date:"d/m/Y" }}</span>{% else %}{{ invitation.expires_at|date:"d/m/Y" }}{% endif %}</td>
+          <td>
+            <form method="post" action="{% url 'organizations:school_resend' invitation.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">Reenviar</button></form>
+            <form method="post" action="{% url 'organizations:school_revoke' invitation.pk %}" class="inline-form" onsubmit="return confirm('¿Retirar esta invitación? Su enlace dejará de servir.')">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm btn-danger-ghost">Retirar</button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-muted">No hay invitaciones pendientes.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

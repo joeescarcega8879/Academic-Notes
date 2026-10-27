@@ -10,6 +10,8 @@ def home_url_name(membership):
         return 'professor_dashboard'
     if membership is not None and membership.is_student:
         return 'student_dashboard'
+    if membership is not None and membership.is_direction:
+        return 'organizations:school'
     return 'profile'
 
 
@@ -32,6 +34,14 @@ class TeacherRequiredMixin(OrganizationMemberMixin):
     def test_func(self):
         membership = self.request.membership
         return membership is not None and membership.is_teacher
+
+
+class DirectionRequiredMixin(OrganizationMemberMixin):
+    """Solo la dirección de una escuela (propietario, administrador o coordinador de una institución)."""
+
+    def test_func(self):
+        membership = self.request.membership
+        return membership is not None and membership.is_direction
 
 
 class StudentRequiredMixin(OrganizationMemberMixin):

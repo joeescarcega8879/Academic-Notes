@@ -1,0 +1,13 @@
+{% autoescape off %}Hola,
+
+{% if inviter %}{{ inviter }}, de la dirección de {{ school.name }}, te invita{% else %}{{ school.name }} te invita{% endif %} a unirte a {{ site_name }} como docente.
+
+Aceptas con tu cuenta de siempre: no pierdes nada de lo que ya tienes y tu espacio personal sigue intacto. La escuela se suma a tus espacios y desde ahí puedes llevarle los grupos que tú quieras.
+
+Ver la invitación (el enlace vale {{ valid_days }} días):
+{{ accept_url }}
+
+Si no esperabas esta invitación, ignora este correo: no pasa nada si no la aceptas.
+
+¿Dudas? Escríbenos a {{ support_email }}.
+{% endautoescape %}
