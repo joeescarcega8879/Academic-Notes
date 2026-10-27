@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from .managers import OrganizationManager
 
@@ -47,6 +48,8 @@ class Membership(models.Model):
 
     # El propietario de una organización individual es quien da clase en ella.
     TEACHING_ROLES = (Role.OWNER, Role.TEACHER)
+    # La dirección de una escuela: quien invita docentes y administra su equipo.
+    DIRECTION_ROLES = (Role.OWNER, Role.ADMIN, Role.COORDINATOR)
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memberships')
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='memberships')
@@ -69,6 +72,11 @@ class Membership(models.Model):
     @property
     def is_student(self):
         return self.role == self.Role.STUDENT
+
+    @property
+    def is_direction(self):
+        """Dirección de una institución (el propietario de un docente individual no es «dirección»)."""
+        return self.role in self.DIRECTION_ROLES and self.organization.type == Organization.Type.INSTITUTION
 
 
 class TenantModel(models.Model):
@@ -95,3 +103,50 @@ class TenantModel(models.Model):
             parent = getattr(self, self.organization_source)
             self.organization_id = parent.organization_id
         super().save(*args, **kwargs)
+
+
+class OrganizationInvitation(TenantModel):
+    """Invitación de la dirección de una escuela a un docente, por su correo exacto.
+
+    Es de un solo uso y vence a los 14 días. Quien acepta conserva su cuenta y su espacio personal: la escuela se suma
+    a sus espacios con el rol de docente.
+    """
+
+    VALID_DAYS = 14
+
+    organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='+')
+    email = models.EmailField('correo')
+    token = models.CharField(max_length=64, unique=True, editable=False)
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='+')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        constraints = [
+            # Una sola invitación abierta por correo y escuela (una vencida se retira antes de invitar otra vez).
+            models.UniqueConstraint(
+                fields=['organization', 'email'], condition=models.Q(accepted_at__isnull=True, revoked_at__isnull=True),
+                name='unique_open_invitation_per_email',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.email} → {self.organization}'
+
+    @property
+    def is_open(self):
+        """Sigue pendiente: ni aceptada ni retirada (puede estar vencida)."""
+        return self.accepted_at is None and self.revoked_at is None
+
+    @property
+    def is_expired(self):
+        return self.is_open and self.expires_at <= timezone.now()
+
+    @property
+    def is_usable(self):
+        return self.is_open and self.expires_at > timezone.now()
+

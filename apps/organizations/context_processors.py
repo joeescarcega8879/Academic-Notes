@@ -7,4 +7,5 @@ def active_organization(request):
         'memberships': getattr(request, 'memberships', []),
         'is_teacher': bool(membership and membership.is_teacher),
         'is_student': bool(membership and membership.is_student),
+        'is_direction': bool(membership and membership.is_direction),
     }

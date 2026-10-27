@@ -1,0 +1,8 @@
+{% extends "emails/base.html" %}
+{% block body %}
+<p>Hola,</p>
+<p>{% if inviter %}{{ inviter }}, de la dirección de <b>{{ school.name }}</b>, te invita{% else %}<b>{{ school.name }}</b> te invita{% endif %} a unirte a {{ site_name }} como docente.</p>
+<p>Aceptas con tu cuenta de siempre: no pierdes nada de lo que ya tienes y tu espacio personal sigue intacto. La escuela se suma a tus espacios y desde ahí puedes llevarle los grupos que tú quieras.</p>
+<p><a href="{{ accept_url }}" style="display:inline-block;background:#1e3a5f;color:#ffffff;padding:10px 18px;border-radius:6px;text-decoration:none">Ver la invitación</a> <span style="color:#6b7788">(el enlace vale {{ valid_days }} días)</span></p>
+<p style="color:#6b7788;font-size:13px">Si no esperabas esta invitación, ignora este correo: no pasa nada si no la aceptas.</p>
+{% endblock %}

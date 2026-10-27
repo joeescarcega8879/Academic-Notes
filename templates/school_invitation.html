@@ -1,0 +1,36 @@
+{% extends "auth/base_auth.html" %}
+{% block title %}Invitación de {{ school.name }} · {{ site_name }}{% endblock %}
+
+{% block art_title %}Tu escuela, en <span class="hl">tu mismo espacio</span>.{% endblock %}
+{% block art_text %}Aceptas con tu cuenta de siempre. No pierdes nada y tu espacio personal sigue intacto.{% endblock %}
+{% block art_list %}
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Tus grupos y alumnos no cambian</li>
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>La escuela se suma a tus espacios</li>
+<li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>Llevas a la escuela solo los grupos que tú quieras</li>
+{% endblock %}
+
+{% block content %}
+<h1>{{ school.name }} te invita</h1>
+<p class="sub">Para unirte como docente a <b>{{ school.name }}</b>.</p>
+
+{% if error %}<div class="flash flash-error" role="alert">{{ error }}</div>{% endif %}
+
+{% if state == 'ready' %}
+  <p>Vas a entrar como <b>{{ user.email }}</b>. Tu espacio personal no se toca; la escuela aparece junto a él en el menú de la izquierda.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-block btn-lg">Unirme a {{ school.name }}</button>
+  </form>
+{% elif state == 'anonymous' %}
+  <p>La invitación es para <b>{{ invitation.email }}</b>. Entra con esa cuenta, o créala si todavía no la tienes.</p>
+  <a class="btn btn-primary btn-block btn-lg" href="{{ login_url }}">Iniciar sesión</a>
+  <p class="sub text-center mt-22">¿No tienes cuenta? <a href="{{ register_url }}">Crea tu cuenta de docente</a></p>
+{% else %}
+  {% if user.is_authenticated %}
+    <form method="post" action="{% url 'logout' %}" class="mt-22">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost btn-block">Cerrar sesión y entrar con otra cuenta</button>
+    </form>
+  {% endif %}
+{% endif %}
+{% endblock %}
