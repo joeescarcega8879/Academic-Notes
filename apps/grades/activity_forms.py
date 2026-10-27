@@ -19,14 +19,14 @@ class ActivityForm(forms.ModelForm):
     )
     field_order = [
         'title', 'type', 'criterion', 'syllabus_week', 'max_score', 'rubric', 'weight', 'instructions', 'date',
-        'opens_at', 'due_at', 'allow_late', 'late_penalty', 'published',
+        'opens_at', 'due_at', 'allow_late', 'late_penalty', 'by_teams', 'published',
     ]
 
     class Meta:
         model = Activity
         fields = [
             'title', 'type', 'criterion', 'syllabus_week', 'max_score', 'weight', 'instructions', 'date',
-            'opens_at', 'due_at', 'allow_late', 'late_penalty', 'published',
+            'opens_at', 'due_at', 'allow_late', 'late_penalty', 'by_teams', 'published',
         ]
         widgets = {
             'instructions': forms.Textarea(attrs={'rows': 4}),
@@ -36,6 +36,7 @@ class ActivityForm(forms.ModelForm):
         }
         help_texts = {
             'weight': 'Peso relativo dentro de su criterio.',
+            'by_teams': 'Solo proyectos. Una entrega y una calificación por equipo; los equipos se arman al guardar, en «Equipos».',
             'date': 'Para actividades sin entrega: el día del examen, de la participación…',
             'published': 'Mientras sea un borrador, los alumnos no la ven y no cuenta para ninguna calificación.',
         }
@@ -67,6 +68,15 @@ class ActivityForm(forms.ModelForm):
             # Cambiar el tipo de un quiz (o de un examen en línea) armado dejaría preguntas e intentos huérfanos.
             self.fields['type'].disabled = True
             self.fields['type'].help_text = f'Un {self.instance.get_type_display().lower()} con preguntas no puede cambiar de tipo.'
+        if self.instance.pk and (
+            self.instance.submissions.exists() or self.instance.grades.exists() or self.instance.teams.exists()
+        ):
+            # Cambiarlo con trabajo ya hecho dejaría entregas y notas sin dueño.
+            self.fields['by_teams'].disabled = True
+            self.fields['by_teams'].help_text = (
+                'Ya no se puede cambiar: el proyecto tiene entregas, calificaciones o equipos.' if not self.instance.by_teams
+                else 'Ya no se puede cambiar: el proyecto tiene entregas, calificaciones o equipos armados.'
+            )
         criterion = self.fields['criterion']
         criterion.queryset = course.scheme.criteria()
         criterion.required = False

@@ -57,8 +57,8 @@ Los planes de institución y Plus se asignan a mano y no tienen topes.
 Academic-Notes/
 ├── core/             # Settings (base/local/production/test), urls, Celery, throttle, utilidades
 ├── apps/
-│   ├── accounts/  courses/  grades/  messaging/
-│   └── onboarding/  organizations/  quizzes/  reports/  syllabus/
+│   ├── accounts/  ai/  batches/  courses/  grades/  messaging/
+│   └── onboarding/  organizations/  quizzes/  reports/  rubrics/  syllabus/  teams/
 ├── templates/        # Plantillas HTML (auth, emails, onboarding, partials…)
 ├── static/           # CSS y JS propios
 ├── requirements/     # base.txt, local.txt, production.txt
@@ -172,7 +172,7 @@ Se leen de `.env` (plantilla en `.env.example`). Las principales:
 
 - **Hecho:** organizaciones multi-tenant, ciclos y grupos, esquema de evaluación, actividades y entregas, quizzes, libreta, reportes, registro, planes y límites sin cobro, página de Precios, temario por semanas.
 - **Siguiente:** corregir lo que salga de las pruebas manuales; luego la pasarela de pago en modo de prueba, y el despliegue con respaldos probados.
-- **Más adelante:** asistencia, rúbricas, proyectos por equipos, panel de dirección, API (`api/v1`) y app móvil. Detalle en [`New_Phases.md`](New_Phases.md).
+- **Más adelante:** asistencia, hitos de proyectos, panel de dirección, API (`api/v1`) y app móvil. Detalle en [`New_Phases.md`](New_Phases.md).
 
 ---
 

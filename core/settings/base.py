@@ -62,6 +62,7 @@ LOCAL_APPS = [
     "apps.batches",
     "apps.quizzes",
     "apps.rubrics",
+    "apps.teams",
     "apps.ai",
     "apps.reports",
     "apps.messaging",

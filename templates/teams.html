@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Equipos · {{ activity.title }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
+  <h1>Equipos</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-12">
+  <div class="tm-toolbar">
+    {% if unassigned|length >= 2 %}
+      <form method="post" action="{% url 'teams:random' activity.pk %}" class="tm-inline">
+        {% csrf_token %}
+        <input class="input tm-count" type="number" name="count" min="2" max="{{ unassigned|length }}" value="{{ default_count }}" aria-label="Cuántos equipos">
+        <button type="submit" class="btn btn-ghost">Repartir al azar a los alumnos sin equipo</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{% url 'teams:create' activity.pk %}" class="tm-inline">
+      {% csrf_token %}
+      <input class="input" type="text" name="name" maxlength="80" placeholder="Nombre (opcional)" aria-label="Nombre del equipo nuevo">
+      <button type="submit" class="btn btn-ghost">+ Equipo nuevo</button>
+    </form>
+    {% if others and not rows %}
+      <form method="post" action="{% url 'teams:copy' activity.pk %}" class="tm-inline">
+        {% csrf_token %}
+        <select class="select" name="source" aria-label="Proyecto del que copiar los equipos">
+          {% for other in others %}<option value="{{ other.pk }}">{{ other.title }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-ghost">Copiar sus equipos</button>
+      </form>
+    {% endif %}
+  </div>
+  {% if student_count %}
+    <div class="tm-note">
+      {% if unassigned %}{{ unassigned|length }} de {{ student_count }} alumnos aún sin equipo.{% else %}Todos los alumnos tienen equipo.{% endif %}
+      Un equipo se puede borrar mientras no tenga entrega ni calificaciones.
+    </div>
+  {% else %}
+    <div class="tm-note">El grupo no tiene alumnos todavía.</div>
+  {% endif %}
+</div>
+
+<div class="tm-layout">
+  <div class="card tm-pool">
+    <h3 class="section-title" style="margin-top: 0">Sin equipo <span class="chip{% if unassigned %} warn{% else %} ok{% endif %}">{{ unassigned|length }}</span></h3>
+    {% for enrollment in unassigned %}
+      <form method="post" action="{% url 'teams:assign' activity.pk %}" class="tm-member">
+        {% csrf_token %}
+        <input type="hidden" name="student" value="{{ enrollment.student_id }}">
+        <span class="tm-name">{{ enrollment.student }}</span>
+        {% if rows %}
+          <select class="select tm-pick" name="team" onchange="this.form.submit()" aria-label="Equipo de {{ enrollment.student }}">
+            <option value="">Asignar a…</option>
+            {% for row in rows %}<option value="{{ row.team.pk }}">{{ row.team.name }}</option>{% endfor %}
+          </select>
+          <noscript><button type="submit" class="btn btn-ghost btn-sm">Asignar</button></noscript>
+        {% endif %}
+      </form>
+    {% empty %}
+      <p class="text-muted text-sm" style="margin: 0">No queda nadie sin equipo.</p>
+    {% endfor %}
+    {% if unassigned and not rows %}<p class="text-muted text-sm" style="margin: 10px 0 0">Crea un equipo o reparte al azar para empezar.</p>{% endif %}
+  </div>
+
+  <div class="tm-grid">
+    {% for row in rows %}
+      <div class="tm-card" id="equipo-{{ row.team.pk }}">
+        <form method="post" action="{% url 'teams:rename' activity.pk row.team.pk %}" class="tm-title">
+          {% csrf_token %}
+          <input class="tm-title-input" type="text" name="name" value="{{ row.team.name }}" maxlength="80" aria-label="Nombre del equipo">
+          <button type="submit" class="btn btn-ghost btn-sm">Renombrar</button>
+        </form>
+        <div class="tm-count-chip"><span class="chip{% if row.members|length >= 2 %} ok{% else %} warn{% endif %}">{{ row.members|length }} integrante{{ row.members|length|pluralize }}</span></div>
+        {% for student in row.members %}
+          <form method="post" action="{% url 'teams:assign' activity.pk %}" class="tm-member">
+            {% csrf_token %}
+            <input type="hidden" name="student" value="{{ student.pk }}">
+            <input type="hidden" name="team" value="">
+            <span class="tm-name">{{ student }}</span>
+            {% if student.pk in row.locked %}<span class="chip" title="Ya tiene calificación: no se puede mover">Calificado</span>
+            {% else %}<button type="submit" class="tm-rm">Quitar</button>{% endif %}
+          </form>
+        {% empty %}
+          <p class="text-muted text-sm" style="margin: 6px 0">Sin integrantes todavía.</p>
+        {% endfor %}
+        <div class="tm-foot">
+          {% if row.submission %}
+            <span class="chip ok">Entrega enviada</span>
+            <span class="text-xs text-muted">{% if row.submission.submitted_by %}{{ row.submission.submitted_by.first_name }} · {% endif %}{{ row.submission.submitted_at|date:"d/m H:i" }}</span>
+            {% if row.submission.is_late %}<span class="chip bad">Tardía</span>{% endif %}
+          {% else %}<span class="chip warn">Sin entrega</span>{% endif %}
+          {% if row.graded %}<span class="text-xs text-muted">{{ row.graded }} de {{ row.members|length }} calificados</span>{% endif %}
+          {% if row.deletable %}
+            <form method="post" action="{% url 'teams:delete' activity.pk row.team.pk %}" class="inline-form tm-del"
+                  onsubmit="return confirm('¿Borrar este equipo? Sus integrantes quedarán sin equipo.')">
+              {% csrf_token %}
+              <button type="submit" class="tm-rm">Borrar equipo</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <div class="tm-empty">Todavía no hay equipos. Crea uno o reparte a los alumnos al azar.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

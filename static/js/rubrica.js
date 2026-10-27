@@ -40,6 +40,20 @@
     refreshGrade();
   }
 
+  // ── Formulario de la actividad: «se entrega por equipos» solo tiene sentido en un proyecto ──
+  var typeSelect = document.getElementById('id_type');
+  var teamsBox = document.getElementById('id_by_teams');
+  if (typeSelect && teamsBox) {
+    var teamsField = teamsBox.closest('.field');
+    var refreshTeams = function () {
+      var isProject = typeSelect.value === 'project';
+      teamsField.hidden = !isProject;
+      if (!isProject && !teamsBox.disabled) teamsBox.checked = false;
+    };
+    typeSelect.addEventListener('change', refreshTeams);
+    refreshTeams();
+  }
+
   // ── Formulario de la actividad: aviso cuando la rúbrica y la actividad valen distinto ──
   var select = document.getElementById('id_rubric');
   var pointsData = document.getElementById('rubric-points');

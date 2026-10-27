@@ -17,6 +17,7 @@
   <div class="flex-row items-baseline gap-14" style="flex-wrap: wrap">
     <h2 style="margin: 0">{{ activity.title }}</h2>
     <span class="chip">{{ activity.get_type_display }}</span>
+    {% if activity.by_teams %}<span class="chip info">Por equipos</span>{% endif %}
     {% if is_teacher and activity.ai_generated %}<span class="chip info">Redactada con IA</span>{% endif %}
     {% if is_teacher %}
       {% if activity.published %}<span class="chip ok">Publicada</span>{% else %}<span class="chip">Borrador</span>{% endif %}
@@ -48,6 +49,7 @@
                 </form>
               {% endif %}
             {% endif %}
+            {% if activity.by_teams and not course.is_archived %}<a class="btn btn-ghost" href="{% url 'teams:index' activity.pk %}">Equipos</a>{% endif %}
             {% if not course.is_archived %}<a class="btn btn-ghost btn-action" href="{% url 'grades:activity_update' activity.pk %}">Editar</a>{% endif %}
           </div>
         </div>
@@ -56,7 +58,7 @@
         <span class="cluster-label">Seguimiento</span>
         <div class="cluster-btns">
           {% if activity.type == 'quiz' or activity.quiz %}<a class="btn btn-ghost" href="{% url 'quizzes:results' activity.pk %}">Resultados</a>{% endif %}
-          {% if activity.accepts_submissions and not course.is_archived %}
+          {% if activity.accepts_submissions and not course.is_archived and not activity.by_teams %}
             <a class="btn btn-ghost" href="{% url 'batches:index' activity.pk %}">Lote de PDFs{% with pending=activity.batch_files.count %}{% if pending %} ({{ pending }}){% endif %}{% endwith %}</a>
             <a class="btn btn-ghost" href="{% url 'ai:review' activity.pk %}">Revisar con IA</a>
           {% endif %}
@@ -122,6 +124,7 @@
       <thead>
         <tr>
           <th>Alumno</th><th>Matrícula</th>
+          {% if activity.by_teams %}<th>Equipo</th>{% endif %}
           {% if activity.accepts_submissions %}<th>Entrega</th>{% endif %}
           <th>Calificación</th><th>Comentario</th>
         </tr>
@@ -131,6 +134,7 @@
           <tr>
             <td><div class="person-cell">{% include 'partials/avatar.html' with person=enrollment.student cls='sm' %}<span>{{ enrollment.student }}</span></div></td>
             <td>{{ enrollment.student.student_number }}</td>
+            {% if activity.by_teams %}<td>{% if enrollment.team %}{{ enrollment.team.name }}{% else %}<a href="{% url 'teams:index' activity.pk %}" class="text-muted">Sin equipo</a>{% endif %}</td>{% endif %}
             {% if activity.accepts_submissions %}
               <td>
                 {% if enrollment.submission %}
@@ -150,7 +154,7 @@
             <td class="text-muted">{{ enrollment.grade.feedback|default:"—" }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="5" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
+          <tr><td colspan="6" class="text-muted">El grupo no tiene alumnos todavía.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -164,24 +168,40 @@
     </div>
   {% endif %}
   {% if activity.rubric_version %}{% rubric_panel activity grade %}{% endif %}
+  {% if activity.by_teams %}
+    <div class="card mb-12">
+      <h3 class="section-title">Tu equipo</h3>
+      {% if team %}
+        <p style="margin-top: 0"><strong>{{ team.name }}</strong> <span class="chip">{{ team_members|length }} integrante{{ team_members|length|pluralize }}</span></p>
+        <div class="tm-people">
+          {% for member in team_members %}<div class="person-cell">{% include 'partials/avatar.html' with person=member cls='sm' %}<span>{{ member }}</span></div>{% endfor %}
+        </div>
+        <p class="text-sm text-muted" style="margin-bottom: 0">Una sola entrega y una sola calificación para todo el equipo. Cualquiera de ustedes puede entregar o actualizar la entrega.</p>
+      {% else %}
+        <p class="text-muted" style="margin: 0">Tu docente todavía no te asignó a un equipo. Cuando lo haga podrás entregar el proyecto desde aquí.</p>
+      {% endif %}
+    </div>
+  {% endif %}
   {% if activity.accepts_submissions %}
     <div class="card mb-12">
-      <h3 class="section-title">Tu entrega</h3>
+      <h3 class="section-title">{% if activity.by_teams %}Entrega del equipo{% else %}Tu entrega{% endif %}</h3>
 
       {% if submission %}
         <p class="text-sm" style="margin-top: 0">
-          Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
+          {% if submission.submitted_by and submission.team %}Enviada por <strong>{{ submission.submitted_by }}</strong> el{% else %}Entregada el{% endif %} {{ submission.submitted_at|date:"d/m/Y H:i" }}
           {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Fuera de la fecha límite</span>{% endif %}
         </p>
         {% if submission.text %}<p style="white-space: pre-line">{{ submission.text }}</p>{% endif %}
         {% if submission.link %}<p><a href="{{ submission.link }}" target="_blank" rel="noopener noreferrer nofollow">{{ submission.link }}</a></p>{% endif %}
         {% if submission.file %}<p><a href="{% url 'grades:submission_file' submission.pk %}">{{ submission.original_name|default:"Descargar archivo" }}</a></p>{% endif %}
       {% else %}
-        <p class="text-muted" style="margin-top: 0">Todavía no has entregado.</p>
+        <p class="text-muted" style="margin-top: 0">{% if activity.by_teams %}Tu equipo todavía no ha entregado.{% else %}Todavía no has entregado.{% endif %}</p>
       {% endif %}
 
-      {% if grade %}
-        <p class="text-sm text-muted">Tu entrega ya fue calificada y no se puede cambiar.</p>
+      {% if no_team %}
+        <p class="text-sm text-muted">Necesitas un equipo para entregar.</p>
+      {% elif grade %}
+        <p class="text-sm text-muted">{% if activity.by_teams %}La entrega de tu equipo ya fue calificada y no se puede cambiar.{% else %}Tu entrega ya fue calificada y no se puede cambiar.{% endif %}</p>
       {% elif submission_state == 'not_open' %}
         <p class="text-sm text-muted">Esta actividad abre el {{ activity.opens_at|date:"d/m/Y H:i" }}.</p>
       {% elif submission_state == 'closed' %}
@@ -192,6 +212,7 @@
             Ya pasó la fecha límite: tu entrega se marcará como tardía{% if activity.late_penalty %} y tendrá una penalización de {{ activity.late_penalty|floatformat:"-2" }} %{% endif %}.
           </div>
         {% endif %}
+        {% if activity.by_teams %}<div class="flash" style="margin: 10px 0">Lo que envíes reemplaza la entrega de todo el equipo.</div>{% endif %}
         <form method="post" action="{% url 'grades:activity_submit' activity.pk %}" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
           {% include 'partials/form_fields.html' with form=submission_form %}
@@ -205,7 +226,8 @@
     <h3 class="section-title">Tu calificación</h3>
     {% if grade %}
       <p><span class="grade style-pill ok">{{ grade.score|floatformat:"-2" }}</span>
-        <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span></p>
+        <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span>
+        {% if activity.by_teams and grade.source == 'rubric' %}<span class="chip">Calificación del equipo</span>{% endif %}</p>
       {% if grade.late_penalty %}
         <p class="text-sm text-muted">Calificación original: {{ grade.raw_score|floatformat:"-2" }}. Se aplicó una penalización de {{ grade.late_penalty|floatformat:"-2" }} % por entrega tardía.</p>
       {% endif %}

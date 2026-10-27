@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Calificar equipos · {{ activity.title }} · {{ site_name }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar">
+  {% include 'partials/back.html' with url=activity.get_absolute_url label='Volver a la actividad' %}
+  <h1>Calificar equipos</h1>
+  <span class="sub">{{ activity.title }} · {{ course.name }}</span>
+  <div class="spacer"></div>
+  {% include 'partials/notifications.html' %}
+</header>
+{% endblock %}
+
+{% block content %}
+<p class="text-sm text-muted" style="margin-top: 0">
+  Rúbrica: <a href="{{ version.rubric.get_absolute_url }}">{{ version.rubric.name }}</a> · versión {{ version.number }} · {{ version.max_points|floatformat:"-2" }} puntos, que valen {{ activity.max_score|floatformat:"-2" }} en la actividad.
+  Al calificar a un equipo, la nota se guarda para cada integrante; a quien tenga un ajuste a mano se le respeta.
+</p>
+<div class="table-wrap">
+  <div class="table-head"><h3>Equipos</h3><a class="btn btn-ghost btn-sm" href="{% url 'teams:index' activity.pk %}">Armar equipos</a></div>
+  <table class="tbl">
+    <thead><tr><th>Equipo</th><th>Integrantes</th><th>Entrega</th><th>Calificación</th><th></th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.team.name }}</strong></td>
+          <td>{% for student in row.members %}{{ student }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">Sin integrantes</span>{% endfor %}</td>
+          <td>
+            {% if row.submission %}
+              <a href="{% url 'grades:submission_detail' row.submission.pk %}" target="_blank" rel="noopener">Ver entrega</a>
+              {% if row.submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% endif %}
+              <div class="text-xs text-muted">{% if row.submission.submitted_by %}{{ row.submission.submitted_by.first_name }} · {% endif %}{{ row.submission.submitted_at|date:"d/m/Y H:i" }}</div>
+            {% else %}<span class="chip warn">Sin entrega</span>{% endif %}
+          </td>
+          <td>
+            {% if row.grades %}
+              {% if row.team_grade %}
+                <span class="grade style-pill ok">{{ row.team_grade.score|floatformat:"-2" }}</span> <span class="text-xs text-muted">/ {{ activity.max_score|floatformat:"-2" }}</span> <span class="chip">Rúbrica</span>
+              {% endif %}
+              {% if row.adjusted %}
+                <div class="text-xs text-muted" style="margin-top: 4px">
+                  {% for student in row.adjusted %}{{ student.first_name }}{% if not forloop.last %}, {% endif %}{% endfor %}:
+                  <span class="chip warn">Ajustada a mano</span>
+                </div>
+              {% endif %}
+              {% if not row.graded %}<div class="text-xs text-muted">Faltan integrantes por calificar</div>{% endif %}
+            {% else %}<span class="text-muted">Sin calificar</span>{% endif %}
+          </td>
+          <td>{% if row.members %}<a class="btn btn-ghost btn-sm" href="{% url 'teams:grade' activity.pk row.team.pk %}">{% if row.grades %}Revisar{% else %}Calificar equipo{% endif %}</a>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">Todavía no hay equipos. <a href="{% url 'teams:index' activity.pk %}">Arma los equipos</a> primero.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if unassigned %}
+  <div class="table-wrap" style="margin-top: 14px">
+    <div class="table-head"><h3>Sin equipo</h3><span class="text-sm text-muted">Asígnalos a un equipo, o califícalos por separado.</span></div>
+    <table class="tbl">
+      <tbody>
+        {% for item in unassigned %}
+          <tr>
+            <td>{{ item.student }}</td>
+            <td>{% if item.grade %}<span class="grade style-pill ok">{{ item.grade.score|floatformat:"-2" }}</span>{% else %}<span class="text-muted">Sin calificar</span>{% endif %}</td>
+            <td><a class="btn btn-ghost btn-sm" href="{% url 'rubrics:grade_student' activity.pk item.student.pk %}">{% if item.grade %}Revisar{% else %}Calificar por separado{% endif %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

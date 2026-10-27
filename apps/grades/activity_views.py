@@ -14,6 +14,8 @@ from apps.accounts.mixins import OrganizationMemberMixin, TeacherRequiredMixin
 from apps.ai import ui as ai_ui
 from apps.courses.models import Course, Student
 from apps.courses.services.text import sort_enrollments
+from apps.teams.models import TeamMember
+from apps.teams.services.teams import members_of
 from core.utils import parse_id
 
 from .activity_forms import ActivityForm
@@ -160,6 +162,10 @@ class ActivityDetailView(OrganizationMemberMixin, View):
             for enrollment in enrollments:
                 enrollment.grade = grades.get(enrollment.student_id)
                 enrollment.submission = submissions.get(enrollment.student_id)
+            if activity.by_teams:
+                teams = {m.student_id: m.team for m in TeamMember.objects.filter(activity=activity).select_related('team')}
+                for enrollment in enrollments:
+                    enrollment.team = teams.get(enrollment.student_id)
             context.update(
                 enrollments=enrollments, graded_count=len(grades), submitted_count=len(submissions),
                 late_count=sum(1 for s in submissions.values() if s.is_late),
@@ -168,11 +174,15 @@ class ActivityDetailView(OrganizationMemberMixin, View):
             grade = Grade.objects.filter(activity=activity, student__user=request.user).first()
             submission = Submission.objects.filter(activity=activity, student__user=request.user).first()
             state = submission_state(activity)
+            member = TeamMember.objects.filter(activity=activity, student__user=request.user).select_related('team').first()
+            team = member.team if member else None
+            if team is not None:
+                context.update(team=team, team_members=members_of(team))
             context.update(
-                grade=grade, submission=submission, submission_state=state,
+                grade=grade, submission=submission, submission_state=state, no_team=activity.by_teams and team is None,
                 # Una entrega calificada ya no se cambia; fuera de la ventana tampoco se puede entregar.
                 can_submit=activity.accepts_submissions and grade is None and state in ('open', 'late')
-                and not activity.course.is_archived,
+                and not activity.course.is_archived and not (activity.by_teams and team is None),
                 submission_form=form or SubmissionForm(existing=submission),
             )
         return render(request, 'activity_detail.html', context)
@@ -298,6 +308,8 @@ class GradingView(OwnActiveCourseMixin, View):
         """Una actividad con rúbrica se califica en las pantallas de la rúbrica, no con una nota escrita."""
         if only is not None:
             return redirect('rubrics:grade_student', pk=activity.pk, student_pk=only.pk)
+        if activity.by_teams:
+            return redirect('teams:grade_list', pk=activity.pk)
         return redirect('rubrics:grade_list', pk=activity.pk)
 
     def get(self, request, pk):

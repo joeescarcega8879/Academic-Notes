@@ -19,7 +19,7 @@ class BatchMixin(OwnActiveCourseMixin):
 
     def get_activity(self, pk):
         activity = get_object_or_404(self.activities(), pk=pk)
-        if not activity.accepts_submissions:
+        if not activity.accepts_submissions or activity.by_teams:
             raise Http404
         return activity
 

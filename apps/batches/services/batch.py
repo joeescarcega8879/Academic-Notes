@@ -54,7 +54,7 @@ def upload(activity, files, *, cover_pages, user=None):
     No toca ninguna entrega todavía.
     """
     activity.course.ensure_editable()
-    if not activity.accepts_submissions:
+    if not activity.accepts_submissions or activity.by_teams:
         raise ValidationError('Esta actividad no recibe entregas.')
     check_batch(activity, files)
 
