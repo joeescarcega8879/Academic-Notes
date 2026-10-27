@@ -6,7 +6,7 @@
 <header class="topbar">
   {% include 'partials/back.html' with url=back_url label='Volver' %}
   <h1>Propuestas de preguntas</h1>
-  <span class="sub">{% if draft.activity %}{{ draft.activity.title }}{% else %}Quiz nuevo{% endif %} · {{ course.name }}</span>
+  <span class="sub">{% if draft.activity %}{{ draft.activity.title }}{% else %}{{ noun|capfirst }} nuevo{% endif %} · {{ course.name }}</span>
   <div class="spacer"></div>
 </header>
 {% endblock %}
@@ -17,7 +17,7 @@
   <div class="card ai-wait" data-ai-poll="{% url 'ai:draft_status' draft.pk %}">
     <div class="ai-spin" aria-hidden="true"></div>
     <h3 class="section-title">Generando {{ draft.params.count }} pregunta{{ draft.params.count|pluralize }}…</h3>
-    <p class="text-sm text-muted">Semana{{ week_names|length|pluralize }} {{ week_names }}. Suele tardar unos 15 segundos. Puedes salir de esta página: la propuesta te espera en el quiz.</p>
+    <p class="text-sm text-muted">Semana{{ week_names|length|pluralize }} {{ week_names }}. Suele tardar unos 15 segundos. Puedes salir de esta página: la propuesta te espera en el {{ noun }}.</p>
     <a class="btn btn-ghost" href="{{ back_url }}">Volver</a>
   </div>
 
@@ -38,15 +38,15 @@
 
   <div class="card ai-wait">
     <span class="chip ok">Aprobada</span>
-    <p class="text-sm" style="margin: 12px 0">Estas preguntas ya están en el banco del grupo y en el quiz.</p>
-    {% if draft.activity %}<a class="btn btn-primary" href="{% url 'quizzes:builder' draft.activity.pk %}">Ir al quiz</a>{% endif %}
+    <p class="text-sm" style="margin: 12px 0">Estas preguntas ya están en el banco del grupo y en el {{ noun }}.</p>
+    {% if draft.activity %}<a class="btn btn-primary" href="{% url 'quizzes:builder' draft.activity.pk %}">Ir al {{ noun }}</a>{% endif %}
   </div>
 
 {% elif draft.status == 'discarded' %}
 
   <div class="card ai-wait">
     <span class="chip">Descartada</span>
-    <p class="text-sm" style="margin: 12px 0">Descartaste estas propuestas: no se agregó nada al quiz.</p>
+    <p class="text-sm" style="margin: 12px 0">Descartaste estas propuestas: no se agregó nada al {{ noun }}.</p>
     <a class="btn btn-ghost" href="{{ back_url }}">Volver</a>
   </div>
 
@@ -87,7 +87,7 @@
         <div class="card ai-prop{% if row.editing %} is-editing{% endif %}" id="p{{ row.n }}">
           <div class="ai-prop-head">
             <span class="num">{{ row.n }}</span>
-            <span class="chip">{% if item.kind == 'true_false' %}Verdadero o falso{% else %}Opción múltiple{% endif %}</span>
+            <span class="chip">{{ row.kind_label }}</span>
             <span class="chip">{{ row.week_label }}</span>
             {% if item.edited %}<span class="chip info">Editada por ti</span>{% endif %}
             {% if item.similar %}<span class="chip warn">Se parece a una pregunta de tu banco</span>{% endif %}
@@ -101,6 +101,24 @@
               {% if item.kind == 'true_false' %}
                 <div class="field"><label>Respuesta correcta</label>
                   <div class="ai-seg"><label><input type="radio" name="edit_correct" value="true"{% if item.true_is_correct %} checked{% endif %}><span>Verdadero</span></label><label><input type="radio" name="edit_correct" value="false"{% if not item.true_is_correct %} checked{% endif %}><span>Falso</span></label></div>
+                </div>
+              {% elif item.kind == 'short_answer' %}
+                <div class="field"><label>Respuestas que se aceptan <span class="text-muted" style="font-weight: 400">(una por renglón; mayúsculas y acentos no cuentan)</span></label>
+                  {% for letter, choice in row.letters %}
+                    <div class="ai-edit-opt"><input class="input" name="edit_option" value="{{ choice.text }}" maxlength="200" aria-label="Respuesta aceptada {{ forloop.counter }}"></div>
+                  {% endfor %}
+                </div>
+              {% elif item.kind == 'ordering' %}
+                <div class="field"><label>Elementos <span class="text-muted" style="font-weight: 400">(escríbelos en el orden correcto; el alumno los verá revueltos)</span></label>
+                  {% for letter, choice in row.letters %}
+                    <div class="ai-edit-opt"><span class="ai-radio"><span>{{ forloop.counter }}</span></span><input class="input" name="edit_option" value="{{ choice.text }}" maxlength="500" aria-label="Elemento {{ forloop.counter }}"></div>
+                  {% endfor %}
+                </div>
+              {% elif item.kind == 'matching' %}
+                <div class="field"><label>Parejas <span class="text-muted" style="font-weight: 400">(izquierda y su pareja de la derecha)</span></label>
+                  {% for letter, choice in row.letters %}
+                    <div class="ai-edit-opt"><input class="input" name="edit_left" value="{{ choice.text }}" maxlength="500" aria-label="Izquierda {{ forloop.counter }}"><input class="input" name="edit_right" value="{{ choice.match }}" maxlength="500" aria-label="Derecha {{ forloop.counter }}"></div>
+                  {% endfor %}
                 </div>
               {% else %}
                 <div class="field"><label>Opciones <span class="text-muted" style="font-weight: 400">(marca la correcta)</span></label>
@@ -123,6 +141,18 @@
                 <ul class="ai-opts">
                   <li class="{% if item.true_is_correct %}right{% endif %}"><span class="l">V</span>Verdadero{% if item.true_is_correct %}<span class="tag">✓ Correcta</span>{% endif %}</li>
                   <li class="{% if not item.true_is_correct %}right{% endif %}"><span class="l">F</span>Falso{% if not item.true_is_correct %}<span class="tag">✓ Correcta</span>{% endif %}</li>
+                </ul>
+              {% elif item.kind == 'short_answer' %}
+                <ul class="ai-opts">
+                  {% for letter, choice in row.letters %}<li class="right"><span class="l">✓</span>{{ choice.text }}{% if forloop.first %}<span class="tag">Respuesta aceptada</span>{% endif %}</li>{% endfor %}
+                </ul>
+              {% elif item.kind == 'ordering' %}
+                <ul class="ai-opts">
+                  {% for letter, choice in row.letters %}<li class="right"><span class="l">{{ forloop.counter }}</span>{{ choice.text }}{% if forloop.first %}<span class="tag">Orden correcto</span>{% endif %}</li>{% endfor %}
+                </ul>
+              {% elif item.kind == 'matching' %}
+                <ul class="ai-opts">
+                  {% for letter, choice in row.letters %}<li class="right"><span class="l">{{ letter }}</span>{{ choice.text }} <span class="text-muted">→</span> {{ choice.match }}{% if forloop.first %}<span class="tag">Parejas correctas</span>{% endif %}</li>{% endfor %}
                 </ul>
               {% else %}
                 <ul class="ai-opts">
@@ -149,14 +179,14 @@
     <div class="ai-bar">
       <div class="grow">
         <b data-ai-approved-text>{{ approved }} aprobada{{ approved|pluralize }}</b> de {{ total }}
-        · {% if draft.activity %}se agregarán al banco de {{ course.name }} y al quiz{% if quiz_count is not None %} (que tiene {{ quiz_count }} pregunta{{ quiz_count|pluralize }}){% endif %}{% else %}se guardarán en el banco de {{ course.name }} y se creará el quiz como borrador{% endif %}
+        · {% if draft.activity %}se agregarán al banco de {{ course.name }} y al {{ noun }}{% if quiz_count is not None %} (que tiene {{ quiz_count }} pregunta{{ quiz_count|pluralize }}){% endif %}{% else %}se guardarán en el banco de {{ course.name }} y se creará el {{ noun }} como borrador{% endif %}
       </div>
-      <button type="submit" name="action" value="discard_all" class="btn btn-ghost" onclick="return confirm('¿Descartar todas las propuestas? No se agrega nada al quiz.')">Descartar todo</button>
-      <button type="submit" name="action" value="apply" class="btn btn-primary" data-ai-apply{% if not approved %} disabled{% endif %}>Aprobar {{ approved }} y agregar al quiz</button>
+      <button type="submit" name="action" value="discard_all" class="btn btn-ghost" onclick="return confirm('¿Descartar todas las propuestas? No se agrega nada al {{ noun }}.')">Descartar todo</button>
+      <button type="submit" name="action" value="apply" class="btn btn-primary" data-ai-apply data-ai-noun="{{ noun }}"{% if not approved %} disabled{% endif %}>Aprobar {{ approved }} y agregar al {{ noun }}</button>
     </div>
   </form>
 
 {% endif %}
-<script src="{% static 'js/ia.js' %}?v=1"></script>
+<script src="{% static 'js/ia.js' %}?v=3"></script>
 {% include 'partials/math.html' %}
 {% endblock %}

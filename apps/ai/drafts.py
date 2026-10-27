@@ -16,8 +16,10 @@ from django.utils import timezone
 
 from apps.grades.models import Activity
 from apps.quizzes.models import Question, QuizConfig
-from apps.quizzes.services import builder
-from apps.quizzes.services.bank import questions_for_course, save_question, validate_choices
+from apps.quizzes.services import builder, exams
+from apps.quizzes.services.bank import (
+    questions_for_course, save_question, validate_accepted, validate_choices, validate_items, validate_pairs,
+)
 from apps.syllabus.models import Syllabus
 from apps.syllabus.services import weeks as week_ops
 
@@ -180,7 +182,8 @@ def _generate_quiz(draft):
     weeks = _weeks_of(draft)
     data = _generate(
         organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.QUIZ,
-        prompt=quiz_gen.build_prompt(draft.params, weeks), schema=quiz_gen.SCHEMA, system=quiz_gen.SYSTEM,
+        prompt=quiz_gen.build_prompt(draft.params, weeks), schema=quiz_gen.schema_for(draft.params),
+        system=quiz_gen.system_for(draft.params),
     )
     draft.items, draft.dropped = quiz_gen.parse_items(data, weeks, draft.params, existing=_bank_sample(draft))
     if not draft.items:
@@ -253,7 +256,7 @@ def _replacement(draft, old):
     data = _generate(
         organization=draft.organization, user=draft.requested_by, kind=AIRequest.Kind.QUIZ,
         prompt=quiz_gen.build_prompt(draft.params, weeks, count=1, mix=old['kind'], avoid=avoid),
-        schema=quiz_gen.SCHEMA, system=quiz_gen.SYSTEM,
+        schema=quiz_gen.schema_for(draft.params), system=quiz_gen.system_for(draft.params),
     )
     found, _ = quiz_gen.parse_items(data, weeks, draft.params, mix=old['kind'], limit=1, existing=_bank_sample(draft))
     return ({**found[0], 'points': old['points']} if found else None), 'La IA no devolvió una pregunta válida. Intenta de nuevo.'
@@ -334,17 +337,28 @@ def edit_item(draft, index, post):
     if len(text) > quiz_gen.TEXT_MAX:
         raise ValidationError(f'La pregunta puede tener hasta {quiz_gen.TEXT_MAX} caracteres.')
     explanation = post.get('edit_explanation', '').strip()[:quiz_gen.EXPLANATION_MAX]
-    if item['kind'] == Question.Kind.TRUE_FALSE:
+    kind = item['kind']
+    if kind == Question.Kind.TRUE_FALSE:
         if post.get('edit_correct') not in ('true', 'false'):
             raise ValidationError('Indica si la respuesta correcta es verdadero o falso.')
         item['true_is_correct'] = post['edit_correct'] == 'true'
+    elif kind == Question.Kind.MATCHING:
+        pairs = list(zip(post.getlist('edit_left'), post.getlist('edit_right'), strict=False))
+        if any(len(side.strip()) > quiz_gen.CHOICE_MAX for pair in pairs for side in pair):
+            raise ValidationError(f'Cada elemento puede tener hasta {quiz_gen.CHOICE_MAX} caracteres.')
+        item['choices'] = [{'text': left, 'correct': False, 'match': right} for left, _, right in validate_pairs(pairs)]
     else:
         options = post.getlist('edit_option')
         correct = post.get('edit_correct', '')
-        rows = [(option, str(position) == correct) for position, option in enumerate(options)]
         if any(len(option.strip()) > quiz_gen.CHOICE_MAX for option in options):
             raise ValidationError(f'Cada opción puede tener hasta {quiz_gen.CHOICE_MAX} caracteres.')
-        item['choices'] = [{'text': option, 'correct': is_correct} for option, is_correct in validate_choices(rows)]
+        if kind == Question.Kind.SHORT_ANSWER:
+            rows = validate_accepted([(option, True) for option in options])
+        elif kind == Question.Kind.ORDERING:
+            rows = validate_items([(option, False) for option in options])  # en el orden en que están escritos
+        else:
+            rows = validate_choices([(option, str(position) == correct) for position, option in enumerate(options)])
+        item['choices'] = [{'text': option, 'correct': is_correct} for option, is_correct in rows]
     item.update(text=text, explanation=explanation, edited=True, similar=None)
 
 
@@ -378,9 +392,24 @@ def close_assignments(draft):
 
 # ── Aprobar y aplicar ─────────────────────────────────────────────────
 
+def noun(draft):
+    """«examen» o «quiz», para los mensajes."""
+    return 'examen' if draft.params.get('exam') else 'quiz'
+
+
 def _default_title(draft, week):
     base = week.title.strip() or f'Semana {week.position}'
-    return (draft.new_activity_title or f'Quiz · {base}')[:255]
+    return (draft.new_activity_title or f'{noun(draft).capitalize()} · {base}')[:255]
+
+
+def _question_args(item):
+    """Lo que ``save_question`` necesita de la propuesta, según su tipo."""
+    kind, choices = item['kind'], item['choices']
+    if kind == Question.Kind.TRUE_FALSE:
+        return {'true_is_correct': item['true_is_correct']}
+    if kind == Question.Kind.MATCHING:
+        return {'choices': [(choice['text'], choice['match']) for choice in choices]}
+    return {'choices': [(choice['text'], choice['correct']) for choice in choices]}
 
 
 @transaction.atomic
@@ -400,23 +429,29 @@ def apply_quiz(draft_id, user):
     for item in approved:
         question = save_question(
             organization=draft.organization, author=user, kind=item['kind'], text=item['text'], points=item['points'],
-            explanation=item['explanation'], topic=item['topic'], course=course, ai_generated=True,
-            choices=[(c['text'], c['correct']) for c in item['choices']] if item['kind'] == Question.Kind.MULTIPLE_CHOICE else None,
-            true_is_correct=item['true_is_correct'] if item['kind'] == Question.Kind.TRUE_FALSE else None,
+            explanation=item['explanation'], topic=item['topic'], course=course, ai_generated=True, **_question_args(item),
         )
         item['question_id'] = question.pk
         questions.append(question)
     activity, created = draft.activity, False
+    exam = draft.params.get('exam', False)
     if activity is None:
         weeks = {week.position: week for week in _weeks_of_or_empty(draft)}
         first = weeks.get(min(item['week'] for item in approved)) or next(iter(weeks.values()), None)
         activity = Activity(
-            course=course, type=Activity.Type.QUIZ, title=_default_title(draft, first) if first else (draft.new_activity_title or 'Quiz'),
+            course=course, type=Activity.Type.EXAM if exam else Activity.Type.QUIZ,
+            title=_default_title(draft, first) if first else (draft.new_activity_title or noun(draft).capitalize()),
             syllabus_week=first, published=False,
         )
         activity.save()
         created = True
-    quiz, _ = QuizConfig.objects.get_or_create(activity=activity)
+    if activity.type == Activity.Type.EXAM:
+        # Un examen nuevo se aplica en línea (con los valores de un examen); uno existente ya debe estarlo.
+        quiz = exams.enable_online(activity) if created else QuizConfig.objects.filter(activity=activity).first()
+        if quiz is None:
+            raise ValidationError('Aplica el examen en línea antes de agregarle preguntas.')
+    else:
+        quiz, _ = QuizConfig.objects.get_or_create(activity=activity)
     builder.add_questions(quiz, questions)
     if created:
         builder.sync_activity_points(quiz)

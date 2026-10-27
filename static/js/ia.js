@@ -6,6 +6,29 @@
     });
   });
 
+  // Panel de preguntas desde el temario: un examen admite más preguntas y más tipos que un quiz.
+  document.querySelectorAll('[data-ai-kind]').forEach(function (group) {
+    var modal = group.closest('form');
+    var refreshKind = function () {
+      var exam = modal.querySelector('input[name=kind]:checked').value === 'exam';
+      modal.querySelectorAll('[data-ai-exam-only]').forEach(function (el) {
+        el.hidden = !exam;
+        if (el.tagName === 'OPTION') {
+          el.disabled = !exam;
+          if (!exam && el.selected) el.parentNode.value = '10';
+        } else {
+          el.querySelectorAll('input').forEach(function (input) { input.disabled = !exam; });
+        }
+      });
+      modal.querySelectorAll('[data-ai-quiz-only]').forEach(function (el) {
+        el.hidden = exam;
+        el.querySelectorAll('input').forEach(function (input) { input.disabled = exam; });
+      });
+    };
+    group.addEventListener('change', refreshKind);
+    refreshKind();
+  });
+
   // Pantalla de revisión: el contador y el botón siguen a las casillas.
   var review = document.querySelector('[data-ai-review]');
   if (review) {
@@ -19,7 +42,7 @@
       review.querySelectorAll('[data-ai-approved-chip]').forEach(function (el) { el.textContent = label; });
       if (apply) {
         apply.disabled = n === 0;
-        apply.textContent = 'Aprobar ' + n + ' y agregar al quiz';
+        apply.textContent = 'Aprobar ' + n + ' y agregar al ' + (apply.dataset.aiNoun || 'quiz');
       }
       if (all) all.checked = boxes.length > 0 && n === boxes.length;
     };

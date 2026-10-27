@@ -4,6 +4,7 @@ Todo lo que sale del proveedor se trata como no confiable: pasa por el mismo val
 pregunta debe traer una cita que **aparezca literalmente** en el texto de las semanas enviadas; si no, se descarta.
 """
 
+import copy
 import difflib
 import random
 from decimal import Decimal, InvalidOperation
@@ -11,12 +12,15 @@ from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError
 
 from apps.quizzes.models import Question
-from apps.quizzes.services.bank import MAX_CHOICES, MIN_CHOICES, validate_choices
+from apps.quizzes.services.bank import (
+    MAX_ACCEPTED_LENGTH, MAX_CHOICE_LENGTH, MAX_CHOICES, MIN_CHOICES, validate_accepted, validate_choices, validate_items,
+    validate_pairs,
+)
 
 from .text import line_norms, math_balanced, normalize, quoted_in_lines, repair_math
 
-MAX_QUESTIONS = 20
 COUNT_CHOICES = (5, 10, 15, 20)
+EXAM_COUNT_CHOICES = (5, 10, 15, 20, 30)  # un examen suele ser más largo que un quiz
 MAX_MATERIAL_CHARS = 30_000
 MAX_INSTRUCTIONS_CHARS = 500
 SIMILAR_RATIO = 0.85
@@ -31,6 +35,14 @@ MIX_CHOICES = (
     ('multiple_choice', 'Opción múltiple'),
     ('true_false', 'Verdadero/falso'),
 )
+# Los tipos que puede pedir un examen en línea (el quiz solo usa opción múltiple y verdadero/falso).
+EXAM_KIND_CHOICES = (
+    ('opcion_multiple', 'Opción múltiple'),
+    ('verdadero_falso', 'Verdadero/falso'),
+    ('respuesta_corta', 'Respuesta corta'),
+    ('ordenar', 'Ordenar'),
+    ('relacionar', 'Relacionar columnas'),
+)
 DIFFICULTY_CHOICES = (
     ('easy', 'Fácil'),
     ('medium', 'Media'),
@@ -41,6 +53,9 @@ _MIX_PROMPT = {
     'mix': 'una mezcla: unas dos terceras partes de opción múltiple y el resto de verdadero/falso',
     'multiple_choice': 'solo de opción múltiple',
     'true_false': 'solo de verdadero/falso',
+    'short_answer': 'solo de respuesta corta',
+    'ordering': 'solo de ordenar (poner en orden)',
+    'matching': 'solo de relacionar columnas',
 }
 _DIFFICULTY_PROMPT = {
     'easy': 'fácil (recordar y reconocer lo que dice el material)',
@@ -48,7 +63,11 @@ _DIFFICULTY_PROMPT = {
     'hard': 'difícil (aplicar y analizar lo que dice el material)',
     'mixed': 'mezclada, de fácil a difícil',
 }
-_KIND_BY_NAME = {'opcion_multiple': Question.Kind.MULTIPLE_CHOICE, 'verdadero_falso': Question.Kind.TRUE_FALSE}
+_KIND_BY_NAME = {
+    'opcion_multiple': Question.Kind.MULTIPLE_CHOICE, 'verdadero_falso': Question.Kind.TRUE_FALSE,
+    'respuesta_corta': Question.Kind.SHORT_ANSWER, 'ordenar': Question.Kind.ORDERING, 'relacionar': Question.Kind.MATCHING,
+}
+_KIND_LABEL = dict(EXAM_KIND_CHOICES)
 
 SYSTEM = (
     'Eres un asistente que redacta preguntas de examen para un docente.\n'
@@ -67,6 +86,17 @@ SYSTEM = (
     '«\\(» y «\\)» (por ejemplo \\(\\frac{3}{4}\\) o \\(x^2+5x=0\\)), también en las opciones y en la explicación. Nunca '
     'uses «$» para fórmulas ni dejes LaTeX sin esos delimitadores; lo que no es matemática va como texto normal. En el '
     'JSON, cada barra invertida del LaTeX va duplicada (por ejemplo \\\\frac).'
+)
+
+# Las reglas de los tipos que solo pide un examen: se agregan a ``SYSTEM`` cuando ``params['exam']``.
+_EXAM_RULES = (
+    '\n8. Respuesta corta («respuesta_corta»): la pregunta tiene UNA sola respuesta breve y sin ambigüedad (un término, '
+    'un nombre, un número). «respuestas» lista esa respuesta y sus variantes aceptables (hasta 5, sin repetirlas).'
+    '\n9. Ordenar («ordenar»): «elementos» son de 3 a 6 pasos o etapas del material, ya en el ORDEN CORRECTO; la pregunta '
+    'pide ponerlos en orden.'
+    '\n10. Relacionar («relacionar»): «parejas» son de 3 a 6 objetos {izquierda, derecha} donde cada izquierda corresponde '
+    'a una sola derecha, sin repetir ningún lado.'
+    '\n11. Usa solamente los tipos de pregunta que se piden en cada solicitud.'
 )
 
 SCHEMA = {
@@ -91,6 +121,34 @@ SCHEMA = {
     },
     'required': ['preguntas'],
 }
+
+
+def _exam_schema():
+    schema = copy.deepcopy(SCHEMA)
+    properties = schema['properties']['preguntas']['items']['properties']
+    properties['tipo']['enum'] = [name for name, _ in EXAM_KIND_CHOICES]
+    properties['respuestas'] = {'type': 'array', 'items': {'type': 'string'}}
+    properties['elementos'] = {'type': 'array', 'items': {'type': 'string'}}
+    properties['parejas'] = {
+        'type': 'array',
+        'items': {
+            'type': 'object', 'properties': {'izquierda': {'type': 'string'}, 'derecha': {'type': 'string'}},
+            'required': ['izquierda', 'derecha'],
+        },
+    }
+    return schema
+
+
+EXAM_SCHEMA = _exam_schema()
+
+
+def schema_for(params):
+    """El esquema que se le pide a la IA: el de un examen admite más tipos de pregunta que el de un quiz."""
+    return EXAM_SCHEMA if params.get('exam') else SCHEMA
+
+
+def system_for(params):
+    return SYSTEM + _EXAM_RULES if params.get('exam') else SYSTEM
 
 
 class RequestError(ValidationError):
@@ -144,14 +202,17 @@ def choose_weeks(data, course):
     return chosen
 
 
-def clean_params(data, course):
-    """Valida lo que mandó el formulario y devuelve ``params`` (lo que se guarda en la propuesta)."""
+def clean_params(data, course, *, exam=False):
+    """Valida lo que mandó el formulario y devuelve ``params`` (lo que se guarda en la propuesta).
+
+    ``exam``: las preguntas son para un examen en línea (más cantidad y más tipos de pregunta).
+    """
     chosen = choose_weeks(data, course)
     try:
         count = int(data.get('count') or 10)
     except (TypeError, ValueError):
         count = 10
-    if count not in COUNT_CHOICES:
+    if count not in (EXAM_COUNT_CHOICES if exam else COUNT_CHOICES):
         count = 10
     mix = data.get('mix') if data.get('mix') in dict(MIX_CHOICES) else 'mix'
     difficulty = data.get('difficulty') if data.get('difficulty') in dict(DIFFICULTY_CHOICES) else 'medium'
@@ -164,21 +225,51 @@ def clean_params(data, course):
     instructions = (data.get('instructions') or '').strip()
     if len(instructions) > MAX_INSTRUCTIONS_CHARS:
         raise RequestError(f'Las instrucciones extra pueden tener hasta {MAX_INSTRUCTIONS_CHARS} caracteres.')
-    return {
+    params = {
         'week_ids': [week.pk for week in chosen], 'count': count, 'mix': mix, 'difficulty': difficulty,
         'points': format_points(points), 'instructions': instructions,
     }
+    if exam:
+        asked = set(data.getlist('kinds') if hasattr(data, 'getlist') else data.get('kinds', []))
+        kinds = [name for name, _ in EXAM_KIND_CHOICES if name in asked]  # en el orden del panel, sin repetidas ni inventadas
+        if not kinds:
+            raise RequestError('Elige al menos un tipo de pregunta para el examen.')
+        params.update(exam=True, kinds=kinds)
+    return params
 
 
 # ── La solicitud ──────────────────────────────────────────────────────
+
+def _kinds_prompt(params, mix):
+    """Qué tipos de pregunta se piden: el de la que se regenera, los que eligió el docente para el examen o la mezcla del quiz."""
+    if mix is None and params.get('kinds'):
+        labels = [_KIND_LABEL[name] for name in params['kinds']]
+        if len(labels) == 1:
+            return f'solo de {labels[0].lower()}'
+        return 'repartidas de forma pareja entre estos tipos: ' + ', '.join(labels)
+    return _MIX_PROMPT[mix or params['mix']]
+
+
+def allowed_kinds(params, mix=None):
+    """Los ``Question.Kind`` que se aceptan de la respuesta de la IA."""
+    if mix is not None and mix != 'mix':
+        return {mix}
+    if mix is None and params.get('kinds'):
+        return {_KIND_BY_NAME[name] for name in params['kinds']}
+    chosen = mix or params['mix']
+    return {Question.Kind.MULTIPLE_CHOICE, Question.Kind.TRUE_FALSE} if chosen == 'mix' else {chosen}
+
 
 def build_prompt(params, weeks, *, count=None, mix=None, avoid=()):
     """El texto que se envía: lo que se pide y el material de las semanas. Nunca lleva datos de alumnos."""
     material = '\n\n'.join(week_material(week) for week in weeks)
     lines = [
-        f'Redacta {count or params["count"]} preguntas, {_MIX_PROMPT[mix or params["mix"]]}.',
+        f'Redacta {count or params["count"]} preguntas{" para un examen" if params.get("exam") else ""}, '
+        f'{_kinds_prompt(params, mix)}.',
         f'Dificultad: {_DIFFICULTY_PROMPT[params["difficulty"]]}.',
     ]
+    if params.get('exam'):
+        lines.append('Cubre el material de forma amplia: no repitas el mismo dato en varias preguntas.')
     if params.get('instructions'):
         lines.append(f'Indicaciones del docente: {params["instructions"]}')
     if avoid:
@@ -193,12 +284,56 @@ def _text(value, limit):
     return str(value or '').strip()[:limit] if isinstance(value, (str, int, float)) else ''
 
 
-def _build_item(raw, weeks, norms, *, mix, points, rng):
+def _strings(value):
+    """Una lista de textos limpios (con las fórmulas reparadas), o ``None`` si no es una lista de textos."""
+    if not isinstance(value, list) or any(not isinstance(entry, (str, int, float)) or isinstance(entry, bool) for entry in value):
+        return None
+    return [repair_math(str(entry).strip()) for entry in value]
+
+
+def _pairs(value):
+    """``[(izquierda, derecha), ...]`` de la lista de objetos que devuelve la IA, o ``None`` si no tiene esa forma."""
+    if not isinstance(value, list) or any(not isinstance(pair, dict) for pair in value):
+        return None
+    sides = [(pair.get('izquierda'), pair.get('derecha')) for pair in value]
+    if any(not isinstance(side, (str, int, float)) or isinstance(side, bool) for pair in sides for side in pair):
+        return None
+    return [(repair_math(str(left).strip()), repair_math(str(right).strip())) for left, right in sides]
+
+
+def _build_other(kind, raw, item):
+    """Completa la propuesta de respuesta corta, ordenar o relacionar; ``None`` si lo que devolvió la IA no sirve."""
+    try:
+        if kind == Question.Kind.SHORT_ANSWER:
+            answers = _strings(raw.get('respuestas'))
+            if answers is None or any(len(answer) > MAX_ACCEPTED_LENGTH for answer in answers):
+                return None
+            item['choices'] = [{'text': text, 'correct': True} for text, _ in validate_accepted([(a, True) for a in answers])]
+        elif kind == Question.Kind.ORDERING:
+            elements = _strings(raw.get('elementos'))
+            if elements is None:
+                return None
+            item['choices'] = [{'text': text, 'correct': False} for text, _ in validate_items([(e, False) for e in elements])]
+        else:
+            pairs = _pairs(raw.get('parejas'))
+            if pairs is None:
+                return None
+            item['choices'] = [
+                {'text': left, 'correct': False, 'match': right} for left, _, right in validate_pairs(pairs)
+            ]
+    except ValidationError:
+        return None
+    if any(len(side) > MAX_CHOICE_LENGTH for choice in item['choices'] for side in (choice['text'], choice.get('match', ''))):
+        return None
+    return item
+
+
+def _build_item(raw, weeks, norms, *, allowed, points, rng):
     """Una propuesta válida o ``None``."""
     if not isinstance(raw, dict):
         return None
     kind = _KIND_BY_NAME.get(raw.get('tipo'))
-    if kind is None or (mix != 'mix' and kind != mix):
+    if kind is None or kind not in allowed:
         return None
     text = repair_math(str(raw.get('pregunta') or '').strip())
     citation = str(raw.get('cita') or '').strip()
@@ -219,6 +354,8 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
             return None
         item['true_is_correct'] = raw['verdadero']
         return item
+    if kind != Question.Kind.MULTIPLE_CHOICE:
+        return _build_other(kind, raw, item)
     options = raw.get('opciones')
     correct = raw.get('correcta')
     if not isinstance(options, list) or isinstance(correct, bool) or not isinstance(correct, int):
@@ -240,7 +377,7 @@ def _build_item(raw, weeks, norms, *, mix, points, rng):
 
 def _math_ok(item):
     r'''Las fórmulas de la propuesta están completas: un ``\(`` sin cerrar la mostraría rota al docente y al alumno.'''
-    parts = (item['text'], item['explanation'], *(choice['text'] for choice in item['choices']))
+    parts = (item['text'], item['explanation'], *(side for choice in item['choices'] for side in (choice['text'], choice.get('match', ''))))
     return all(math_balanced(part) for part in parts)
 
 
@@ -254,7 +391,7 @@ def parse_items(data, weeks, params, *, mix=None, limit=None, existing=(), rng=N
     ``existing``: ``[(id, texto), …]`` del banco, para avisar si una propuesta se le parece.
     """
     rng = rng or random.Random()
-    mix = mix or params['mix']
+    allowed = allowed_kinds(params, mix)
     raw_items = data.get('preguntas') if isinstance(data, dict) else None
     if not isinstance(raw_items, list):
         return [], 0
@@ -262,7 +399,7 @@ def parse_items(data, weeks, params, *, mix=None, limit=None, existing=(), rng=N
     bank = [(pk, text, normalize(text)) for pk, text in existing]
     items, seen, dropped = [], [], 0
     for raw in raw_items:
-        item = _build_item(raw, weeks, norms, mix=mix, points=params['points'], rng=rng)
+        item = _build_item(raw, weeks, norms, allowed=allowed, points=params['points'], rng=rng)
         if item is not None and not _math_ok(item):
             item = None
         key = normalize(item['text']) if item else ''

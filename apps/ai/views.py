@@ -1,4 +1,4 @@
-"""Pantallas de la IA asistida: pedir preguntas de quiz y revisar las propuestas. Solo para el docente que las pidió."""
+"""Pantallas de la IA asistida: pedir preguntas de quiz o examen y revisar las propuestas. Solo para el docente que las pidió."""
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -11,8 +11,8 @@ from apps.accounts.mixins import TeacherRequiredMixin
 from apps.courses.models import Course
 from apps.grades.models import Activity
 from apps.organizations import limits
-from apps.quizzes.models import QuizConfig
-from apps.quizzes.services import builder
+from apps.quizzes.models import Question, QuizConfig
+from apps.quizzes.services import builder, exams
 from apps.syllabus.models import Syllabus
 from core.utils import parse_id
 
@@ -45,13 +45,20 @@ class QuizGenerateView(TeacherRequiredMixin, View):
         activity_id = parse_id(request.POST.get('activity', ''))
         if activity_id is not None:
             activity = get_object_or_404(
-                Activity.objects.for_organization(request.organization).filter(course=course, type=Activity.Type.QUIZ), pk=activity_id,
+                Activity.objects.for_organization(request.organization).filter(
+                    course=course, type__in=(Activity.Type.QUIZ, Activity.Type.EXAM),
+                ),
+                pk=activity_id,
             )
         back = reverse('quizzes:builder', args=[activity.pk]) if activity else reverse('syllabus:index', args=[course.pk])
+        # Desde una semana (sin actividad) el docente elige si quiere un quiz o un examen.
+        exam = activity.type == Activity.Type.EXAM if activity is not None else request.POST.get('kind') == 'exam'
         try:
             if activity is not None:
+                if exam and not exams.uses_quiz_engine(activity):
+                    raise ValidationError('Aplica el examen en línea antes de generarle preguntas con IA.')
                 builder.ensure_editable(QuizConfig.objects.get_or_create(activity=activity)[0])
-            params = quiz_gen.clean_params(request.POST, course)
+            params = quiz_gen.clean_params(request.POST, course, exam=exam)
             draft = drafts.request_quiz(
                 user=request.user, organization=request.organization, course=course, params=params, activity=activity,
                 title=request.POST.get('title', ''),
@@ -134,6 +141,7 @@ class DraftView(DraftMixin, View):
             week = weeks.get(item['week'])
             rows.append({
                 'i': index, 'n': index + 1, 'item': item, 'editing': editing == index and item['state'] != drafts.REGENERATING,
+                'kind_label': dict(Question.Kind.choices).get(item['kind'], ''),
                 'letters': [(chr(65 + position), choice) for position, choice in enumerate(item['choices'])],
                 'week_label': f'Semana {item["week"]}' + (f' · {week.title}' if week and week.title else ''),
             })
@@ -145,6 +153,7 @@ class DraftView(DraftMixin, View):
         context = {
             'draft': draft, 'course': draft.course, 'rows': rows, 'approved': approved, 'busy': busy, 'quiz_count': quiz_count,
             'discarded': draft.count(drafts.DISCARDED), 'total': len(rows), 'back_url': self.back_url(draft),
+            'noun': drafts.noun(draft),
             'week_names': ', '.join(
                 str(week.position) for week in weeks.values() if week.pk in draft.params.get('week_ids', [])
             ),
@@ -190,13 +199,14 @@ class DraftView(DraftMixin, View):
             elif action == 'discard_all':
                 with drafts.locked(draft.pk) as current:
                     drafts.discard_all(current)
-                messages.success(request, 'Se descartaron todas las propuestas. No se agregó nada al quiz.')
+                messages.success(request, f'Se descartaron todas las propuestas. No se agregó nada al {drafts.noun(draft)}.')
                 return redirect(self.back_url(draft))
             elif action == 'apply':
                 activity = drafts.apply_quiz(draft.pk, request.user)
                 draft.refresh_from_db()
                 count = draft.count(drafts.APPROVED)
-                messages.success(request, f'Se agregaron {count} pregunta{"s" if count != 1 else ""} al banco y al quiz. Revisa el quiz antes de publicarlo.')
+                noun = drafts.noun(draft)
+                messages.success(request, f'Se agregaron {count} pregunta{"s" if count != 1 else ""} al banco y al {noun}. Revisa el {noun} antes de publicarlo.')
                 return redirect('quizzes:builder', pk=activity.pk)
         except ValidationError as error:
             _flash_errors(request, error)
