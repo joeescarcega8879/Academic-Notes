@@ -43,6 +43,11 @@ def submit(activity, student, *, text='', link='', file=None, now=None):
     if state == 'closed':
         raise ValidationError('La fecha límite ya pasó y esta actividad no acepta entregas tardías.')
 
+    if activity.by_teams:
+        from apps.teams.services.submissions import submit_team  # el equipo entrega por todos sus integrantes
+
+        return submit_team(activity, student, text=text, link=link, file=file, now=now, late=state == 'late')
+
     existing = Submission.objects.filter(activity=activity, student=student).first()
     if existing is not None and Grade.objects.filter(activity=activity, student=student).exists():
         raise ValidationError('Tu entrega ya fue calificada y no se puede cambiar.')

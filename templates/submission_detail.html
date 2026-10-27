@@ -21,6 +21,9 @@
     {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% else %}<span class="chip ok">A tiempo</span>{% endif %}
     {% if activity.due_at %}<span class="text-muted"> · fecha límite {{ activity.due_at|date:"d/m/Y H:i" }}</span>{% endif %}
   </p>
+  {% if submission.team %}
+    <p class="text-sm text-muted" style="margin-top: 0">Entrega de <strong>{{ submission.team }}</strong>{% if submission.submitted_by %}, enviada por {{ submission.submitted_by }}{% endif %}. Todos los integrantes tienen esta misma entrega.</p>
+  {% endif %}
 
   {% if submission.text %}
     <h3 class="section-title">Respuesta</h3>

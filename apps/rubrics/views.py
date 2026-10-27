@@ -149,6 +149,8 @@ class RubricGradeListView(RubricActivityMixin, View):
 
     def get(self, request, pk):
         activity = self.get_activity(pk)
+        if activity.by_teams:
+            return redirect('teams:grade_list', pk=activity.pk)
         return render(request, 'rubric_grade_list.html', {
             'activity': activity, 'course': activity.course, 'rows': self.student_rows(activity),
             'version': activity.rubric_version,

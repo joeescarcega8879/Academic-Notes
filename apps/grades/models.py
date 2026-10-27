@@ -150,6 +150,9 @@ class Activity(TenantModel):
         'páginas de portada', choices=[(0, 'Sin portada'), (1, '1 página'), (2, '2 páginas')], default=1, db_default=1,
     )
 
+    # Proyecto que se entrega por equipos (``teams.Team``): una entrega y una calificación para todo el equipo.
+    by_teams = models.BooleanField('se entrega por equipos', default=False, db_default=False)
+
     class Meta:
         ordering = ['-date', 'title']
         verbose_name_plural = 'activities'
@@ -178,6 +181,8 @@ class Activity(TenantModel):
             raise ValidationError({'syllabus_week': 'La semana debe ser del temario de este grupo.'})
         if self.opens_at and self.due_at and self.due_at < self.opens_at:
             raise ValidationError({'due_at': 'La fecha límite no puede ser anterior a la apertura.'})
+        if self.by_teams and self.type != self.Type.PROJECT:
+            raise ValidationError({'by_teams': 'Solo un proyecto se entrega por equipos.'})
         if self.published:
             # Otras apps pueden vetar la publicación (un quiz sin preguntas, por ejemplo).
             activity_publishing.send(sender=Activity, activity=self)
@@ -340,6 +345,12 @@ class Submission(TenantModel):
     original_name = models.CharField(max_length=255, blank=True)
     submitted_at = models.DateTimeField()
     is_late = models.BooleanField(default=False)
+    # Proyecto por equipos: cada integrante tiene su fila (así todo lo demás sigue siendo «una entrega por alumno»)
+    # y todas comparten el mismo contenido. ``submitted_by`` es quien la envió.
+    team = models.ForeignKey('teams.Team', null=True, blank=True, on_delete=models.SET_NULL, related_name='submissions')
+    submitted_by = models.ForeignKey(
+        'courses.Student', null=True, blank=True, on_delete=models.SET_NULL, related_name='+', verbose_name='enviada por',
+    )
 
     class ReadStatus(models.TextChoices):
         TEXT = 'text', 'Texto digital'

@@ -18,6 +18,7 @@ urlpatterns = [
     path('', include('apps.batches.urls')),
     path('', include('apps.quizzes.urls')),
     path('', include('apps.rubrics.urls')),
+    path('', include('apps.teams.urls')),
     path('', include('apps.ai.urls')),
     path('', include('apps.reports.urls')),
     path('', include('apps.messaging.urls')),

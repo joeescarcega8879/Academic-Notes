@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Calificar a {{ student }} · {{ activity.title }} · {{ site_name }}{% endblock %}
+{% block title %}Calificar a {% if team %}{{ team }}{% else %}{{ student }}{% endif %} · {{ activity.title }} · {{ site_name }}{% endblock %}
 
 {% block topbar %}
 <header class="topbar">
-  {% url 'rubrics:grade_list' activity.pk as list_url %}
+  {% if team %}{% url 'teams:grade_list' activity.pk as list_url %}{% else %}{% url 'rubrics:grade_list' activity.pk as list_url %}{% endif %}
   {% include 'partials/back.html' with url=list_url label='Volver a la lista' %}
-  <h1>Calificar a {{ student }}</h1>
+  <h1>Calificar a {% if team %}{{ team }}{% else %}{{ student }}{% endif %}</h1>
   <span class="sub">{{ activity.title }} · {{ course.name }}</span>
   <div class="spacer"></div>
   {% include 'partials/notifications.html' %}
@@ -17,7 +17,7 @@
 <div class="card mb-12">
   {% if submission %}
     <p class="text-sm" style="margin: 0 0 6px">
-      Entregada el {{ submission.submitted_at|date:"d/m/Y H:i" }}
+      {% if team and submission.submitted_by %}Enviada por {{ submission.submitted_by }} el{% else %}Entregada el{% endif %} {{ submission.submitted_at|date:"d/m/Y H:i" }}
       {% if submission.is_late %}<span class="chip" style="color: var(--bad)">Tardía</span>{% else %}<span class="chip ok">A tiempo</span>{% endif %}
     </p>
     {% if submission.text %}<p style="white-space: pre-line; margin: 6px 0">{{ submission.text|truncatechars:600 }}</p>{% endif %}
@@ -25,12 +25,20 @@
     {% if submission.file %}<p style="margin: 6px 0"><a class="btn btn-ghost btn-sm" href="{% url 'grades:submission_file' submission.pk %}">Descargar {{ submission.original_name|default:"archivo" }}</a></p>{% endif %}
     <a class="text-sm" href="{% url 'grades:submission_detail' submission.pk %}" target="_blank" rel="noopener">Ver la entrega completa</a>
   {% else %}
-    <p class="text-muted" style="margin: 0">{{ student }} no tiene entrega registrada. Puedes calificar de todos modos (una entrega en papel, por ejemplo).</p>
+    <p class="text-muted" style="margin: 0">{% if team %}{{ team }}{% else %}{{ student }}{% endif %} no tiene entrega registrada. Puedes calificar de todos modos (una entrega en papel, por ejemplo).</p>
   {% endif %}
 </div>
 
 {% if error %}<div class="flash flash-error" role="alert" style="margin-bottom: 12px">{{ error }}</div>{% endif %}
-{% if adjusted %}
+{% if team %}
+  <div class="flash" style="margin-bottom: 12px">
+    Se guardará la misma calificación para los {{ members|length }} integrantes: {% for member in members %}{{ member }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+    {% if adjusted_members %}
+      <div style="margin-top: 6px">Se conservará el ajuste a mano de {% for member in adjusted_members %}{{ member }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+        <label class="text-sm"><input type="checkbox" name="replace"{% if replace %} checked{% endif %} form="rubric-grade"> Reemplazarlo con la del equipo</label></div>
+    {% endif %}
+  </div>
+{% elif adjusted %}
   <div class="flash" style="margin-bottom: 12px">La calificación de {{ student }} se ajustó a mano ({{ grade.score|floatformat:"-2" }}). Si guardas aquí, vuelve a ser la que suma la rúbrica.</div>
 {% endif %}
 
@@ -72,7 +80,7 @@
     <div><span class="text-sm text-muted">Rúbrica</span><br><b id="grade-points">0 / {{ version.max_points|floatformat:"-2" }}</b> <span class="text-sm text-muted" id="grade-count"></span></div>
     <div><span class="text-sm text-muted">Calificación de la actividad</span><br><b id="grade-score">—</b> <span class="text-sm text-muted">de {{ activity.max_score|floatformat:"-2" }}</span>{% if penalizable %}<div class="text-xs text-muted" id="grade-penalty" aria-live="polite"></div>{% endif %}</div>
     <div class="flex-row gap-14" style="flex-wrap: wrap">
-      {% if next_student %}<button type="submit" name="siguiente" value="1" class="btn btn-ghost">Guardar y siguiente</button>{% endif %}
+      {% if next_student or next_team %}<button type="submit" name="siguiente" value="1" class="btn btn-ghost">Guardar y siguiente</button>{% endif %}
       <button type="submit" class="btn btn-primary">Guardar calificación</button>
     </div>
   </div>

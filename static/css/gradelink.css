@@ -1840,3 +1840,31 @@ tr.row-sin-entrega { background: rgba(255, 200, 61, 0.14); }
   .rub-cm { grid-column: auto; }
   .rub-lvn { display: block; }
 }
+
+/* ── Proyectos por equipos ─────────────────────────────────────────── */
+.field[hidden] { display: none; }
+.tm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.tm-inline { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 0; }
+.tm-count { width: 76px; }
+.tm-note { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--sun-50); color: var(--sun-ink); font-size: 13px; }
+.tm-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+.tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; align-items: start; }
+.tm-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 12px 14px; box-shadow: var(--shadow-sm); }
+.tm-title { display: flex; gap: 6px; align-items: center; margin: 0 0 6px; }
+.tm-title-input { flex: 1; min-width: 0; font: inherit; font-weight: 700; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 4px 6px; margin-left: -6px; }
+.tm-title-input:hover { border-color: var(--border); }
+.tm-title-input:focus { border-color: var(--brand-primary); outline: none; background: var(--surface); }
+.tm-count-chip { margin-bottom: 4px; }
+.tm-member { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 14px; margin: 0; }
+.tm-count-chip + .tm-member { border-top: 0; }
+.tm-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tm-pick { height: 30px; font-size: 12.5px; max-width: 128px; padding-block: 0; }
+.tm-rm { background: none; border: 0; color: var(--text-muted); cursor: pointer; font-size: 12.5px; padding: 4px 2px; }
+.tm-rm:hover { color: var(--bad); text-decoration: underline; }
+.tm-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.tm-del { margin-left: auto; }
+.tm-empty { grid-column: 1 / -1; padding: 28px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius); }
+.tm-people { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 12px; }
+@media (max-width: 860px) {
+  .tm-layout { grid-template-columns: 1fr; }
+}

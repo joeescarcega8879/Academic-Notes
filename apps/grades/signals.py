@@ -71,7 +71,7 @@ def audit_grade_deleted(sender, instance, **kwargs):
 @receiver(post_delete, sender=Submission)
 def delete_submission_file(sender, instance, **kwargs):
     """Al borrar una entrega (o su actividad o grupo) se borra su archivo del almacenamiento."""
-    if instance.file:
+    if instance.file and not Submission.objects.filter(file=instance.file.name).exists():
         instance.file.storage.delete(instance.file.name)
 
 
@@ -82,7 +82,7 @@ def copy_course_content(sender, source, clone, **kwargs):
     for activity in source.activities.all():
         copy = clone.activities.create(
             title=activity.title, instructions=activity.instructions, type=activity.type,
-            max_score=activity.max_score, weight=activity.weight, date=None,
+            max_score=activity.max_score, weight=activity.weight, date=None, by_teams=activity.by_teams,
             criterion=criteria[activity.criterion_id],
         )
         activity_cloned.send(sender=type(activity), source=activity, clone=copy)
